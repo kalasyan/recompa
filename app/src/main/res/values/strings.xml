@@ -81,4 +81,5 @@
     <string name="type_decomp">Decompilación</string>
     <string name="type_source_port">Source port</string>
     <string name="platform_other">Otra plataforma</string>
+    <string name="platform_all">Todas · %1$d</string>
 </resources>

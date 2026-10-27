@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -31,7 +33,6 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.Button
@@ -67,7 +68,7 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.coerceIn
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -118,9 +119,9 @@ fun CatalogScreen(
 }
 
 /**
- * The library: the selected port's art fills the background, its details sit on top, and the
- * covers below. Built for a gamepad: the D-pad moves between covers, A opens one, and L1/R1
- * switch between lists.
+ * The library: the selected port's art fills the background, its details sit beside or above
+ * a grid of covers. Built for a gamepad: the D-pad moves between covers, A opens one, L1/R1
+ * switch between All, Compatible and Installed, and L2/R2 between original platforms.
  */
 @Composable
 private fun Library(state: CatalogState.Ready, onOpen: (PortItem) -> Unit, onDiagnostics: () -> Unit) {
@@ -133,106 +134,115 @@ private fun Library(state: CatalogState.Ready, onOpen: (PortItem) -> Unit, onDia
     val statuses = remember(state.items, revision) { state.items.associate { it.port.id to manager.status(it.port) } }
 
     var filter by rememberSaveable { mutableStateOf(Filter.ALL) }
-    val visible = state.items.filter {
+    var platform by rememberSaveable { mutableStateOf<String?>(null) }
+    val inList = state.items.filter {
         when (filter) {
             Filter.ALL -> true
             Filter.COMPATIBLE -> it.compatible && it.port.recommendedFork != null
             Filter.INSTALLED -> statuses[it.port.id] != PortStatus.NotInstalled
         }
     }
+    // Platforms of the current list, the most common first and "other" last.
+    val platforms = inList.groupingBy { it.port.originalPlatform }.eachCount().entries
+        .sortedWith(compareBy({ it.key == "other" }, { -it.value }))
+        .map { it.key to it.value }
+    val visible = inList.filter { platform == null || it.port.originalPlatform == platform }
     var selectedId by rememberSaveable { mutableStateOf<String?>(null) }
     val selected = visible.firstOrNull { it.port.id == selectedId } ?: visible.firstOrNull()
 
     Box(
         Modifier.fillMaxSize().onPreviewKeyEvent { event ->
             if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
-            val step = when (event.key.nativeKeyCode) {
-                AndroidKeyEvent.KEYCODE_BUTTON_L1 -> -1
-                AndroidKeyEvent.KEYCODE_BUTTON_R1 -> 1
+            when (event.key.nativeKeyCode) {
+                AndroidKeyEvent.KEYCODE_BUTTON_L1 -> filter = filter.cycle(-1)
+                AndroidKeyEvent.KEYCODE_BUTTON_R1 -> filter = filter.cycle(1)
+                AndroidKeyEvent.KEYCODE_BUTTON_L2, AndroidKeyEvent.KEYCODE_BUTTON_R2 -> {
+                    val options = listOf(null) + platforms.map { it.first }
+                    val step = if (event.key.nativeKeyCode == AndroidKeyEvent.KEYCODE_BUTTON_L2) -1 else 1
+                    platform = options[(options.indexOf(platform) + step).mod(options.size)]
+                }
                 else -> return@onPreviewKeyEvent false
             }
-            filter = Filter.entries[(filter.ordinal + step).mod(Filter.entries.size)]
             true
         },
     ) {
         PortBackdrop(selected?.port, Modifier.fillMaxSize())
         BoxWithConstraints(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
-            // Landscape handhelds have little height: one shelf of covers instead of a grid.
-            val shelf = maxHeight < 520.dp
-            val featuredHeight = if (shelf) 164.dp else 256.dp
-            // Shelf covers take whatever height is left under the top bar and the details.
-            val shelfCoverWidth = ((maxHeight - TopBarHeight - featuredHeight - 64.dp) * 2f / 3f).coerceIn(84.dp, 150.dp)
+            // Landscape handhelds have little height: details on the left, covers on the right.
+            val side = maxWidth > maxHeight && maxHeight < 600.dp
             val gridState = rememberLazyGridState()
-            val rowState = rememberLazyListState()
             val focusTarget = remember { FocusRequester() }
             // Keep the selected cover in view and focused, also when coming back from a port's page.
-            LaunchedEffect(filter, shelf) {
+            LaunchedEffect(filter, platform, side) {
                 val index = visible.indexOfFirst { it.port.id == selected?.port?.id }.coerceAtLeast(0)
-                if (shelf) rowState.scrollToItem(index) else gridState.scrollToItem(index)
+                gridState.scrollToItem(index)
                 withFrameNanos { }
                 runCatching { focusTarget.requestFocus() }
             }
-            Column(Modifier.fillMaxSize()) {
-                TopBar(filter, onFilter = { filter = it }, offline = state.fromCache, onDiagnostics = onDiagnostics)
-                if (selected != null) {
-                    Featured(
-                        selected,
-                        statuses[selected.port.id],
-                        compact = shelf,
-                        modifier = Modifier.height(featuredHeight).padding(horizontal = 24.dp),
-                    )
-                }
+            val grid: @Composable (Modifier, Dp) -> Unit = { modifier, minCover ->
                 if (visible.isEmpty()) {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Text(
                             stringResource(if (state.items.isEmpty()) R.string.empty_catalog else R.string.empty_filter),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    return@Column
-                }
-                val poster: @Composable (PortItem, Modifier) -> Unit = { item, modifier ->
-                    Poster(
-                        item = item,
-                        status = statuses[item.port.id],
-                        onClick = {
-                            selectedId = item.port.id
-                            onOpen(item)
-                        },
-                        onFocused = { selectedId = item.port.id },
-                        modifier = modifier,
-                        focusRequester = focusTarget.takeIf { item == selected },
-                    )
-                }
-                if (shelf) {
-                    Spacer(Modifier.weight(1f))
-                    LazyRow(
-                        state = rowState,
-                        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 18.dp),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    ) {
-                        items(visible, key = { it.port.id }) { item ->
-                            poster(item, Modifier.width(shelfCoverWidth))
-                        }
-                    }
                 } else {
                     LazyVerticalGrid(
                         state = gridState,
-                        columns = GridCells.Adaptive(minSize = 128.dp),
+                        columns = GridCells.Adaptive(minSize = minCover),
                         contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 24.dp),
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                         verticalArrangement = Arrangement.spacedBy(20.dp),
-                        modifier = Modifier.weight(1f),
+                        modifier = modifier,
                     ) {
                         items(visible, key = { it.port.id }) { item ->
-                            poster(item, Modifier)
+                            Poster(
+                                item = item,
+                                status = statuses[item.port.id],
+                                onClick = {
+                                    selectedId = item.port.id
+                                    onOpen(item)
+                                },
+                                onFocused = { selectedId = item.port.id },
+                                focusRequester = focusTarget.takeIf { item == selected },
+                            )
                         }
                     }
+                }
+            }
+            Column(Modifier.fillMaxSize()) {
+                TopBar(filter, onFilter = { filter = it }, offline = state.fromCache, onDiagnostics = onDiagnostics)
+                PlatformBar(platforms, platform, total = inList.size, onPlatform = { platform = it })
+                if (side) {
+                    Row(Modifier.weight(1f)) {
+                        if (selected != null) {
+                            Featured(
+                                selected,
+                                statuses[selected.port.id],
+                                compact = true,
+                                modifier = Modifier.fillMaxWidth(0.38f).padding(start = 24.dp, top = 12.dp),
+                            )
+                        }
+                        grid(Modifier.weight(1f), 96.dp)
+                    }
+                } else {
+                    if (selected != null) {
+                        Featured(
+                            selected,
+                            statuses[selected.port.id],
+                            compact = false,
+                            modifier = Modifier.height(232.dp).padding(horizontal = 24.dp).fillMaxWidth(0.7f),
+                        )
+                    }
+                    grid(Modifier.weight(1f), 128.dp)
                 }
             }
         }
     }
 }
+
+private fun Filter.cycle(step: Int) = Filter.entries[(ordinal + step).mod(Filter.entries.size)]
 
 @Composable
 private fun TopBar(filter: Filter?, onFilter: (Filter) -> Unit, offline: Boolean, onDiagnostics: () -> Unit) {
@@ -253,23 +263,7 @@ private fun TopBar(filter: Filter?, onFilter: (Filter) -> Unit, offline: Boolean
         if (filter != null) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Filter.entries.forEach { option ->
-                    // The ring is the chip's own border, so it follows the chip's exact shape.
-                    val interaction = remember { MutableInteractionSource() }
-                    val focused by interaction.collectIsFocusedAsState()
-                    FilterChip(
-                        interactionSource = interaction,
-                        shape = RoundedCornerShape(50),
-                        selected = option == filter,
-                        onClick = { onFilter(option) },
-                        label = { Text(stringResource(option.label)) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            containerColor = Color.White.copy(alpha = 0.06f),
-                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            selectedContainerColor = Color.White,
-                            selectedLabelColor = Night,
-                        ),
-                        border = if (focused) BorderStroke(2.dp, Accent) else null,
-                    )
+                    Chip(stringResource(option.label), selected = option == filter, onClick = { onFilter(option) })
                 }
             }
         }
@@ -281,7 +275,46 @@ private fun TopBar(filter: Filter?, onFilter: (Filter) -> Unit, offline: Boolean
     }
 }
 
+/** One chip per original platform in the current list, with how many ports each has. */
+@Composable
+private fun PlatformBar(platforms: List<Pair<String, Int>>, selected: String?, total: Int, onPlatform: (String?) -> Unit) {
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = 24.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.fillMaxWidth().height(44.dp),
+    ) {
+        item(key = "all") {
+            Chip(stringResource(R.string.platform_all, total), selected = selected == null, onClick = { onPlatform(null) })
+        }
+        items(platforms, key = { it.first }) { (code, count) ->
+            Chip("${platformName(code)} · $count", selected = code == selected, onClick = { onPlatform(code) })
+        }
+    }
+}
+
+@Composable
+private fun Chip(label: String, selected: Boolean, onClick: () -> Unit) {
+    // The focus ring is the chip's own border, so it follows the chip's exact shape.
+    val interaction = remember { MutableInteractionSource() }
+    val focused by interaction.collectIsFocusedAsState()
+    FilterChip(
+        interactionSource = interaction,
+        shape = RoundedCornerShape(50),
+        selected = selected,
+        onClick = onClick,
+        label = { Text(label, maxLines = 1) },
+        colors = FilterChipDefaults.filterChipColors(
+            containerColor = Panel,
+            labelColor = MaterialTheme.colorScheme.onSurface,
+            selectedContainerColor = Color.White,
+            selectedLabelColor = Night,
+        ),
+        border = if (focused) BorderStroke(2.dp, Accent) else null,
+    )
+}
+
 /** Logo, labels and description of the selected port. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun Featured(item: PortItem, status: PortStatus?, compact: Boolean, modifier: Modifier = Modifier) {
     val port = item.port
@@ -289,18 +322,17 @@ private fun Featured(item: PortItem, status: PortStatus?, compact: Boolean, modi
     Box(modifier) {
         Column(
             Modifier
-                .fillMaxWidth(0.7f)
-                .padding(top = if (compact) 0.dp else 24.dp)
+                .padding(top = if (compact) 0.dp else 16.dp)
                 .background(Panel, RoundedCornerShape(16.dp))
                 .padding(horizontal = 16.dp, vertical = 12.dp),
         ) {
             PortTitle(
                 port,
-                logoHeight = if (compact) 56.dp else 96.dp,
+                logoHeight = if (compact) 64.dp else 96.dp,
                 style = if (compact) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.headlineMedium,
             )
             Spacer(Modifier.height(8.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Pill(platformName(port.originalPlatform))
                 Pill(typeName(port.type))
                 StatusPill(item, status)
@@ -311,7 +343,7 @@ private fun Featured(item: PortItem, status: PortStatus?, compact: Boolean, modi
                     it,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
-                    maxLines = if (compact) 2 else 3,
+                    maxLines = if (compact) 5 else 3,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
