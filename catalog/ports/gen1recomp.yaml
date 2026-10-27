@@ -1,7 +1,7 @@
 id: gen1recomp
 name: "Gen1Recomp"
 game: "Pokémon Rojo y Azul"
-original_platform: other
+original_platform: gb
 type: recomp
 upstream: https://github.com/bryanthaboi/gen1recomp
 description: "Recreación de las generaciones 1 a 3 de Pokémon construida a partir de la ROM que aportes."

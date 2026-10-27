@@ -1,7 +1,7 @@
 id: oracles
 name: "Oracles"
 game: "The Legend of Zelda: Oracle of Ages"
-original_platform: other
+original_platform: gbc
 type: decomp
 upstream: https://github.com/kirby-letsgo/oracles-decomp
 description: "Oracle of Ages y Oracle of Seasons reconstruidos en C. Necesita tus ROM de Game Boy Color."

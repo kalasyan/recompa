@@ -1,7 +1,7 @@
 id: bigodao
 name: "Bigodão"
 game: "Wario Land: Super Mario Land 3"
-original_platform: other
+original_platform: gb
 type: recomp
 upstream: https://github.com/GABRIELNNK/Bigodao
 description: "Recompilación estática con panorámico nativo. Necesita tu ROM de Game Boy."

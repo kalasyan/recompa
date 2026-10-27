@@ -11,7 +11,7 @@
     "game": { "type": "string", "minLength": 1 },
     "original_platform": {
       "type": "string",
-      "enum": ["n64", "gamecube", "wii", "wiiu", "ds", "switch", "snes", "genesis", "gba", "ps1", "ps2", "psp", "xbox", "xbox360", "pc", "other"]
+      "enum": ["n64", "gamecube", "wii", "wiiu", "ds", "switch", "snes", "genesis", "gba", "ps1", "ps2", "psp", "xbox", "xbox360", "pc", "nes", "gb", "gbc", "32x", "amiga", "ps3", "other"]
     },
     "type": { "type": "string", "enum": ["recomp", "decomp", "source-port"] },
     "upstream": { "type": "string", "format": "uri" },

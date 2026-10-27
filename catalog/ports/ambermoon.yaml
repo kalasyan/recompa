@@ -1,7 +1,7 @@
 id: ambermoon
 name: "Ambermoon.net"
 game: "Ambermoon"
-original_platform: other
+original_platform: amiga
 type: source-port
 upstream: https://github.com/Pyrdacor/Ambermoon.net
 description: "Reescritura en C# del RPG de Amiga. Necesita los archivos de tu copia."

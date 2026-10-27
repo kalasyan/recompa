@@ -1,7 +1,7 @@
 id: sml2-recomp
 name: "Super Mario Land 2 Recomp"
 game: "Super Mario Land 2: 6 Golden Coins"
-original_platform: other
+original_platform: gb
 type: recomp
 upstream: https://github.com/mstan/SuperMarioLand2Recomp
 description: "Recompilación estática con panorámico adaptable. Necesita tu ROM de Game Boy."

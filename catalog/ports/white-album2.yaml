@@ -1,7 +1,7 @@
 id: white-album2
 name: "WHITE ALBUM2 para Android"
 game: "WHITE ALBUM2"
-original_platform: other
+original_platform: ps3
 type: recomp
 upstream: https://github.com/dorakyuraduang/whitealbum2-Android
 description: "Recompilación estática para Android ARM64. Necesita tu copia del juego."

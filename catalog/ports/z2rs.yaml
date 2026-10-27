@@ -1,7 +1,7 @@
 id: z2rs
 name: "z2rs"
 game: "Zelda II: The Adventure of Link"
-original_platform: other
+original_platform: nes
 type: recomp
 upstream: https://github.com/troyedwardsjr/z2rs
 description: "Reconstrucción en Rust comprobada fotograma a fotograma contra la ROM de NES, que aportas tú."

@@ -1,7 +1,7 @@
 id: gen2recomped
 name: "Gen2Recomped"
 game: "Pokémon Oro y Plata"
-original_platform: other
+original_platform: gbc
 type: recomp
 upstream: https://github.com/UNDERdecoded/Gen2Recomped
 description: "Recreación de la segunda generación con soporte de doble pantalla. Necesita tu ROM."
