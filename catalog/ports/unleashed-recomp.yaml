@@ -1,0 +1,15 @@
+id: unleashed-recomp
+name: "Unleashed Recompiled"
+game: "Sonic Unleashed"
+original_platform: xbox360
+type: recomp
+upstream: https://github.com/hedge-dev/UnleashedRecomp
+description: "Port no oficial de Unleashed Recompiled. Necesita tu copia de Xbox 360."
+
+forks:
+  - repo: SansNope/UnleashedRecomp-Android
+    asset_pattern: '(?i)\.apk$'
+
+requirements:
+  abi: [arm64-v8a]
+  min_sdk: 24

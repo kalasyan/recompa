@@ -1,0 +1,15 @@
+id: dkr-r
+name: "DKR-R"
+game: "Diddy Kong Racing"
+original_platform: n64
+type: recomp
+upstream: https://github.com/ThatGuyMcd/DKR-R
+description: "Diddy Kong Racing recompilado, con soporte de mods. Necesita tu ROM de N64."
+
+forks:
+  - repo: ThatGuyMcd/DKR-R
+    asset_pattern: '(?i)\.apk$'
+
+requirements:
+  abi: [arm64-v8a]
+  min_sdk: 24

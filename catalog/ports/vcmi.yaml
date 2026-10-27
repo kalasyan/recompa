@@ -1,0 +1,15 @@
+id: vcmi
+name: "VCMI"
+game: "Heroes of Might and Magic III"
+original_platform: pc
+type: source-port
+upstream: https://github.com/vcmi/vcmi
+description: "Motor libre para Heroes III. Necesita los archivos de tu copia de PC."
+
+forks:
+  - repo: vcmi/vcmi
+    asset_pattern: '(?i)\.apk$'
+
+requirements:
+  abi: [arm64-v8a]
+  min_sdk: 24

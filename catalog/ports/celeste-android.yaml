@@ -1,0 +1,15 @@
+id: celeste-android
+name: "Celeste Android"
+game: "Celeste"
+original_platform: pc
+type: source-port
+upstream: https://github.com/BelmanteGu/CelesteAndroid
+description: "Ejecuta tu copia de PC de Celeste sobre .NET, FNA, SDL3 y Vulkan."
+
+forks:
+  - repo: BelmanteGu/CelesteAndroid
+    asset_pattern: '(?i)\.apk$'
+
+requirements:
+  abi: [arm64-v8a]
+  min_sdk: 24

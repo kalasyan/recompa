@@ -1,0 +1,18 @@
+id: gen1recomp
+name: "Gen1Recomp"
+game: "Pokémon Rojo y Azul"
+original_platform: other
+type: recomp
+upstream: https://github.com/bryanthaboi/gen1recomp
+description: "Recreación de las generaciones 1 a 3 de Pokémon construida a partir de la ROM que aportes."
+
+forks:
+  - repo: bryanthaboi/gen1recomp
+    asset_pattern: '(?i)\.apk$'
+
+requirements:
+  abi: [arm64-v8a]
+  min_sdk: 24
+
+art:
+  search: "Pokemon Red"

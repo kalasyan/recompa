@@ -1,0 +1,15 @@
+id: lost-odyssey-recomp
+name: "Lost Odyssey Recomp"
+game: "Lost Odyssey"
+original_platform: xbox360
+type: recomp
+upstream: https://github.com/freefrank/LostOdysseyRecomp
+description: "Port nativo experimental de Lost Odyssey. Necesita tu copia de Xbox 360."
+
+forks:
+  - repo: freefrank/LostOdysseyRecomp
+    asset_pattern: '(?i)\.apk$'
+
+requirements:
+  abi: [arm64-v8a]
+  min_sdk: 24

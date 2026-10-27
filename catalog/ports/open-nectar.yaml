@@ -1,0 +1,15 @@
+id: open-nectar
+name: "Open Nectar"
+game: "Pikmin"
+original_platform: gamecube
+type: decomp
+upstream: https://github.com/SSunnKing/Open-Nectar---Pikmin-Native-PC-Mobile-Port
+description: "Ports nativos de Pikmin y Pikmin 2 de GameCube, jugables de principio a fin. Necesita tus discos."
+
+forks:
+  - repo: SSunnKing/Open-Nectar---Pikmin-Native-PC-Mobile-Port
+    asset_pattern: '(?i)\.apk$'
+
+requirements:
+  abi: [arm64-v8a]
+  min_sdk: 24

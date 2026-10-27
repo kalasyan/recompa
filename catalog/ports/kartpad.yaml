@@ -1,0 +1,17 @@
+id: kartpad
+name: "KartPad"
+game: "Mario Kart Wii"
+original_platform: wii
+type: recomp
+upstream: https://github.com/chrissotraidis/kartpad
+description: "Mario Kart Wii y Retro Rewind mediante la recompilación estática WiiCompiled. Necesita tu disco de Wii."
+
+forks:
+  - repo: chrissotraidis/kartpad
+    asset_pattern: '(?i)\.apk$'
+  - repo: dorPXP/driftdroid
+    asset_pattern: '(?i)\.apk$'
+
+requirements:
+  abi: [arm64-v8a]
+  min_sdk: 24

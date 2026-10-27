@@ -1,0 +1,15 @@
+id: dualsouls
+name: "DualSouls"
+game: "Hollow Knight"
+original_platform: pc
+type: source-port
+upstream: https://github.com/igawa6/dualsouls
+description: "Port nativo de Hollow Knight para la doble pantalla de la AYN Thor, preparado a partir de tu copia."
+
+forks:
+  - repo: igawa6/dualsouls
+    asset_pattern: '(?i)\.apk$'
+
+requirements:
+  abi: [arm64-v8a]
+  min_sdk: 24

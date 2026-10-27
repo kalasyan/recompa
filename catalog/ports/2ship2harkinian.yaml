@@ -1,0 +1,17 @@
+id: 2ship2harkinian
+name: "2 Ship 2 Harkinian"
+game: "The Legend of Zelda: Majora's Mask"
+original_platform: n64
+type: decomp
+upstream: https://github.com/HarbourMasters/2ship2harkinian
+description: "Port de Majora's Mask basado en su decompilación, con mejoras y soporte de mods. Necesita tu ROM de N64."
+
+forks:
+  - repo: linkzenic/2ship2harkinian-Android
+    asset_pattern: '(?i)\.apk$'
+  - repo: Waterdish/2ship2harkinian-Android
+    asset_pattern: '(?i)\.apk$'
+
+requirements:
+  abi: [arm64-v8a]
+  min_sdk: 24

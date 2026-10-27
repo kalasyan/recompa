@@ -1,0 +1,15 @@
+id: galaxy-android
+name: "Galaxy Android"
+game: "Super Mario Galaxy"
+original_platform: wii
+type: decomp
+upstream: https://github.com/OpenPort-Labs/Galaxy-Android
+description: "Port nativo y temprano de Super Mario Galaxy con OpenGL ES 3.2 y controles táctiles. Necesita tu disco de Wii."
+
+forks:
+  - repo: OpenPort-Labs/Galaxy-Android
+    asset_pattern: '(?i)\.apk$'
+
+requirements:
+  abi: [arm64-v8a]
+  min_sdk: 24

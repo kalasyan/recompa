@@ -1,0 +1,15 @@
+id: idtech4a
+name: "idTech4A++"
+game: "DOOM 3"
+original_platform: pc
+type: source-port
+upstream: https://github.com/glKarin/com.n0n3m4.diii4a
+description: "Port de idTech 4 (DOOM 3, Quake 4, Prey) y otros motores clásicos como Quake 1-3 y RTCW. Necesita los archivos de tus juegos."
+
+forks:
+  - repo: glKarin/com.n0n3m4.diii4a
+    asset_pattern: '(?i)\.apk$'
+
+requirements:
+  abi: [arm64-v8a]
+  min_sdk: 24

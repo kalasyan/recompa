@@ -1,0 +1,15 @@
+id: openmw
+name: "OpenMW"
+game: "The Elder Scrolls III: Morrowind"
+original_platform: pc
+type: source-port
+upstream: https://gitlab.com/OpenMW/openmw
+description: "OpenMW para Android con optimizaciones y nuevos shaders. Necesita los archivos de tu copia de PC."
+
+forks:
+  - repo: Andiweli/OpenMW-Android
+    asset_pattern: '(?i)\.apk$'
+
+requirements:
+  abi: [arm64-v8a]
+  min_sdk: 24
