@@ -2,8 +2,10 @@ package io.github.kalasyan.recompa.core.install
 
 import io.github.kalasyan.recompa.core.catalog.Fork
 import io.github.kalasyan.recompa.core.catalog.ReleaseAsset
+import java.io.File
 import java.io.InputStream
 import java.security.MessageDigest
+import java.util.zip.ZipFile
 
 sealed interface ApkCheckResult {
     data object Ok : ApkCheckResult
@@ -27,10 +29,16 @@ object ApkCheck {
         apkPackage: String,
         apkSigners: List<String>,
         installed: InstalledPackage?,
+        entrySha256: String? = null,
     ): ApkCheckResult {
         val expected = asset.sha256 ?: return ApkCheckResult.HashUnavailable
         if (!expected.equals(actualSha256, ignoreCase = true)) {
             return ApkCheckResult.HashMismatch(expected, actualSha256)
+        }
+        asset.entry?.let { entry ->
+            if (!entry.sha256.equals(entrySha256, ignoreCase = true)) {
+                return ApkCheckResult.HashMismatch(entry.sha256, entrySha256.orEmpty())
+            }
         }
         fork.packageName?.let { if (it != apkPackage) return ApkCheckResult.WrongPackage(it, apkPackage) }
         fork.signerSha256?.let { signer ->
@@ -44,6 +52,15 @@ object ApkCheck {
             return ApkCheckResult.ConflictsWithInstalled(installed.signerSha256)
         }
         return ApkCheckResult.Ok
+    }
+}
+
+object ZipEntries {
+    /** Copies the entry at [path] of [zip] to [target]. Returns false if the ZIP has no such entry. */
+    fun extract(zip: File, path: String, target: File): Boolean = ZipFile(zip).use { archive ->
+        val entry = archive.getEntry(path)?.takeIf { !it.isDirectory } ?: return false
+        archive.getInputStream(entry).use { input -> target.outputStream().use { input.copyTo(it) } }
+        true
     }
 }
 

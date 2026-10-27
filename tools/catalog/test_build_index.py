@@ -222,5 +222,36 @@ def test_uninspectable_apk_is_not_published():
     assert index["ports"][0]["forks"][0]["release"] is None
 
 
+def test_zip_entry_publishes_the_apk_inside_the_archive(tmp_path):
+    import zipfile
+    archive = tmp_path / "v5-android.zip"
+    with zipfile.ZipFile(archive, "w") as zf:
+        zf.writestr("readme.txt", "hi")
+        zf.writestr("out/app-x86_64-release.apk", b"x86")
+        zf.writestr("out/app-arm64-v8a-release.apk", b"hello")
+    m = manifest(forks=[{"repo": "someone/demo-android", "asset_pattern": r"android\.zip$",
+                         "zip_entry": r"\.apk$"}])
+    inspected_paths = []
+
+    def inspect(apk):
+        inspected_paths.append(apk.read_bytes())
+        return "com.demo", [SIGNER]
+
+    index, errors, warnings = bi.build_index(
+        [m], fetch=lambda url: [release(assets=[asset("v5-android.zip")])],
+        download=lambda url: archive, verify_signers=True, inspect=inspect)
+    assert errors == [] and warnings == []
+    entry = index["ports"][0]["forks"][0]["release"]["asset"]["entry"]
+    assert entry["path"] == "out/app-arm64-v8a-release.apk"
+    assert entry["sha256"] == "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
+    assert inspected_paths == [b"hello"]
+
+    m.data["forks"][0]["zip_entry"] = r"\.aab$"
+    _, _, warnings = bi.build_index(
+        [m], fetch=lambda url: [release(assets=[asset("v5-android.zip")])],
+        download=lambda url: archive, verify_signers=True, inspect=inspect)
+    assert "nothing in v5-android.zip matches" in warnings[0]
+
+
 if __name__ == "__main__":
     sys.exit(pytest.main([__file__]))

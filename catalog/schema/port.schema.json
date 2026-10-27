@@ -72,6 +72,7 @@
         "official": { "type": "boolean", "default": false },
         "channel": { "type": "string", "enum": ["stable", "beta"], "default": "stable" },
         "asset_pattern": { "type": "string", "description": "Regular expression matched against release asset names." },
+        "zip_entry": { "type": "string", "description": "When the release asset is a ZIP, regular expression matched against the paths inside it to find the APK." },
         "package": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z][A-Za-z0-9_]*)+$" },
         "signer_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
         "verified": {

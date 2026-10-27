@@ -59,6 +59,15 @@ data class ReleaseAsset(
     val url: String,
     val size: Long? = null,
     val sha256: String? = null,
+    /** Set when the asset is a ZIP: the APK inside it that Recompa installs. */
+    val entry: ArchiveEntry? = null,
+)
+
+@Serializable
+data class ArchiveEntry(
+    val path: String,
+    val size: Long? = null,
+    val sha256: String,
 )
 
 @Serializable

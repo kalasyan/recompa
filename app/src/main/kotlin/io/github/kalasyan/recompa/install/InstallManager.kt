@@ -13,6 +13,7 @@ import io.github.kalasyan.recompa.core.install.ApkCheckResult
 import io.github.kalasyan.recompa.core.install.PortStatus
 import io.github.kalasyan.recompa.core.install.PortStatusResolver
 import io.github.kalasyan.recompa.core.install.Sha256
+import io.github.kalasyan.recompa.core.install.ZipEntries
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -116,18 +117,36 @@ class InstallManager(private val context: Context) {
         }
         scope.launch {
             try {
-                val apk = download(port.id, release.asset.url)
+                val entry = release.asset.entry
+                val apk = apkFile(port.id)
+                val downloaded = download(port.id, release.asset.url, if (entry != null) zipFile(port.id) else apk)
                 setPhase(port.id, InstallPhase.Verifying)
-                val (sha, info) = withContext(Dispatchers.IO) {
-                    val sha = apk.inputStream().use { Sha256.hex(it) }
-                    sha to context.packageManager.archiveInfo(apk.absolutePath)
+                val (sha, entrySha, info) = withContext(Dispatchers.IO) {
+                    val sha = downloaded.inputStream().use { Sha256.hex(it) }
+                    var entrySha: String? = null
+                    if (entry != null) {
+                        // Some ports only publish a ZIP; the catalog names the APK inside it.
+                        apk.delete()
+                        val found = sha.equals(release.asset.sha256, ignoreCase = true) &&
+                            ZipEntries.extract(downloaded, entry.path, apk)
+                        downloaded.delete()
+                        if (found) entrySha = apk.inputStream().use { Sha256.hex(it) }
+                    }
+                    val info = if (apk.exists()) context.packageManager.archiveInfo(apk.absolutePath) else null
+                    Triple(sha, entrySha, info)
+                }
+                val expected = release.asset.sha256
+                if (expected == null || !expected.equals(sha, ignoreCase = true)) {
+                    val result = if (expected == null) ApkCheckResult.HashUnavailable else ApkCheckResult.HashMismatch(expected, sha)
+                    fail(port.id, InstallError.Check(result), apk)
+                    return@launch
                 }
                 if (info == null) {
                     fail(port.id, InstallError.InvalidApk, apk)
                     return@launch
                 }
                 val installed = context.packageManager.packageInfoOrNull(info.packageName)?.toInstalledPackage()
-                val check = ApkCheck.check(release.asset, sha, fork, info.packageName, info.signerSha256(), installed)
+                val check = ApkCheck.check(release.asset, sha, fork, info.packageName, info.signerSha256(), installed, entrySha)
                 if (check != ApkCheckResult.Ok) {
                     fail(port.id, InstallError.Check(check), apk)
                     return@launch
@@ -170,8 +189,7 @@ class InstallManager(private val context: Context) {
         refresh()
     }
 
-    private suspend fun download(portId: String, url: String): File = withContext(Dispatchers.IO) {
-        val target = apkFile(portId)
+    private suspend fun download(portId: String, url: String, target: File): File = withContext(Dispatchers.IO) {
         target.parentFile?.mkdirs()
         setPhase(portId, InstallPhase.Downloading(null))
         val request = Request.Builder().url(url).build()
@@ -237,6 +255,8 @@ class InstallManager(private val context: Context) {
     private fun isInstalled(pkg: String) = context.packageManager.packageInfoOrNull(pkg) != null
 
     private fun apkFile(portId: String) = File(context.cacheDir, "apks/$portId.apk")
+
+    private fun zipFile(portId: String) = File(context.cacheDir, "apks/$portId.zip")
 
     private fun phaseOf(portId: String) = _phases.value[portId] ?: InstallPhase.Idle
 

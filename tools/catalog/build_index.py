@@ -25,6 +25,7 @@ import sys
 import tempfile
 import urllib.parse
 import urllib.request
+import zipfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Iterable
@@ -94,13 +95,14 @@ def validate(manifests: Iterable[Manifest], schema: dict[str, Any]) -> list[str]
         elif port_id:
             seen_ids[port_id] = m.path
         for i, fork in enumerate(m.data.get("forks") or []):
-            pattern = fork.get("asset_pattern")
-            if pattern is None:
-                continue
-            try:
-                re.compile(pattern)
-            except re.error as exc:
-                errors.append(f"{name}: forks/{i}/asset_pattern: invalid regex ({exc})")
+            for field in ("asset_pattern", "zip_entry"):
+                pattern = fork.get(field)
+                if pattern is None:
+                    continue
+                try:
+                    re.compile(pattern)
+                except re.error as exc:
+                    errors.append(f"{name}: forks/{i}/{field}: invalid regex ({exc})")
     return errors
 
 
@@ -149,15 +151,36 @@ def pick_release(releases: list[dict[str, Any]], channel: str) -> dict[str, Any]
     return None
 
 
+def prefer_arm64(names: list[str]) -> str | None:
+    """The first arm64 name, else the first universal one, else the first one."""
+    arm64 = [n for n in names if re.search(r"arm64|aarch64|v8a", n, re.I)]
+    universal = [n for n in names if re.search(r"universal", n, re.I)]
+    return next(iter(arm64 or universal or names), None)
+
+
 def select_asset(assets: list[dict[str, Any]], pattern: str) -> dict[str, Any] | None:
     """Pick the asset matching ``pattern``; prefer arm64 builds when several match."""
     regex = re.compile(pattern)
-    matches = [a for a in assets if regex.search(a.get("name", ""))]
-    if not matches:
-        return None
-    arm64 = [a for a in matches if re.search(r"arm64|aarch64|v8a", a["name"], re.I)]
-    universal = [a for a in matches if re.search(r"universal", a["name"], re.I)]
-    return (arm64 or universal or matches)[0]
+    by_name = {a.get("name", ""): a for a in assets if regex.search(a.get("name", ""))}
+    best = prefer_arm64(list(by_name))
+    return by_name[best] if best is not None else None
+
+
+def extract_zip_entry(archive: Path, pattern: str) -> tuple[str, Path] | None:
+    """Extract the file matching ``pattern`` (preferring arm64) next to ``archive``.
+
+    Returns its path inside the ZIP and where it was extracted, or None.
+    """
+    regex = re.compile(pattern)
+    with zipfile.ZipFile(archive) as zf:
+        names = [n for n in zf.namelist() if not n.endswith("/") and regex.search(n)]
+        best = prefer_arm64(names)
+        if best is None:
+            return None
+        target = archive.with_name(archive.name + ".entry")
+        with zf.open(best) as src, target.open("wb") as out:
+            shutil.copyfileobj(src, out)
+    return best, target
 
 
 def asset_sha256(asset: dict[str, Any], download: Callable[[str], Path] | None) -> str | None:
@@ -358,9 +381,30 @@ def build_index(
                               f"was {pinned[key]}, now {sha}")
                 forks.append(entry)
                 continue
+            zip_entry = None
+            apk_path: Path | None = None
+            if fork.get("zip_entry"):
+                if download is None:
+                    warnings.append(f"{m.path.name}: {repo}: zip_entry needs --download")
+                    forks.append(entry)
+                    continue
+                try:
+                    found = extract_zip_entry(download(asset["browser_download_url"]), fork["zip_entry"])
+                except (OSError, zipfile.BadZipFile) as exc:
+                    errors.append(f"{m.path.name}: {repo} {rel['tag_name']}: cannot read ZIP ({exc})")
+                    forks.append(entry)
+                    continue
+                if found is None:
+                    warnings.append(f"{m.path.name}: {repo} {rel['tag_name']}: nothing in "
+                                    f"{asset['name']} matches '{fork['zip_entry']}'")
+                    forks.append(entry)
+                    continue
+                apk_path = found[1]
+                zip_entry = {"path": found[0], "size": apk_path.stat().st_size,
+                             "sha256": sha256_file(apk_path)}
             if verify_signers and download is not None:
                 try:
-                    package, signers = inspect(download(asset["browser_download_url"]))
+                    package, signers = inspect(apk_path or download(asset["browser_download_url"]))
                 except Exception as exc:  # noqa: BLE001 - an APK we cannot inspect is not published
                     errors.append(f"{m.path.name}: {repo} {rel['tag_name']}: could not inspect APK ({exc})")
                     forks.append(entry)
@@ -387,6 +431,7 @@ def build_index(
                     "url": asset["browser_download_url"],
                     "size": asset.get("size"),
                     "sha256": sha,
+                    **({"entry": zip_entry} if zip_entry else {}),
                 },
             }
             forks.append(entry)
