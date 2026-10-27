@@ -18,5 +18,6 @@ object PortSearch {
         Normalizer.normalize(text, Normalizer.Form.NFD)
             .replace(Regex("\\p{Mn}+"), "")
             .lowercase()
+            .replace(Regex("['’]"), "")
             .replace(Regex("[^a-z0-9]+"), " ")
 }
