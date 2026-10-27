@@ -1,0 +1,116 @@
+import datetime as dt
+import sys
+from pathlib import Path
+
+import pytest
+
+sys.path.insert(0, str(Path(__file__).parent))
+
+import build_index as bi  # noqa: E402
+
+SCHEMA = bi.load_schema()
+
+
+def manifest(**overrides):
+    data = {
+        "id": "demo",
+        "name": "Demo",
+        "game": "Demo Game",
+        "original_platform": "n64",
+        "type": "decomp",
+        "forks": [{"repo": "someone/demo-android", "asset_pattern": r"\.apk$"}],
+        "requirements": {"abi": ["arm64-v8a"], "min_sdk": 24},
+    }
+    data.update(overrides)
+    return bi.Manifest(Path(f"{data['id']}.yaml"), data)
+
+
+def release(tag="v1.0", prerelease=False, draft=False, assets=None):
+    return {
+        "tag_name": tag,
+        "name": tag,
+        "published_at": "2026-10-01T00:00:00Z",
+        "prerelease": prerelease,
+        "draft": draft,
+        "assets": assets if assets is not None else [asset("demo.apk")],
+    }
+
+
+def asset(name, digest="sha256:" + "a" * 64, size=10):
+    return {"name": name, "browser_download_url": f"https://example.com/{name}",
+            "size": size, "digest": digest}
+
+
+def test_repository_manifests_are_valid():
+    assert bi.validate(bi.load_manifests(), SCHEMA) == []
+
+
+def test_validate_reports_schema_errors_and_id_mismatch():
+    bad = manifest(type="emulator")
+    bad.path = Path("other.yaml")
+    errors = bi.validate([bad], SCHEMA)
+    assert any("type" in e for e in errors)
+    assert any("must match the file name" in e for e in errors)
+
+
+def test_validate_rejects_invalid_regex():
+    m = manifest(forks=[{"repo": "a/b", "asset_pattern": "(unclosed"}])
+    assert any("invalid regex" in e for e in bi.validate([m], SCHEMA))
+
+
+def test_validate_rejects_duplicate_ids():
+    errors = bi.validate([manifest(), manifest()], SCHEMA)
+    assert any("already used" in e for e in errors)
+
+
+def test_pick_release_skips_drafts_and_prereleases_on_stable():
+    releases = [release("v3", draft=True), release("v2", prerelease=True), release("v1")]
+    assert bi.pick_release(releases, "stable")["tag_name"] == "v1"
+    assert bi.pick_release(releases, "beta")["tag_name"] == "v2"
+    assert bi.pick_release([release(draft=True)], "beta") is None
+
+
+def test_select_asset_prefers_arm64():
+    assets = [asset("game-x86_64.apk"), asset("game-arm64-v8a.apk"), asset("notes.txt")]
+    assert bi.select_asset(assets, r"\.apk$")["name"] == "game-arm64-v8a.apk"
+    assert bi.select_asset(assets, r"\.aab$") is None
+
+
+def test_build_index_records_release_and_hash():
+    index, errors, warnings = bi.build_index(
+        [manifest()], fetch=lambda url: [release()],
+        now=dt.datetime(2026, 10, 27, tzinfo=dt.timezone.utc))
+    assert errors == [] and warnings == []
+    rel = index["ports"][0]["forks"][0]["release"]
+    assert rel["tag"] == "v1.0"
+    assert rel["asset"]["sha256"] == "a" * 64
+    assert index["generated_at"] == "2026-10-27T00:00:00Z"
+
+
+def test_build_index_rejects_changed_hash_for_same_release():
+    first, _, _ = bi.build_index([manifest()], fetch=lambda url: [release()])
+    changed = [release(assets=[asset("demo.apk", digest="sha256:" + "b" * 64)])]
+    _, errors, _ = bi.build_index([manifest()], fetch=lambda url: changed, previous=first)
+    assert any("changed" in e for e in errors)
+
+
+def test_build_index_warns_when_no_asset_or_network_fails():
+    def boom(url):
+        raise OSError("offline")
+
+    _, errors, warnings = bi.build_index([manifest()], fetch=boom)
+    assert errors == [] and "could not list releases" in warnings[0]
+    _, _, warnings = bi.build_index([manifest()], fetch=lambda url: [release(assets=[])])
+    assert "no asset matches" in warnings[0]
+
+
+def test_asset_sha256_downloads_when_no_digest(tmp_path):
+    apk = tmp_path / "demo.apk"
+    apk.write_bytes(b"hello")
+    sha = bi.asset_sha256(asset("demo.apk", digest=None), download=lambda url: apk)
+    assert sha == "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
+    assert bi.asset_sha256(asset("demo.apk", digest=None), download=None) is None
+
+
+if __name__ == "__main__":
+    sys.exit(pytest.main([__file__]))

@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kalasyan.github.io/recompa/schema/port.schema.json",
+  "title": "Recompa port manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "name", "game", "original_platform", "type", "forks", "requirements"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+    "name": { "type": "string", "minLength": 1 },
+    "game": { "type": "string", "minLength": 1 },
+    "original_platform": {
+      "type": "string",
+      "enum": ["n64", "gamecube", "wii", "wiiu", "ds", "switch", "snes", "genesis", "gba", "ps1", "ps2", "psp", "xbox", "xbox360", "pc", "other"]
+    },
+    "type": { "type": "string", "enum": ["recomp", "decomp", "source-port"] },
+    "upstream": { "type": "string", "format": "uri" },
+    "license": { "type": "string" },
+    "description": { "type": "string" },
+    "forks": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Ordered list of Android builds. The first one is the recommended one.",
+      "items": { "$ref": "#/$defs/fork" }
+    },
+    "requirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["abi", "min_sdk"],
+      "properties": {
+        "abi": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "enum": ["arm64-v8a", "armeabi-v7a", "x86_64"] }
+        },
+        "min_sdk": { "type": "integer", "minimum": 21 },
+        "vulkan": { "type": "boolean", "default": false }
+      }
+    },
+    "assets": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/asset" }
+    },
+    "media": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "icon": { "type": "string" },
+        "screenshots": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  },
+  "$defs": {
+    "fork": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repo", "asset_pattern"],
+      "properties": {
+        "repo": { "type": "string", "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$" },
+        "official": { "type": "boolean", "default": false },
+        "channel": { "type": "string", "enum": ["stable", "beta"], "default": "stable" },
+        "asset_pattern": { "type": "string", "description": "Regular expression matched against release asset names." },
+        "package": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z][A-Za-z0-9_]*)+$" },
+        "signer_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "verified": {
+          "type": "boolean",
+          "default": false,
+          "description": "True once package and signer were checked on a real device."
+        },
+        "tested_on": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "asset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "accepted", "delivery"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9_-]+$" },
+        "label": { "type": "string" },
+        "accepted": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["sha1"],
+            "properties": {
+              "sha1": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+              "label": { "type": "string" },
+              "format": { "type": "string" }
+            }
+          }
+        },
+        "convert_from": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["v64", "n64"] }
+        },
+        "zip_ok": { "type": "boolean", "default": true },
+        "delivery": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["mode"],
+          "properties": {
+            "mode": { "type": "string", "enum": ["shared_folder", "in_app_picker", "intent"] },
+            "path": { "type": "string" },
+            "filename": { "type": "string" }
+          }
+        },
+        "instructions_md": { "type": "string" }
+      }
+    }
+  }
+}

@@ -1,0 +1,25 @@
+id: starship
+name: "Starship"
+game: "Star Fox 64"
+original_platform: n64
+type: decomp
+upstream: https://github.com/HarbourMasters/Starship
+description: Port nativo de Star Fox 64 basado en su decompilación.
+
+forks:
+  - repo: izzy2lost/Starship
+    asset_pattern: '(?i)\.apk$'
+    verified: false
+
+requirements:
+  abi: [arm64-v8a]
+  min_sdk: 24
+
+assets:
+  - id: rom
+    label: "ROM de Star Fox 64 (N64)"
+    accepted: []          # TODO(H0)
+    convert_from: [v64, n64]
+    zip_ok: true
+    delivery:
+      mode: in_app_picker

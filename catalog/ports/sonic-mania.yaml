@@ -1,0 +1,26 @@
+id: sonic-mania
+name: "Sonic Mania (RSDKv5)"
+game: "Sonic Mania"
+original_platform: pc
+type: decomp
+upstream: https://github.com/RSDKModding/RSDKv5-Decompilation
+description: Decompilación del Retro Engine v5. Necesita el Data.rsdk de tu copia de PC.
+
+forks:
+  - repo: RSDKModding/RSDKv5-Decompilation
+    official: true
+    asset_pattern: '(?i)android.*\.apk$|\.apk$'
+    verified: false
+
+requirements:
+  abi: [arm64-v8a]
+  min_sdk: 21
+
+assets:
+  - id: data
+    label: "Data.rsdk de Sonic Mania (versión de PC)"
+    accepted: []          # TODO(H0)
+    zip_ok: false
+    delivery:
+      mode: in_app_picker
+      filename: "Data.rsdk"
