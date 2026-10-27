@@ -35,9 +35,9 @@ jobs:
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
 
-  # Every build of main becomes a "nightly-N" release marked as latest, so the newest APK is
-  # always at https://github.com/kalasyan/recompa/releases/latest/download/recompa.apk
-  # and Obtainium sees a new version on each build. Only the last few nightlies are kept.
+  # Every build of main becomes a "nightly-N" release, signed with the public debug key.
+  # Until the first stable release (release.yml) it is marked as latest; after that it is a
+  # prerelease. Only the last few nightlies are kept.
   nightly:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: build
@@ -58,8 +58,14 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: |
           cp apk/*.apk recompa.apk
+          # Once a stable vX.Y.Z release exists it is "latest"; nightlies become prereleases.
+          if gh release list --limit 100 --json tagName --jq '.[].tagName' | grep -q '^v'; then
+            channel="--prerelease --latest=false"
+          else
+            channel="--latest"
+          fi
           gh release create "nightly-${GITHUB_RUN_NUMBER}" recompa.apk \
-            --latest \
+            $channel \
             --target "$GITHUB_SHA" \
             --title "Nightly ${GITHUB_RUN_NUMBER}" \
             --notes "Build automática de main (${GITHUB_SHA::7})."
