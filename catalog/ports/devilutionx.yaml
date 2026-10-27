@@ -24,3 +24,6 @@ assets:
     delivery:
       mode: in_app_picker
       filename: "DIABDAT.MPQ"
+
+art:
+  search: "Diablo"   # "Diablo y Hellfire" no existe en SteamGridDB

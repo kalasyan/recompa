@@ -40,6 +40,7 @@ jobs:
       - name: Build index.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STEAMGRIDDB_API_KEY: ${{ secrets.STEAMGRIDDB_API_KEY }}
         run: >-
           python tools/catalog/build_index.py
           --out catalog/dist/index.json

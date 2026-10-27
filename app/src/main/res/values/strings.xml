@@ -1,14 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name" translatable="false">Recompa</string>
-    <string name="catalog_title">Catálogo</string>
     <string name="loading">Cargando catálogo…</string>
     <string name="retry">Reintentar</string>
     <string name="error_network">No se pudo descargar el catálogo. Comprueba tu conexión.</string>
     <string name="error_newer_catalog">Este catálogo necesita una versión más nueva de Recompa.</string>
-    <string name="offline_copy">Mostrando la última copia guardada del catálogo.</string>
     <string name="empty_catalog">El catálogo está vacío.</string>
-    <string name="compatible">Compatible</string>
     <string name="not_compatible">No compatible</string>
     <string name="no_release">Sin versión publicada</string>
     <string name="back">Volver</string>
@@ -73,4 +70,15 @@
     <string name="asset_save_folder">Elegir carpeta</string>
     <string name="asset_send">Enviar al port</string>
     <string name="asset_delivered">%1$s entregado.</string>
+    <string name="filter_all">Todos</string>
+    <string name="filter_compatible">Compatibles</string>
+    <string name="filter_installed">Instalados</string>
+    <string name="empty_filter">No hay ports en esta lista.</string>
+    <string name="offline_badge">Sin conexión</string>
+    <string name="status_installed">Instalado</string>
+    <string name="status_update">Actualización</string>
+    <string name="type_recomp">Recompilación</string>
+    <string name="type_decomp">Decompilación</string>
+    <string name="type_source_port">Source port</string>
+    <string name="platform_other">Otra plataforma</string>
 </resources>

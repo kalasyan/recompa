@@ -1,13 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="catalog_title">Catalog</string>
     <string name="loading">Loading catalog…</string>
     <string name="retry">Retry</string>
     <string name="error_network">Could not download the catalog. Check your connection.</string>
     <string name="error_newer_catalog">This catalog needs a newer version of Recompa.</string>
-    <string name="offline_copy">Showing the last saved copy of the catalog.</string>
     <string name="empty_catalog">The catalog is empty.</string>
-    <string name="compatible">Compatible</string>
     <string name="not_compatible">Not compatible</string>
     <string name="no_release">No published release</string>
     <string name="back">Back</string>
@@ -72,4 +69,15 @@
     <string name="asset_save_folder">Pick folder</string>
     <string name="asset_send">Send to port</string>
     <string name="asset_delivered">%1$s delivered.</string>
+    <string name="filter_all">All</string>
+    <string name="filter_compatible">Compatible</string>
+    <string name="filter_installed">Installed</string>
+    <string name="empty_filter">No ports in this list.</string>
+    <string name="offline_badge">Offline</string>
+    <string name="status_installed">Installed</string>
+    <string name="status_update">Update</string>
+    <string name="type_recomp">Recompilation</string>
+    <string name="type_decomp">Decompilation</string>
+    <string name="type_source_port">Source port</string>
+    <string name="platform_other">Other platform</string>
 </resources>

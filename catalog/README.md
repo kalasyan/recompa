@@ -15,6 +15,11 @@ Cada archivo de [`ports/`](ports) describe un port. El esquema completo está en
 | `forks[].verified` | `true` cuando alguien lo ha probado en un dispositivo real |
 | `requirements` | ABI, versión mínima de Android (`min_sdk`) y si necesita Vulkan |
 | `assets` | Archivos que aporta el usuario: hashes SHA-1 aceptados, conversiones permitidas y cómo se entregan al port |
+| `art` | Opcional. Carátulas: la CI las busca en SteamGridDB por `game`. Usa `search` si el nombre no coincide, `steamgriddb_id` para fijar el juego, o `cover`, `hero` y `logo` para poner URLs a mano |
+
+## Carátulas
+
+La CI del catálogo rellena `art` con la carátula vertical (600x900), el fondo panorámico y el logo de cada juego desde [SteamGridDB](https://www.steamgriddb.com). Necesita el secreto `STEAMGRIDDB_API_KEY` en el repositorio; sin él, conserva las carátulas del último `index.json` publicado. La app nunca usa la clave: solo descarga las imágenes.
 
 ## Reglas
 

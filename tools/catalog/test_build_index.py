@@ -112,5 +112,68 @@ def test_asset_sha256_downloads_when_no_digest(tmp_path):
     assert bi.asset_sha256(asset("demo.apk", digest=None), download=None) is None
 
 
+def fake_steamgriddb(games, images):
+    """A SteamGridDB fetcher answering searches from ``games`` and image lists from ``images``."""
+    calls = []
+
+    def fetch(url):
+        calls.append(url)
+        if "/search/autocomplete/" in url:
+            return games
+        kind = url.split("/api/v2/", 1)[1].split("/", 1)[0]
+        return images.get(kind, [])
+    fetch.calls = calls
+    return fetch
+
+
+def test_resolve_art_prefers_exact_title_and_fills_every_slot():
+    fetch = fake_steamgriddb(
+        games=[{"id": 1, "name": "Demo Game 2"}, {"id": 7, "name": "demo game"}],
+        images={"grids": [{"url": "https://cdn/cover.png"}], "heroes": [{"url": "https://cdn/hero.png"}],
+                "logos": [{"url": "https://cdn/logo.png"}]})
+    art, warnings = bi.resolve_art(manifest(), fetch, None)
+    assert warnings == []
+    assert art == {"steamgriddb_id": 7, "cover": "https://cdn/cover.png",
+                   "hero": "https://cdn/hero.png", "logo": "https://cdn/logo.png"}
+    assert "dimensions=600x900" in next(c for c in fetch.calls if "/grids/game/7" in c)
+
+
+def test_resolve_art_uses_pinned_id_search_name_and_manual_urls():
+    fetch = fake_steamgriddb(games=[{"id": 3, "name": "Diablo"}],
+                             images={"heroes": [{"url": "https://cdn/hero.png"}]})
+    m = manifest(art={"search": "Diablo", "cover": "https://example.com/mine.png"})
+    art, _ = bi.resolve_art(m, fetch, None)
+    assert art["cover"] == "https://example.com/mine.png"
+    assert art["hero"] == "https://cdn/hero.png" and "logo" not in art
+    assert fetch.calls[0].endswith("/search/autocomplete/Diablo")
+
+    fetch = fake_steamgriddb(games=[], images={"grids": [{"url": "https://cdn/c.png"}]})
+    art, _ = bi.resolve_art(manifest(art={"steamgriddb_id": 42}), fetch, None)
+    assert art["steamgriddb_id"] == 42 and not any("autocomplete" in c for c in fetch.calls)
+
+
+def test_resolve_art_keeps_previous_art_without_key_or_on_failure():
+    old = {"steamgriddb_id": 7, "cover": "https://cdn/old.png"}
+    assert bi.resolve_art(manifest(), None, old) == (old, [])
+
+    def boom(url):
+        raise OSError("offline")
+    art, warnings = bi.resolve_art(manifest(), boom, old)
+    assert art == old and "could not fetch art" in warnings[0]
+    assert bi.resolve_art(manifest(), None, None) == (None, [])
+
+
+def test_build_index_publishes_art_without_search_hints():
+    fetch = fake_steamgriddb(games=[{"id": 7, "name": "Diablo"}],
+                             images={"grids": [{"url": "https://cdn/cover.png"}]})
+    index, errors, _ = bi.build_index([manifest(art={"search": "Diablo"})],
+                                      fetch=lambda url: [release()], art_fetch=fetch)
+    assert errors == []
+    assert index["ports"][0]["art"] == {"steamgriddb_id": 7, "cover": "https://cdn/cover.png"}
+
+    again, _, _ = bi.build_index([manifest()], fetch=lambda url: [release()], previous=index)
+    assert again["ports"][0]["art"]["cover"] == "https://cdn/cover.png"
+
+
 if __name__ == "__main__":
     sys.exit(pytest.main([__file__]))

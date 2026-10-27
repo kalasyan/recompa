@@ -25,6 +25,7 @@ data class Port(
     val requirements: Requirements,
     val assets: List<Asset> = emptyList(),
     val media: Media? = null,
+    val art: Art? = null,
 ) {
     /** The first fork with a published release; forks are listed in order of preference. */
     val recommendedFork: Fork? get() = forks.firstOrNull { it.release != null }
@@ -103,4 +104,12 @@ enum class DeliveryMode {
 data class Media(
     val icon: String? = null,
     val screenshots: List<String> = emptyList(),
+)
+
+/** Cover art resolved by the catalog build (usually from SteamGridDB). */
+@Serializable
+data class Art(
+    val cover: String? = null,
+    val hero: String? = null,
+    val logo: String? = null,
 )

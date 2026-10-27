@@ -48,6 +48,18 @@
         "icon": { "type": "string" },
         "screenshots": { "type": "array", "items": { "type": "string" } }
       }
+    },
+    "art": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Cover art. The catalog build fills it from SteamGridDB; URLs written here win.",
+      "properties": {
+        "steamgriddb_id": { "type": "integer", "minimum": 1, "description": "SteamGridDB game id. Without it the build searches for `search`, or for `game`." },
+        "search": { "type": "string", "minLength": 1, "description": "Name to search on SteamGridDB when `game` is not a good match." },
+        "cover": { "type": "string", "format": "uri", "description": "Vertical 2:3 cover, ideally 600x900." },
+        "hero": { "type": "string", "format": "uri", "description": "Wide background image." },
+        "logo": { "type": "string", "format": "uri", "description": "Logo with a transparent background." }
+      }
     }
   },
   "$defs": {

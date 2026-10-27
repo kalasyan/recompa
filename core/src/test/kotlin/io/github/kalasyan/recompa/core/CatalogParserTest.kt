@@ -24,7 +24,8 @@ class CatalogParserTest {
                  "asset": {"name": "starship.apk", "url": "https://example.com/s.apk", "size": 42, "sha256": "ab"}}}
             ],
             "requirements": {"abi": ["arm64-v8a"], "min_sdk": 24},
-            "assets": [{"id": "rom", "label": "ROM", "accepted": [], "delivery": {"mode": "in_app_picker"}}]
+            "assets": [{"id": "rom", "label": "ROM", "accepted": [], "delivery": {"mode": "in_app_picker"}}],
+            "art": {"steamgriddb_id": 7, "cover": "https://cdn.example/c.png", "logo": "https://cdn.example/l.png"}
           }]
         }
     """.trimIndent()
@@ -35,6 +36,8 @@ class CatalogParserTest {
         assertEquals("Star Fox 64", port.game)
         assertEquals(DeliveryMode.IN_APP_PICKER, port.assets.single().delivery.mode)
         assertNull(port.forks.first().release)
+        assertEquals("https://cdn.example/c.png", port.art?.cover)
+        assertNull(port.art?.hero)
     }
 
     @Test

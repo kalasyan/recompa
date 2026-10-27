@@ -3,7 +3,8 @@
 
 Reads every ``catalog/ports/*.yaml``, validates it against the JSON schema,
 looks up the latest GitHub release of each fork, and writes ``index.json``
-with the APK asset, its size and its SHA-256 for every fork.
+with the APK asset, its size and its SHA-256 for every fork. With a
+``STEAMGRIDDB_API_KEY`` it also looks up cover art for every port.
 
 Usage:
     python tools/catalog/build_index.py --offline          # validate only
@@ -22,6 +23,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import urllib.parse
 import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
@@ -35,6 +37,14 @@ PORTS_DIR = ROOT / "catalog" / "ports"
 SCHEMA_PATH = ROOT / "catalog" / "schema" / "port.schema.json"
 SCHEMA_VERSION = 1
 GITHUB_API = "https://api.github.com"
+STEAMGRIDDB_API = "https://www.steamgriddb.com/api/v2"
+
+# Art slot -> SteamGridDB endpoint and filters.
+ART_QUERIES = {
+    "cover": "grids/game/{id}?dimensions=600x900&types=static&nsfw=false&humor=false",
+    "hero": "heroes/game/{id}?types=static&nsfw=false&humor=false",
+    "logo": "logos/game/{id}?types=static&nsfw=false&humor=false",
+}
 
 
 class CatalogError(Exception):
@@ -114,6 +124,20 @@ def github_fetcher(token: str | None) -> Fetcher:
     return fetch
 
 
+def steamgriddb_fetcher(api_key: str) -> Fetcher:
+    def fetch(url: str) -> Any:
+        req = urllib.request.Request(url, headers={
+            "Authorization": f"Bearer {api_key}",
+            "User-Agent": "recompa-catalog",
+        })
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            body = json.load(resp)
+        if not body.get("success"):
+            raise CatalogError(f"SteamGridDB error: {body.get('errors')}")
+        return body["data"]
+    return fetch
+
+
 def pick_release(releases: list[dict[str, Any]], channel: str) -> dict[str, Any] | None:
     """Newest published release; stable channels skip prereleases."""
     for rel in releases:
@@ -175,6 +199,62 @@ def apk_signer_sha256(apk: Path) -> list[str]:
 
 
 # --------------------------------------------------------------------------- #
+# Art
+# --------------------------------------------------------------------------- #
+
+def search_game(fetch: Fetcher, name: str) -> int | None:
+    """SteamGridDB id of the best match for ``name``: an exact title, else the first result."""
+    results = fetch(f"{STEAMGRIDDB_API}/search/autocomplete/{urllib.parse.quote(name, safe='')}")
+    if not results:
+        return None
+    exact = [r for r in results if r.get("name", "").casefold() == name.casefold()]
+    return (exact or results)[0]["id"]
+
+
+def resolve_art(
+    manifest: Manifest,
+    fetch: Fetcher | None,
+    previous: dict[str, Any] | None,
+) -> tuple[dict[str, Any] | None, list[str]]:
+    """Cover, hero and logo URLs for a port, and warnings.
+
+    URLs written in the manifest win. The rest come from SteamGridDB when
+    ``fetch`` is given, and from the previous index otherwise or on failure,
+    so a missing API key or a network error never wipes published art.
+    """
+    warnings: list[str] = []
+    wanted = manifest.data.get("art") or {}
+    art: dict[str, Any] = {slot: wanted[slot] for slot in ART_QUERIES if wanted.get(slot)}
+    missing = [slot for slot in ART_QUERIES if slot not in art]
+    if missing and fetch is not None:
+        query = wanted.get("search") or manifest.data["game"]
+        try:
+            game_id = wanted.get("steamgriddb_id") or search_game(fetch, query)
+            if game_id is None:
+                warnings.append(f"{manifest.path.name}: SteamGridDB has no game matching '{query}'")
+            else:
+                art["steamgriddb_id"] = game_id
+                for slot in missing:
+                    images = fetch(f"{STEAMGRIDDB_API}/{ART_QUERIES[slot].format(id=game_id)}")
+                    if images:
+                        art[slot] = images[0]["url"]
+        except Exception as exc:  # noqa: BLE001 - art is optional
+            warnings.append(f"{manifest.path.name}: could not fetch art ({exc})")
+    old = previous or {}
+    for slot in ART_QUERIES:
+        if slot not in art and old.get(slot):
+            art[slot] = old[slot]
+    if "steamgriddb_id" not in art and old.get("steamgriddb_id"):
+        art["steamgriddb_id"] = old["steamgriddb_id"]
+    return (art or None), warnings
+
+
+def previous_art(previous: dict[str, Any] | None) -> dict[str, dict[str, Any]]:
+    """Map port id -> art from a previously published index."""
+    return {p["id"]: p["art"] for p in (previous or {}).get("ports", []) if p.get("art")}
+
+
+# --------------------------------------------------------------------------- #
 # Index
 # --------------------------------------------------------------------------- #
 
@@ -197,14 +277,21 @@ def build_index(
     previous: dict[str, Any] | None = None,
     verify_signers: bool = False,
     now: dt.datetime | None = None,
+    art_fetch: Fetcher | None = None,
 ) -> tuple[dict[str, Any], list[str], list[str]]:
     """Return (index, errors, warnings)."""
     errors: list[str] = []
     warnings: list[str] = []
     pinned = previous_hashes(previous)
+    old_art = previous_art(previous)
     ports = []
     for m in manifests:
         port = dict(m.data)
+        art, art_warnings = resolve_art(m, art_fetch, old_art.get(m.data["id"]))
+        warnings.extend(art_warnings)
+        port.pop("art", None)
+        if art:
+            port["art"] = art
         forks = []
         for fork in m.data["forks"]:
             entry = dict(fork)
@@ -301,6 +388,10 @@ def main(argv: list[str] | None = None) -> int:
     if args.offline:
         return 0
 
+    art_key = os.environ.get("STEAMGRIDDB_API_KEY")
+    if not art_key:
+        print("warning: STEAMGRIDDB_API_KEY is not set, keeping the art of the previous index",
+              file=sys.stderr)
     with tempfile.TemporaryDirectory() as tmp:
         download = make_downloader(Path(tmp)) if (args.download or args.verify_signers) else None
         index, errors, warnings = build_index(
@@ -309,6 +400,7 @@ def main(argv: list[str] | None = None) -> int:
             download=download,
             previous=load_previous(args.previous),
             verify_signers=args.verify_signers,
+            art_fetch=steamgriddb_fetcher(art_key) if art_key else None,
         )
     for w in warnings:
         print(f"warning: {w}", file=sys.stderr)
