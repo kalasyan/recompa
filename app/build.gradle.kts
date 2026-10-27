@@ -12,10 +12,12 @@ android {
         applicationId = "io.github.kalasyan.recompa"
         minSdk = 26
         targetSdk = 35
-        // CI numbers each build so Android and Obtainium see every nightly as an update.
+        // CI numbers each build so Android and Obtainium see every build as an update.
+        // Tagged releases (see release.yml) pass their version in RECOMPA_VERSION.
         val buildNumber = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull()
+        val releaseVersion = System.getenv("RECOMPA_VERSION")
         versionCode = buildNumber ?: 1
-        versionName = if (buildNumber != null) "0.1.0-nightly.$buildNumber" else "0.1.0"
+        versionName = releaseVersion ?: if (buildNumber != null) "0.1.0-nightly.$buildNumber" else "0.1.0"
 
         buildConfigField(
             "String",
@@ -33,11 +35,21 @@ android {
             keyAlias = "androiddebugkey"
             keyPassword = "android"
         }
+        // The private release key only exists in CI, decoded from repository secrets.
+        System.getenv("RECOMPA_KEYSTORE")?.let { keystore ->
+            create("release") {
+                storeFile = file(keystore)
+                storePassword = System.getenv("RECOMPA_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("RECOMPA_KEY_ALIAS")
+                keyPassword = System.getenv("RECOMPA_KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.findByName("release")
         }
     }
 
