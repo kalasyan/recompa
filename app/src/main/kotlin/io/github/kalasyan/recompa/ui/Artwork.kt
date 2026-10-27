@@ -36,6 +36,18 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.gestures.animateScrollBy
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
+import kotlinx.coroutines.launch
 import coil3.compose.AsyncImage
 import io.github.kalasyan.recompa.R
 import io.github.kalasyan.recompa.core.catalog.Port
@@ -158,6 +170,27 @@ fun PortTitle(port: Port, logoHeight: Dp, style: TextStyle, modifier: Modifier =
         )
     } else {
         Text(port.name, style = style, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = modifier)
+    }
+}
+
+/**
+ * Lets the D-pad and the stick keep scrolling a scrollable page when there is nothing else to
+ * focus in that direction: up and down move focus while they can, and scroll otherwise.
+ */
+fun Modifier.dpadScroll(state: ScrollState): Modifier = composed {
+    val focusManager = LocalFocusManager.current
+    val scope = rememberCoroutineScope()
+    val step = with(LocalDensity.current) { 160.dp.toPx() }
+    onPreviewKeyEvent { event ->
+        val direction = when (event.key) {
+            Key.DirectionDown -> FocusDirection.Down
+            Key.DirectionUp -> FocusDirection.Up
+            else -> return@onPreviewKeyEvent false
+        }
+        if (event.type == KeyEventType.KeyDown && !focusManager.moveFocus(direction)) {
+            scope.launch { state.animateScrollBy(if (direction == FocusDirection.Down) step else -step) }
+        }
+        true
     }
 }
 

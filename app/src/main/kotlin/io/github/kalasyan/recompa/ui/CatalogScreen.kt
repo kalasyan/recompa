@@ -2,6 +2,7 @@ package io.github.kalasyan.recompa.ui
 
 import android.view.KeyEvent as AndroidKeyEvent
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -252,8 +253,12 @@ private fun TopBar(filter: Filter?, onFilter: (Filter) -> Unit, offline: Boolean
         if (filter != null) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Filter.entries.forEach { option ->
+                    // The ring is the chip's own border, so it follows the chip's exact shape.
+                    val interaction = remember { MutableInteractionSource() }
+                    val focused by interaction.collectIsFocusedAsState()
                     FilterChip(
-                        modifier = Modifier.focusRing(),
+                        interactionSource = interaction,
+                        shape = RoundedCornerShape(50),
                         selected = option == filter,
                         onClick = { onFilter(option) },
                         label = { Text(stringResource(option.label)) },
@@ -263,7 +268,7 @@ private fun TopBar(filter: Filter?, onFilter: (Filter) -> Unit, offline: Boolean
                             selectedContainerColor = Color.White,
                             selectedLabelColor = Night,
                         ),
-                        border = null,
+                        border = if (focused) BorderStroke(2.dp, Accent) else null,
                     )
                 }
             }

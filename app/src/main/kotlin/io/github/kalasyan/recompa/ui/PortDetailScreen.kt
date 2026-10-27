@@ -55,13 +55,15 @@ fun PortDetailScreen(item: PortItem, onBack: () -> Unit) {
     val revision by manager.revision.collectAsStateWithLifecycle()
     val status = remember(port, revision) { manager.status(port) }
 
+    val scroll = rememberScrollState()
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val wide = maxWidth >= 600.dp
         PortBackdrop(port, Modifier.fillMaxWidth().height(if (wide) maxHeight else 360.dp))
         Column(
             Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(scroll)
+                .dpadScroll(scroll)
                 .windowInsetsPadding(WindowInsets.safeDrawing)
                 .padding(horizontal = 24.dp),
         ) {
