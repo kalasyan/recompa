@@ -201,16 +201,12 @@ def sha256_file(path: Path) -> str:
 
 
 def make_downloader(workdir: Path) -> Callable[[str], Path]:
-    cache: dict[str, Path] = {}
-
     def download(url: str) -> Path:
-        if url not in cache:
-            target = workdir / hashlib.sha1(url.encode()).hexdigest()
-            req = urllib.request.Request(url, headers={"User-Agent": "recompa-catalog"})
-            with urllib.request.urlopen(req, timeout=300) as resp, target.open("wb") as out:
-                shutil.copyfileobj(resp, out)
-            cache[url] = target
-        return cache[url]
+        target = workdir / hashlib.sha1(url.encode()).hexdigest()
+        req = urllib.request.Request(url, headers={"User-Agent": "recompa-catalog"})
+        with urllib.request.urlopen(req, timeout=300) as resp, target.open("wb") as out:
+            shutil.copyfileobj(resp, out)
+        return target
     return download
 
 
@@ -291,30 +287,94 @@ def previous_art(previous: dict[str, Any] | None) -> dict[str, dict[str, Any]]:
 # Index
 # --------------------------------------------------------------------------- #
 
-def previous_hashes(previous: dict[str, Any] | None) -> dict[tuple[str, str, str], str]:
-    """Map (repo, tag, asset name) -> sha256 from a previously published index."""
-    pinned: dict[tuple[str, str, str], str] = {}
-    for port in (previous or {}).get("ports", []):
-        for fork in port.get("forks", []):
-            rel = fork.get("release") or {}
-            asset = rel.get("asset") or {}
-            if asset.get("sha256"):
-                pinned[(fork["repo"], rel["tag"], asset["name"])] = asset["sha256"]
-    return pinned
-
-
 PIN_KEYS = ("package", "signer_sha256")
 
 
-def previous_pins(previous: dict[str, Any] | None) -> dict[str, dict[str, str]]:
-    """Map fork repo -> package and signer published in a previous index."""
-    pins: dict[str, dict[str, str]] = {}
-    for port in (previous or {}).get("ports", []):
-        for fork in port.get("forks", []):
-            found = {k: fork[k] for k in PIN_KEYS if fork.get(k)}
-            if found:
-                pins[fork["repo"]] = found
-    return pins
+class ForkRejected(Exception):
+    """A release that must not be published; the fork keeps its previous release."""
+
+
+def previous_forks(previous: dict[str, Any] | None) -> dict[tuple[str, str], dict[str, Any]]:
+    """Map (port id, fork repo) -> fork as published in a previous index."""
+    return {(port["id"], fork["repo"]): fork
+            for port in (previous or {}).get("ports", [])
+            for fork in port.get("forks", [])}
+
+
+def resolve_release(
+    fork: dict[str, Any],
+    entry: dict[str, Any],
+    rel: dict[str, Any],
+    asset: dict[str, Any],
+    old: dict[str, Any],
+    download: Callable[[str], Path] | None,
+    verify_signers: bool,
+    inspect: Callable[[Path], tuple[str, list[str]]],
+) -> dict[str, Any]:
+    """The release entry for ``asset``, pinning package and signer into ``entry``.
+
+    Raises ForkRejected when the release must not be published.
+    """
+    tag = rel["tag_name"]
+    old_rel = old.get("release") or {}
+    old_asset = old_rel.get("asset") or {}
+    same_asset = old_rel.get("tag") == tag and old_asset.get("name") == asset["name"]
+    digest = (asset.get("digest") or "").removeprefix("sha256:").lower() or None
+    if same_asset and digest and old_asset.get("sha256") and digest != old_asset["sha256"]:
+        raise ForkRejected(f"{tag}/{asset['name']} changed: was {old_asset['sha256']}, now {digest}")
+
+    # Already published and nothing to re-check: reuse it without downloading.
+    pins_unchanged = all(entry.get(k) == old.get(k) for k in PIN_KEYS)
+    if same_asset and old_asset.get("sha256") and pins_unchanged and (
+            not verify_signers or all(old.get(k) for k in PIN_KEYS)):
+        return old_rel
+
+    sha = asset_sha256(asset, download)
+    if same_asset and sha and old_asset.get("sha256") and sha != old_asset["sha256"]:
+        raise ForkRejected(f"{tag}/{asset['name']} changed: was {old_asset['sha256']}, now {sha}")
+
+    zip_entry = None
+    apk_path: Path | None = None
+    if fork.get("zip_entry"):
+        if download is None:
+            raise ForkRejected("zip_entry needs --download")
+        try:
+            found = extract_zip_entry(download(asset["browser_download_url"]), fork["zip_entry"])
+        except (OSError, zipfile.BadZipFile) as exc:
+            raise ForkRejected(f"{tag}: cannot read ZIP ({exc})") from exc
+        if found is None:
+            raise ForkRejected(f"{tag}: nothing in {asset['name']} matches '{fork['zip_entry']}'")
+        apk_path = found[1]
+        zip_entry = {"path": found[0], "size": apk_path.stat().st_size, "sha256": sha256_file(apk_path)}
+
+    if verify_signers and download is not None:
+        try:
+            package, signers = inspect(apk_path or download(asset["browser_download_url"]))
+        except Exception as exc:  # noqa: BLE001 - an APK we cannot inspect is not published
+            raise ForkRejected(f"{tag}: could not inspect APK ({exc})") from exc
+        problems = []
+        if entry.get("package") and entry["package"] != package:
+            problems.append(f"package {package} does not match {entry['package']}")
+        if entry.get("signer_sha256") and entry["signer_sha256"] not in signers:
+            problems.append(f"signer {signers} does not match {entry['signer_sha256']}")
+        if problems or not signers:
+            raise ForkRejected(f"{tag}: " + ("; ".join(problems) or "APK is not signed"))
+        entry.setdefault("package", package)
+        entry.setdefault("signer_sha256", signers[0])
+
+    return {
+        "tag": tag,
+        "name": rel.get("name") or tag,
+        "published_at": rel.get("published_at"),
+        "prerelease": bool(rel.get("prerelease")),
+        "asset": {
+            "name": asset["name"],
+            "url": asset["browser_download_url"],
+            "size": asset.get("size"),
+            "sha256": sha,
+            **({"entry": zip_entry} if zip_entry else {}),
+        },
+    }
 
 
 def build_index(
@@ -329,16 +389,20 @@ def build_index(
 ) -> tuple[dict[str, Any], list[str], list[str]]:
     """Return (index, errors, warnings).
 
-    With ``verify_signers``, each release APK is inspected for its package and
-    signer. The first values seen for a fork are pinned in the index (trust on
-    first use) and later releases must match them; values written in the
+    With ``verify_signers``, each new release APK is inspected for its package
+    and signer. The first values seen for a fork are pinned in the index (trust
+    on first use) and later releases must match them; values written in the
     manifest take precedence, which is also how a legitimate key rotation is
-    accepted.
+    accepted. Releases already in ``previous`` are reused without downloading.
+
+    A release that fails a check is not published: its fork keeps the release
+    of the previous index and a warning is reported, so one broken port never
+    blocks the rest of the catalog. ``errors`` is kept for problems that make
+    the whole catalog unpublishable.
     """
     errors: list[str] = []
     warnings: list[str] = []
-    pinned = previous_hashes(previous)
-    old_pins = previous_pins(previous)
+    old_forks = previous_forks(previous)
     old_art = previous_art(previous)
     ports = []
     for m in manifests:
@@ -350,91 +414,55 @@ def build_index(
             port["art"] = art
         forks = []
         for fork in m.data["forks"]:
+            repo = fork["repo"]
+            old = old_forks.get((m.data["id"], repo), {})
             entry = dict(fork)
             entry["release"] = None
-            repo = fork["repo"]
             for key in PIN_KEYS:
-                value = fork.get(key) or old_pins.get(repo, {}).get(key)
+                value = fork.get(key) or old.get(key)
                 if value:
                     entry[key] = value
+            forks.append(entry)
             try:
                 releases = fetch(f"{GITHUB_API}/repos/{repo}/releases?per_page=20")
             except Exception as exc:  # noqa: BLE001 - network errors become warnings
                 warnings.append(f"{m.path.name}: {repo}: could not list releases ({exc})")
-                forks.append(entry)
+                entry["release"] = old.get("release")
                 continue
             rel = pick_release(releases, fork.get("channel", "stable"))
             if rel is None:
                 warnings.append(f"{m.path.name}: {repo}: no published release")
-                forks.append(entry)
+                entry["release"] = old.get("release")
                 continue
             asset = select_asset(rel.get("assets", []), fork["asset_pattern"])
             if asset is None:
                 warnings.append(f"{m.path.name}: {repo} {rel['tag_name']}: no asset matches "
                                 f"'{fork['asset_pattern']}'")
-                forks.append(entry)
+                entry["release"] = old.get("release")
                 continue
-            sha = asset_sha256(asset, download)
-            key = (repo, rel["tag_name"], asset["name"])
-            if sha and key in pinned and pinned[key] != sha:
-                errors.append(f"{m.path.name}: {repo} {rel['tag_name']}/{asset['name']} changed: "
-                              f"was {pinned[key]}, now {sha}")
-                forks.append(entry)
-                continue
-            zip_entry = None
-            apk_path: Path | None = None
-            if fork.get("zip_entry"):
-                if download is None:
-                    warnings.append(f"{m.path.name}: {repo}: zip_entry needs --download")
-                    forks.append(entry)
-                    continue
-                try:
-                    found = extract_zip_entry(download(asset["browser_download_url"]), fork["zip_entry"])
-                except (OSError, zipfile.BadZipFile) as exc:
-                    errors.append(f"{m.path.name}: {repo} {rel['tag_name']}: cannot read ZIP ({exc})")
-                    forks.append(entry)
-                    continue
-                if found is None:
-                    warnings.append(f"{m.path.name}: {repo} {rel['tag_name']}: nothing in "
-                                    f"{asset['name']} matches '{fork['zip_entry']}'")
-                    forks.append(entry)
-                    continue
-                apk_path = found[1]
-                zip_entry = {"path": found[0], "size": apk_path.stat().st_size,
-                             "sha256": sha256_file(apk_path)}
-            if verify_signers and download is not None:
-                try:
-                    package, signers = inspect(apk_path or download(asset["browser_download_url"]))
-                except Exception as exc:  # noqa: BLE001 - an APK we cannot inspect is not published
-                    errors.append(f"{m.path.name}: {repo} {rel['tag_name']}: could not inspect APK ({exc})")
-                    forks.append(entry)
-                    continue
-                problems = []
-                if entry.get("package") and entry["package"] != package:
-                    problems.append(f"package {package} does not match {entry['package']}")
-                if entry.get("signer_sha256") and entry["signer_sha256"] not in signers:
-                    problems.append(f"signer {signers} does not match {entry['signer_sha256']}")
-                if problems or not signers:
-                    errors.append(f"{m.path.name}: {repo} {rel['tag_name']}: "
-                                  + ("; ".join(problems) or "APK is not signed"))
-                    forks.append(entry)
-                    continue
-                entry.setdefault("package", package)
-                entry.setdefault("signer_sha256", signers[0])
-            entry["release"] = {
-                "tag": rel["tag_name"],
-                "name": rel.get("name") or rel["tag_name"],
-                "published_at": rel.get("published_at"),
-                "prerelease": bool(rel.get("prerelease")),
-                "asset": {
-                    "name": asset["name"],
-                    "url": asset["browser_download_url"],
-                    "size": asset.get("size"),
-                    "sha256": sha,
-                    **({"entry": zip_entry} if zip_entry else {}),
-                },
-            }
-            forks.append(entry)
+
+            # Each fork's downloads are deleted once it is done, so a large
+            # catalog never needs more disk than its biggest APK.
+            fetched: dict[str, Path] = {}
+
+            def fork_download(url: str) -> Path:
+                if url not in fetched:
+                    fetched[url] = download(url)
+                return fetched[url]
+
+            try:
+                entry["release"] = resolve_release(
+                    fork, entry, rel, asset, old,
+                    fork_download if download is not None else None, verify_signers, inspect)
+            except ForkRejected as exc:
+                kept = old.get("release")
+                warnings.append(f"{m.path.name}: {repo}: {exc}; "
+                                + (f"keeping {kept['tag']}" if kept else "not published"))
+                entry["release"] = kept
+            finally:
+                for path in fetched.values():
+                    for leftover in (path, path.with_name(path.name + ".entry")):
+                        leftover.unlink(missing_ok=True)
         port["forks"] = forks
         ports.append(port)
 
@@ -497,8 +525,9 @@ def main(argv: list[str] | None = None) -> int:
             verify_signers=args.verify_signers,
             art_fetch=steamgriddb_fetcher(art_key) if art_key else None,
         )
+    in_actions = os.environ.get("GITHUB_ACTIONS") == "true"
     for w in warnings:
-        print(f"warning: {w}", file=sys.stderr)
+        print(f"::warning::{w}" if in_actions else f"warning: {w}", file=sys.stderr)
     for e in errors:
         print(f"error: {e}", file=sys.stderr)
     if errors or (args.strict and warnings):

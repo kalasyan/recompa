@@ -38,4 +38,8 @@ python tools/catalog/build_index.py --offline
 
 Basta con `id`, `name`, `game`, `original_platform`, `type`, `requirements` y un fork con `repo` y `asset_pattern`. No hace falta instalarlo ni sacar hashes a mano: la CI descarga el APK, calcula su SHA-256 y fija package y firma.
 
-Si un día la CI falla porque un port ha cambiado de firma, comprueba con su autor que el cambio es legítimo y escribe la nueva `signer_sha256` en el manifiesto (la saca `apksigner verify --print-certs port.apk`, línea `certificate SHA-256 digest`).
+Si el APK viene dentro de un ZIP, apunta `asset_pattern` al ZIP y añade `zip_entry` con una expresión regular para el APK de dentro.
+
+Un port roto nunca bloquea el catálogo. Si su nueva release no pasa las comprobaciones (firma o package distintos, un asset cuyo hash cambia con el mismo tag, un APK ilegible), la CI deja un aviso y ese port conserva la última release buena. Las releases ya publicadas no se vuelven a descargar.
+
+Si un port ha cambiado de firma (lo verás como aviso en la CI), comprueba con su autor que el cambio es legítimo y escribe la nueva `signer_sha256` en el manifiesto (la saca `apksigner verify --print-certs port.apk`, línea `certificate SHA-256 digest`).

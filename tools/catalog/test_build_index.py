@@ -2,6 +2,8 @@ import datetime as dt
 import sys
 from pathlib import Path
 
+import shutil
+
 import pytest
 
 sys.path.insert(0, str(Path(__file__).parent))
@@ -90,8 +92,10 @@ def test_build_index_records_release_and_hash():
 def test_build_index_rejects_changed_hash_for_same_release():
     first, _, _ = bi.build_index([manifest()], fetch=lambda url: [release()])
     changed = [release(assets=[asset("demo.apk", digest="sha256:" + "b" * 64)])]
-    _, errors, _ = bi.build_index([manifest()], fetch=lambda url: changed, previous=first)
-    assert any("changed" in e for e in errors)
+    index, errors, warnings = bi.build_index([manifest()], fetch=lambda url: changed, previous=first)
+    assert errors == []
+    assert any("changed" in w and "keeping v1.0" in w for w in warnings)
+    assert index["ports"][0]["forks"][0]["release"] == first["ports"][0]["forks"][0]["release"]
 
 
 def test_build_index_warns_when_no_asset_or_network_fails():
@@ -182,9 +186,9 @@ def inspected(package="com.demo", signers=(SIGNER,)):
     return lambda apk: (package, list(signers))
 
 
-def build_verified(manifests, inspect, previous=None, tmp_path=Path(".")):
-    return bi.build_index(manifests, fetch=lambda url: [release()], previous=previous,
-                          download=lambda url: tmp_path / "demo.apk", verify_signers=True,
+def build_verified(manifests, inspect, previous=None, tag="v1.0"):
+    return bi.build_index(manifests, fetch=lambda url: [release(tag)], previous=previous,
+                          download=lambda url: Path("demo.apk"), verify_signers=True,
                           inspect=inspect)
 
 
@@ -197,11 +201,34 @@ def test_first_sight_pins_package_and_signer():
 
 def test_pins_from_previous_index_reject_a_new_signer():
     first, _, _ = build_verified([manifest()], inspected())
-    index, errors, _ = build_verified([manifest()], inspected(signers=["d" * 64]), previous=first)
-    assert any("signer" in e for e in errors)
-    assert index["ports"][0]["forks"][0]["release"] is None
-    _, errors, _ = build_verified([manifest()], inspected(package="com.evil"), previous=first)
-    assert any("package com.evil" in e for e in errors)
+    index, errors, warnings = build_verified([manifest()], inspected(signers=["d" * 64]),
+                                             previous=first, tag="v2.0")
+    assert errors == [] and any("signer" in w for w in warnings)
+    fork = index["ports"][0]["forks"][0]
+    assert fork["release"]["tag"] == "v1.0" and fork["signer_sha256"] == SIGNER
+    _, _, warnings = build_verified([manifest()], inspected(package="com.evil"), previous=first, tag="v2.0")
+    assert any("package com.evil" in w for w in warnings)
+
+
+def test_published_release_is_reused_without_downloading():
+    first, _, _ = build_verified([manifest()], inspected())
+
+    def no_download(url):
+        raise AssertionError("should not download")
+
+    index, errors, warnings = bi.build_index(
+        [manifest()], fetch=lambda url: [release()], previous=first,
+        download=no_download, verify_signers=True, inspect=inspected())
+    assert errors == [] and warnings == []
+    assert index["ports"][0]["forks"][0] == first["ports"][0]["forks"][0]
+
+
+def test_pins_are_kept_per_port_even_when_ports_share_a_repo():
+    first, _, _ = build_verified([manifest()], inspected())
+    other = manifest(id="other")
+    index, _, _ = build_verified([other], inspected(package="com.other", signers=["e" * 64]),
+                                 previous=first)
+    assert index["ports"][0]["forks"][0]["package"] == "com.other"
 
 
 def test_manifest_pin_overrides_previous_index():
@@ -217,8 +244,8 @@ def test_uninspectable_apk_is_not_published():
     def broken(apk):
         raise OSError("not an APK")
 
-    index, errors, _ = build_verified([manifest()], broken)
-    assert any("could not inspect" in e for e in errors)
+    index, errors, warnings = build_verified([manifest()], broken)
+    assert errors == [] and any("could not inspect" in w and "not published" in w for w in warnings)
     assert index["ports"][0]["forks"][0]["release"] is None
 
 
@@ -239,7 +266,7 @@ def test_zip_entry_publishes_the_apk_inside_the_archive(tmp_path):
 
     index, errors, warnings = bi.build_index(
         [m], fetch=lambda url: [release(assets=[asset("v5-android.zip")])],
-        download=lambda url: archive, verify_signers=True, inspect=inspect)
+        download=lambda url: Path(shutil.copy(archive, tmp_path / "download")), verify_signers=True, inspect=inspect)
     assert errors == [] and warnings == []
     entry = index["ports"][0]["forks"][0]["release"]["asset"]["entry"]
     assert entry["path"] == "out/app-arm64-v8a-release.apk"
@@ -249,7 +276,7 @@ def test_zip_entry_publishes_the_apk_inside_the_archive(tmp_path):
     m.data["forks"][0]["zip_entry"] = r"\.aab$"
     _, _, warnings = bi.build_index(
         [m], fetch=lambda url: [release(assets=[asset("v5-android.zip")])],
-        download=lambda url: archive, verify_signers=True, inspect=inspect)
+        download=lambda url: Path(shutil.copy(archive, tmp_path / "download")), verify_signers=True, inspect=inspect)
     assert "nothing in v5-android.zip matches" in warnings[0]
 
 
