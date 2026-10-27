@@ -21,7 +21,14 @@ requirements:
 assets:
   - id: rom
     label: "ROM de Star Fox 64 (N64)"
-    accepted: []          # TODO(H0)
+    # Hashes from the Starship README (US 1.0 and US 1.1 Rev A, .z64).
+    accepted:
+      - sha1: d8b1088520f7c5f81433292a9258c1184afa1457
+        label: "EE.UU. 1.0"
+        format: z64
+      - sha1: 09f0d105f476b00efa5303a3ebc42e60a7753b7a
+        label: "EE.UU. 1.1 (Rev A)"
+        format: z64
     convert_from: [v64, n64]
     zip_ok: true
     delivery:

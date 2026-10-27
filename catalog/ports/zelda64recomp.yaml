@@ -25,7 +25,12 @@ requirements:
 assets:
   - id: rom
     label: "ROM de Majora's Mask (N64)"
-    accepted: []          # TODO(H0): SHA-1 de la versión que acepta el port
+    # Zelda64Recomp only accepts the US 1.0 ROM (game_id mm.n64.us.1.0); SHA-1
+    # from 2ship2harkinian's docs/supportedHashes.json ("NTSC-U 1.0").
+    accepted:
+      - sha1: d6133ace5afaa0882cf214cf88daba39e266c078
+        label: "EE.UU. 1.0"
+        format: z64
     convert_from: [v64, n64]
     zip_ok: true
     delivery:
