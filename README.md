@@ -46,7 +46,7 @@ Lee [`catalog/README.md`](catalog/README.md). En resumen: copia un manifiesto ex
 
 ## Uso de inteligencia artificial
 
-Este proyecto se ha desarrollado con ayuda de herramientas de IA (Claude, de Anthropic) para la investigación, el diseño y parte del código. Los cambios se integran en `main` mediante pull requests revisados.
+Este proyecto se ha desarrollado con ayuda de herramientas de IA (Claude, de Anthropic) para la investigación, el diseño y parte del código.
 
 ## Aviso legal
 
