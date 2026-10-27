@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Recompa</string>
+    <string name="app_name" translatable="false">Recompa</string>
     <string name="catalog_title">Catálogo</string>
     <string name="loading">Cargando catálogo…</string>
     <string name="retry">Reintentar</string>
