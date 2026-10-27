@@ -12,7 +12,10 @@ forks:
   - repo: linkzenic/Zelda64Recomp-Android
     channel: beta
     asset_pattern: '(?i)\.apk$'
-    verified: false
+    package: io.github.zelda64recomp
+    signer_sha256: f608b8ed8a09fd6c8890dee105f3268ad5577638ec3aa2544ff4618f399efd3e
+    verified: true
+    tested_on: ["AYN Thor"]
 
 requirements:
   abi: [arm64-v8a]

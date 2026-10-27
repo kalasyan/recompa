@@ -9,7 +9,10 @@ description: Port nativo de Star Fox 64 basado en su decompilación.
 forks:
   - repo: izzy2lost/Starship
     asset_pattern: '(?i)\.apk$'
-    verified: false
+    package: com.starship.android
+    signer_sha256: 2c4df788694d3b60b078e6b87e459ed6a0322a8c05638d3eddd34531bea57fc7
+    verified: true
+    tested_on: ["AYN Thor"]
 
 requirements:
   abi: [arm64-v8a]
