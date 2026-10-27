@@ -5,6 +5,8 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
@@ -73,6 +75,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -81,12 +84,14 @@ import androidx.compose.ui.input.key.nativeKeyCode
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -98,6 +103,7 @@ import io.github.kalasyan.recompa.ui.theme.Night
 import kotlinx.coroutines.launch
 
 private val TopBarHeight = 56.dp
+private const val FocusScale = 1.12f
 
 private enum class Filter(val label: Int) {
     ALL(R.string.filter_all),
@@ -188,7 +194,10 @@ private fun Library(
     val platforms = inList.groupingBy { it.port.originalPlatform }.eachCount().entries
         .sortedWith(compareBy({ it.key == "other" }, { -it.value }))
         .map { it.key to it.value }
-    val visible = inList.filter { platform == null || it.port.originalPlatform == platform }
+    // A platform with no ports in the current list (say, after switching to Installed) is dropped.
+    val activePlatform = platform?.takeIf { code -> platforms.any { it.first == code } }
+    LaunchedEffect(activePlatform) { platform = activePlatform }
+    val visible = inList.filter { activePlatform == null || it.port.originalPlatform == activePlatform }
     var selectedId by rememberSaveable { mutableStateOf<String?>(null) }
     val selected = visible.firstOrNull { it.port.id == selectedId } ?: visible.firstOrNull()
 
@@ -201,7 +210,7 @@ private fun Library(
                 AndroidKeyEvent.KEYCODE_BUTTON_L2, AndroidKeyEvent.KEYCODE_BUTTON_R2 -> {
                     val options = listOf(null) + platforms.map { it.first }
                     val step = if (event.key.nativeKeyCode == AndroidKeyEvent.KEYCODE_BUTTON_L2) -1 else 1
-                    platform = options[(options.indexOf(platform) + step).mod(options.size)]
+                    platform = options[(options.indexOf(activePlatform) + step).mod(options.size)]
                 }
                 AndroidKeyEvent.KEYCODE_BUTTON_Y -> selected?.let { prefs.toggleFavorite(it.port.id) }
                 AndroidKeyEvent.KEYCODE_BUTTON_X -> searching = true
@@ -217,7 +226,7 @@ private fun Library(
             val gridState = rememberLazyGridState()
             val focusTarget = remember { FocusRequester() }
             // Keep the selected cover in view and focused, also when coming back from a port's page.
-            LaunchedEffect(filter, platform, side) {
+            LaunchedEffect(filter, activePlatform, side) {
                 val index = visible.indexOfFirst { it.port.id == selected?.port?.id }.coerceAtLeast(0)
                 gridState.scrollToItem(index)
                 withFrameNanos { }
@@ -279,7 +288,7 @@ private fun Library(
                         onDone = { runCatching { focusTarget.requestFocus() } },
                     )
                 }
-                PlatformBar(platforms, platform, total = inList.size, onPlatform = { platform = it })
+                PlatformBar(platforms, activePlatform, total = inList.size, onPlatform = { platform = it })
                 if (side) {
                     Row(Modifier.weight(1f)) {
                         if (selected != null) {
@@ -544,11 +553,26 @@ private fun Poster(
 ) {
     val interaction = remember { MutableInteractionSource() }
     val focused by interaction.collectIsFocusedAsState()
-    val scale by animateFloatAsState(if (focused) 1.12f else 1f, label = "poster-scale")
-    LaunchedEffect(focused) { if (focused) onFocused() }
+    val scale by animateFloatAsState(if (focused) FocusScale else 1f, label = "poster-scale")
+    // Only the cover takes focus, so the grid would scroll just the cover into view and leave the
+    // name under the bottom edge. Bring in the whole poster, name included, as big as it grows.
+    val reveal = remember { BringIntoViewRequester() }
+    var size by remember { mutableStateOf(IntSize.Zero) }
+    LaunchedEffect(focused) {
+        if (!focused) return@LaunchedEffect
+        onFocused()
+        val growX = size.width * (FocusScale - 1f) / 2
+        val growY = size.height * (FocusScale - 1f) / 2
+        reveal.bringIntoView(Rect(-growX, -growY, size.width + growX, size.height + growY))
+    }
     val unavailable = !item.compatible || item.port.recommendedFork == null
 
-    Column(modifier.graphicsLayer { scaleX = scale; scaleY = scale }) {
+    Column(
+        modifier
+            .bringIntoViewRequester(reveal)
+            .onSizeChanged { size = it }
+            .graphicsLayer { scaleX = scale; scaleY = scale },
+    ) {
         Box(
             Modifier
                 .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
