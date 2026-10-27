@@ -1,5 +1,8 @@
 package io.github.kalasyan.recompa.core.rom
 
+import java.io.InputStream
+import java.io.OutputStream
+
 /**
  * N64 ROMs circulate in three byte orders. Ports expect big-endian `.z64`,
  * so Recompa normalizes `.v64` (byte-swapped) and `.n64` (little-endian) files.
@@ -41,5 +44,20 @@ object N64Rom {
             }
         }
         return out
+    }
+
+    /** Streams [input] to [output] in big-endian order. Returns the number of bytes written. */
+    fun copyAsBigEndian(input: InputStream, output: OutputStream, order: N64ByteOrder): Long {
+        val buffer = ByteArray(1 shl 16)
+        var total = 0L
+        while (true) {
+            val read = input.readNBytes(buffer, 0, buffer.size)
+            if (read == 0) break
+            require(read % 4 == 0) { "N64 ROM size must be a multiple of 4 bytes" }
+            val chunk = if (read == buffer.size) buffer else buffer.copyOf(read)
+            output.write(toBigEndian(chunk, order))
+            total += read
+        }
+        return total
     }
 }

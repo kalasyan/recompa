@@ -56,4 +56,21 @@
     <string name="loading_apps">Cargando apps instaladas…</string>
     <string name="diagnostics_help">Apps instaladas con su package y la huella SHA-256 de su firma. Toca una para copiar las líneas que van en el manifiesto del port.</string>
     <string name="copied">Copiado al portapapeles</string>
+    <string name="asset_pick_help">Elige tu copia del archivo. Recompa comprueba que es la versión correcta y la prepara para el port.</string>
+    <string name="asset_pick">Elegir archivo</string>
+    <string name="asset_pick_other">Elegir otro</string>
+    <string name="asset_working">Comprobando el archivo…</string>
+    <string name="asset_verified">Versión correcta. Listo como %1$s.</string>
+    <string name="asset_unverifiable">El catálogo aún no sabe qué versiones acepta este port, así que no se ha podido comprobar. Preparado como %1$s.</string>
+    <string name="asset_wrong_version">Este archivo no es una versión que acepte el port.</string>
+    <string name="asset_sha1">SHA-1: %1$s</string>
+    <string name="asset_no_zip">Este port necesita el archivo sin comprimir. Descomprímelo y elige el archivo de dentro.</string>
+    <string name="asset_empty_zip">El ZIP no contiene ningún archivo utilizable.</string>
+    <string name="asset_failed">No se pudo leer o guardar el archivo.</string>
+    <string name="asset_hint_picker">Guárdalo donde quieras (por ejemplo, en Descargas) y elígelo desde el port cuando lo pida.</string>
+    <string name="asset_hint_folder">Elige la carpeta %1$s en el almacenamiento (créala si no existe).</string>
+    <string name="asset_save">Guardar archivo</string>
+    <string name="asset_save_folder">Elegir carpeta</string>
+    <string name="asset_send">Enviar al port</string>
+    <string name="asset_delivered">%1$s entregado.</string>
 </resources>

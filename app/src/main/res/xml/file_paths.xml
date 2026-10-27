@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- Prepared game files that Recompa hands to a port with a share intent. -->
+    <cache-path name="assets" path="assets/" />
+</paths>

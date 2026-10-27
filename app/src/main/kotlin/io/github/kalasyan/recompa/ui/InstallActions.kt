@@ -156,7 +156,7 @@ private fun errorText(error: InstallError): String = when (error) {
     }
 }
 
-private fun Context.startSafely(intent: Intent) {
+internal fun Context.startSafely(intent: Intent) {
     try {
         startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     } catch (e: ActivityNotFoundException) {

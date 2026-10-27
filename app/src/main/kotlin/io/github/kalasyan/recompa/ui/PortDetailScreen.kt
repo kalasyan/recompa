@@ -65,15 +65,7 @@ fun PortDetailScreen(item: PortItem, onBack: () -> Unit) {
             }
 
             if (port.assets.isNotEmpty()) {
-                Section(stringResource(R.string.section_files)) {
-                    port.assets.forEach { Text("• ${it.label}") }
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        stringResource(R.string.files_disclaimer),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                Section(stringResource(R.string.section_files)) { AssetWizard(port) }
             }
         }
     }

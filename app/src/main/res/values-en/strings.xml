@@ -55,4 +55,21 @@
     <string name="loading_apps">Loading installed apps…</string>
     <string name="diagnostics_help">Installed apps with their package and signing certificate SHA-256. Tap one to copy the lines for the port manifest.</string>
     <string name="copied">Copied to clipboard</string>
+    <string name="asset_pick_help">Pick your copy of the file. Recompa checks that it is the right version and prepares it for the port.</string>
+    <string name="asset_pick">Pick file</string>
+    <string name="asset_pick_other">Pick another</string>
+    <string name="asset_working">Checking the file…</string>
+    <string name="asset_verified">Right version. Ready as %1$s.</string>
+    <string name="asset_unverifiable">The catalog does not know yet which versions this port accepts, so the file could not be checked. Prepared as %1$s.</string>
+    <string name="asset_wrong_version">This file is not a version the port accepts.</string>
+    <string name="asset_sha1">SHA-1: %1$s</string>
+    <string name="asset_no_zip">This port needs the file uncompressed. Unzip it and pick the file inside.</string>
+    <string name="asset_empty_zip">The ZIP has no usable file in it.</string>
+    <string name="asset_failed">The file could not be read or saved.</string>
+    <string name="asset_hint_picker">Save it anywhere (for example in Downloads) and pick it from the port when it asks.</string>
+    <string name="asset_hint_folder">Pick the %1$s folder in storage (create it if it does not exist).</string>
+    <string name="asset_save">Save file</string>
+    <string name="asset_save_folder">Pick folder</string>
+    <string name="asset_send">Send to port</string>
+    <string name="asset_delivered">%1$s delivered.</string>
 </resources>
