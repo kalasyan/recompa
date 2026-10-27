@@ -72,6 +72,13 @@ def test_pick_release_skips_drafts_and_prereleases_on_stable():
     assert bi.pick_release([release(draft=True)], "beta") is None
 
 
+def test_pick_release_skips_releases_without_a_matching_asset():
+    releases = [release("v2.2.11", assets=[asset("game-windows.zip")]),
+                release("android-2.2.11", assets=[asset("game.apk")])]
+    assert bi.pick_release(releases, "stable", r"\.apk$")["tag_name"] == "android-2.2.11"
+    assert bi.pick_release(releases, "stable", r"\.aab$") is None
+
+
 def test_select_asset_prefers_arm64():
     assets = [asset("game-x86_64.apk"), asset("game-arm64-v8a.apk"), asset("notes.txt")]
     assert bi.select_asset(assets, r"\.apk$")["name"] == "game-arm64-v8a.apk"
@@ -105,7 +112,7 @@ def test_build_index_warns_when_no_asset_or_network_fails():
     _, errors, warnings = bi.build_index([manifest()], fetch=boom)
     assert errors == [] and "could not list releases" in warnings[0]
     _, _, warnings = bi.build_index([manifest()], fetch=lambda url: [release(assets=[])])
-    assert "no asset matches" in warnings[0]
+    assert "no recent release has an asset matching" in warnings[0]
 
 
 def test_asset_sha256_downloads_when_no_digest(tmp_path):

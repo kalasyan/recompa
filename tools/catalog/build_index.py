@@ -140,12 +140,20 @@ def steamgriddb_fetcher(api_key: str) -> Fetcher:
     return fetch
 
 
-def pick_release(releases: list[dict[str, Any]], channel: str) -> dict[str, Any] | None:
-    """Newest published release; stable channels skip prereleases."""
+def pick_release(
+    releases: list[dict[str, Any]], channel: str, pattern: str | None = None,
+) -> dict[str, Any] | None:
+    """Newest published release; stable channels skip prereleases.
+
+    With ``pattern``, the newest one with an asset matching it, since many
+    repositories alternate desktop and Android releases.
+    """
     for rel in releases:
         if rel.get("draft"):
             continue
         if channel == "stable" and rel.get("prerelease"):
+            continue
+        if pattern is not None and select_asset(rel.get("assets", []), pattern) is None:
             continue
         return rel
     return None
@@ -429,17 +437,16 @@ def build_index(
                 warnings.append(f"{m.path.name}: {repo}: could not list releases ({exc})")
                 entry["release"] = old.get("release")
                 continue
-            rel = pick_release(releases, fork.get("channel", "stable"))
+            channel = fork.get("channel", "stable")
+            rel = pick_release(releases, channel, fork["asset_pattern"])
             if rel is None:
-                warnings.append(f"{m.path.name}: {repo}: no published release")
+                newest = pick_release(releases, channel)
+                warnings.append(f"{m.path.name}: {repo}: " + (
+                    f"no recent release has an asset matching '{fork['asset_pattern']}'"
+                    if newest else "no published release"))
                 entry["release"] = old.get("release")
                 continue
             asset = select_asset(rel.get("assets", []), fork["asset_pattern"])
-            if asset is None:
-                warnings.append(f"{m.path.name}: {repo} {rel['tag_name']}: no asset matches "
-                                f"'{fork['asset_pattern']}'")
-                entry["release"] = old.get("release")
-                continue
 
             # Each fork's downloads are deleted once it is done, so a large
             # catalog never needs more disk than its biggest APK.
