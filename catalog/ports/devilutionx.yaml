@@ -1,0 +1,26 @@
+id: devilutionx
+name: "DevilutionX"
+game: "Diablo y Hellfire"
+original_platform: pc
+type: source-port
+upstream: https://github.com/diasurgical/DevilutionX
+description: Port de Diablo y Hellfire. Necesita el DIABDAT.MPQ de tu copia (por ejemplo, la de GOG).
+
+forks:
+  - repo: diasurgical/DevilutionX
+    official: true
+    asset_pattern: '(?i)\.apk$'
+    verified: false
+
+requirements:
+  abi: [arm64-v8a]
+  min_sdk: 21
+
+assets:
+  - id: diabdat
+    label: "DIABDAT.MPQ de Diablo"
+    accepted: []          # TODO(H0)
+    zip_ok: false
+    delivery:
+      mode: in_app_picker
+      filename: "DIABDAT.MPQ"

@@ -1,0 +1,32 @@
+id: zelda64recomp
+name: "Zelda 64: Recompiled"
+game: "The Legend of Zelda: Majora's Mask"
+original_platform: n64
+type: recomp
+upstream: https://github.com/Zelda64Recomp/Zelda64Recomp
+description: >-
+  Recompilación estática de Majora's Mask con pantalla panorámica, alta tasa de
+  imágenes y soporte de mods.
+
+forks:
+  - repo: linkzenic/Zelda64Recomp-Android
+    channel: beta
+    asset_pattern: '(?i)\.apk$'
+    verified: false
+
+requirements:
+  abi: [arm64-v8a]
+  min_sdk: 24
+  vulkan: true
+
+assets:
+  - id: rom
+    label: "ROM de Majora's Mask (N64)"
+    accepted: []          # TODO(H0): SHA-1 de la versión que acepta el port
+    convert_from: [v64, n64]
+    zip_ok: true
+    delivery:
+      mode: in_app_picker
+      path: "Zelda64/"
+    instructions_md: |
+      Abre el port y, cuando pida la ROM, elige el archivo que ha preparado Recompa.

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Recompa</string>
+    <string name="catalog_title">Catálogo</string>
+    <string name="loading">Cargando catálogo…</string>
+    <string name="retry">Reintentar</string>
+    <string name="error_network">No se pudo descargar el catálogo. Comprueba tu conexión.</string>
+    <string name="error_newer_catalog">Este catálogo necesita una versión más nueva de Recompa.</string>
+    <string name="offline_copy">Mostrando la última copia guardada del catálogo.</string>
+    <string name="empty_catalog">El catálogo está vacío.</string>
+    <string name="compatible">Compatible</string>
+    <string name="not_compatible">No compatible</string>
+    <string name="no_release">Sin versión publicada</string>
+    <string name="back">Volver</string>
+    <string name="original_game">Juego original: %1$s</string>
+    <string name="section_requirements">Requisitos</string>
+    <string name="section_forks">Versiones para Android</string>
+    <string name="section_files">Archivos que necesitas</string>
+    <string name="req_abi">Arquitectura: %1$s</string>
+    <string name="req_sdk">Android %1$s o superior</string>
+    <string name="req_vulkan">GPU con Vulkan</string>
+    <string name="issue_abi">Tu dispositivo no tiene una arquitectura compatible (%1$s).</string>
+    <string name="issue_sdk">Necesita Android %1$s o superior.</string>
+    <string name="issue_vulkan">Necesita una GPU con Vulkan.</string>
+    <string name="fork_recommended">Recomendada</string>
+    <string name="fork_official">Oficial</string>
+    <string name="fork_unverified">Sin verificar</string>
+    <string name="fork_release">%1$s · %2$s</string>
+    <string name="install_soon">Instalar (próximamente)</string>
+    <string name="files_disclaimer">Recompa no incluye ni descarga juegos. Necesitas tu propia copia legítima.</string>
+</resources>
