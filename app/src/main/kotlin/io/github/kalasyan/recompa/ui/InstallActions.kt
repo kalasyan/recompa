@@ -137,7 +137,7 @@ private fun Note(text: String) {
 }
 
 @Composable
-private fun errorText(error: InstallError): String = when (error) {
+internal fun errorText(error: InstallError): String = when (error) {
     InstallError.Network -> stringResource(R.string.error_download)
     InstallError.InvalidApk -> stringResource(R.string.error_invalid_apk)
     InstallError.Aborted -> stringResource(R.string.error_aborted)

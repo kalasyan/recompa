@@ -11,6 +11,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -46,6 +47,7 @@ fun RecompaApp(viewModel: CatalogViewModel = viewModel()) {
                         onDiagnostics = { route = DIAGNOSTICS },
                     )
                 }
+                UpdateBanner(Modifier.align(Alignment.BottomCenter))
             }
         }
     }

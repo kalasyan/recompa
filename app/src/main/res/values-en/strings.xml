@@ -81,4 +81,7 @@
     <string name="type_source_port">Source port</string>
     <string name="platform_other">Other platform</string>
     <string name="platform_all">All platforms · %1$d</string>
+    <string name="update_available">A new version of Recompa is available: %1$s</string>
+    <string name="update_install">Update</string>
+    <string name="update_later">Later</string>
 </resources>
