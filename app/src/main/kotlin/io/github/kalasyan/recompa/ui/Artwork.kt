@@ -225,9 +225,15 @@ private val PLATFORMS = mapOf(
     "switch" to "Switch",
     "snes" to "Super Nintendo",
     "genesis" to "Mega Drive",
+    "nes" to "NES",
+    "gb" to "Game Boy",
+    "gbc" to "Game Boy Color",
     "gba" to "Game Boy Advance",
+    "32x" to "32X",
+    "amiga" to "Amiga",
     "ps1" to "PlayStation",
     "ps2" to "PlayStation 2",
+    "ps3" to "PlayStation 3",
     "psp" to "PSP",
     "xbox" to "Xbox",
     "xbox360" to "Xbox 360",
@@ -239,9 +245,9 @@ fun platformBrush(code: String): Brush {
     val (top, bottom) = when (code) {
         "n64" -> Color(0xFF2E7D32) to Color(0xFF0D2B4E)
         "gamecube", "wii", "wiiu" -> Color(0xFF5E35B1) to Color(0xFF1A1440)
-        "snes", "ds", "gba", "switch" -> Color(0xFFC62828) to Color(0xFF3A0D16)
-        "genesis" -> Color(0xFF1565C0) to Color(0xFF0A1A3A)
-        "ps1", "ps2", "psp" -> Color(0xFF37474F) to Color(0xFF0E1620)
+        "nes", "snes", "gb", "gbc", "ds", "gba", "switch" -> Color(0xFFC62828) to Color(0xFF3A0D16)
+        "genesis", "32x" -> Color(0xFF1565C0) to Color(0xFF0A1A3A)
+        "ps1", "ps2", "ps3", "psp" -> Color(0xFF37474F) to Color(0xFF0E1620)
         "xbox", "xbox360" -> Color(0xFF558B2F) to Color(0xFF13240C)
         else -> Color(0xFF8D4A2B) to Color(0xFF221109)
     }
