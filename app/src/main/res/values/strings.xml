@@ -85,4 +85,10 @@
     <string name="update_available">Hay una versión nueva de Recompa: %1$s</string>
     <string name="update_install">Actualizar</string>
     <string name="update_later">Más tarde</string>
+    <string name="welcome_title">Te damos la bienvenida a Recompa</string>
+    <string name="welcome_what">Recompa instala y mantiene al día ports nativos de juegos para Android. Descarga cada port desde la página de su autor y comprueba su firma antes de instalarlo.</string>
+    <string name="welcome_files">Los juegos no se incluyen: cuando un port necesita tus archivos (una ROM, los datos del juego), Recompa te ayuda a prepararlos a partir de tu copia.</string>
+    <string name="welcome_permission">Para instalar ports, Android te pedirá permitir a Recompa instalar apps desconocidas.</string>
+    <string name="welcome_start">Empezar</string>
+    <string name="welcome_later">Ahora no</string>
 </resources>
