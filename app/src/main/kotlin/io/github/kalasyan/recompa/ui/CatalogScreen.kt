@@ -33,6 +33,8 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.Button
@@ -49,6 +51,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
@@ -76,6 +79,7 @@ import io.github.kalasyan.recompa.R
 import io.github.kalasyan.recompa.core.install.PortStatus
 import io.github.kalasyan.recompa.ui.theme.Accent
 import io.github.kalasyan.recompa.ui.theme.Night
+import kotlinx.coroutines.launch
 
 private val TopBarHeight = 56.dp
 
@@ -278,25 +282,51 @@ private fun TopBar(filter: Filter?, onFilter: (Filter) -> Unit, offline: Boolean
 /** One chip per original platform in the current list, with how many ports each has. */
 @Composable
 private fun PlatformBar(platforms: List<Pair<String, Int>>, selected: String?, total: Int, onPlatform: (String?) -> Unit) {
+    val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
+    // Lazy rows don't scroll to a focused chip on their own: bring it fully into view, one chip
+    // of context to its left, whenever it gets focus or is picked with L2/R2.
+    val reveal: (Int) -> Unit = { index ->
+        val info = listState.layoutInfo
+        val shown = info.visibleItemsInfo.firstOrNull { it.index == index }
+        val fits = shown != null && shown.offset >= info.viewportStartOffset &&
+            shown.offset + shown.size <= info.viewportEndOffset - info.afterContentPadding
+        if (!fits) scope.launch { listState.animateScrollToItem((index - 1).coerceAtLeast(0)) }
+    }
+    LaunchedEffect(selected) {
+        reveal(if (selected == null) 0 else platforms.indexOfFirst { it.first == selected } + 1)
+    }
     LazyRow(
+        state = listState,
         contentPadding = PaddingValues(horizontal = 24.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         modifier = Modifier.fillMaxWidth().height(44.dp),
     ) {
         item(key = "all") {
-            Chip(stringResource(R.string.platform_all, total), selected = selected == null, onClick = { onPlatform(null) })
+            Chip(
+                stringResource(R.string.platform_all, total),
+                selected = selected == null,
+                onClick = { onPlatform(null) },
+                onFocused = { reveal(0) },
+            )
         }
-        items(platforms, key = { it.first }) { (code, count) ->
-            Chip("${platformName(code)} · $count", selected = code == selected, onClick = { onPlatform(code) })
+        itemsIndexed(platforms, key = { _, it -> it.first }) { index, (code, count) ->
+            Chip(
+                "${platformName(code)} · $count",
+                selected = code == selected,
+                onClick = { onPlatform(code) },
+                onFocused = { reveal(index + 1) },
+            )
         }
     }
 }
 
 @Composable
-private fun Chip(label: String, selected: Boolean, onClick: () -> Unit) {
+private fun Chip(label: String, selected: Boolean, onClick: () -> Unit, onFocused: () -> Unit = {}) {
     // The focus ring is the chip's own border, so it follows the chip's exact shape.
     val interaction = remember { MutableInteractionSource() }
     val focused by interaction.collectIsFocusedAsState()
+    LaunchedEffect(focused) { if (focused) onFocused() }
     FilterChip(
         interactionSource = interaction,
         shape = RoundedCornerShape(50),
