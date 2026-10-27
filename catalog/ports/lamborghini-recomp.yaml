@@ -1,0 +1,16 @@
+id: lamborghini-recomp
+name: "Automobili Lamborghini Recompiled"
+game: "Automobili Lamborghini"
+original_platform: n64
+type: recomp
+upstream: https://github.com/alondero/automobililamborghini-recomp
+description: "Port nativo en desarrollo de la versión norteamericana. Necesita tu ROM de N64."
+
+forks:
+  - repo: alondero/automobililamborghini-recomp
+    channel: beta
+    asset_pattern: '(?i)\.apk$'
+
+requirements:
+  abi: [arm64-v8a]
+  min_sdk: 24

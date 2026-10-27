@@ -1,0 +1,15 @@
+id: silksong-android
+name: "Silksong Android"
+game: "Hollow Knight: Silksong"
+original_platform: pc
+type: source-port
+upstream: https://github.com/jakobkhansen/SilksongAndroid
+description: "Port de doble pantalla con integración opcional con Steam para los archivos y las partidas en la nube. Necesita tu copia."
+
+forks:
+  - repo: jakobkhansen/SilksongAndroid
+    asset_pattern: '(?i)\.apk$'
+
+requirements:
+  abi: [arm64-v8a]
+  min_sdk: 24

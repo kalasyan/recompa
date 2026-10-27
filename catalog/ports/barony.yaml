@@ -1,0 +1,16 @@
+id: barony
+name: "Barony para Android"
+game: "Barony"
+original_platform: pc
+type: source-port
+upstream: https://github.com/DifferentNet/barony-android-port
+description: "Port nativo en beta. El APK solo trae el código: necesita tu instalación de Barony 5.0.2."
+
+forks:
+  - repo: DifferentNet/barony-android-port
+    channel: beta
+    asset_pattern: '(?i)\.apk$'
+
+requirements:
+  abi: [arm64-v8a]
+  min_sdk: 24

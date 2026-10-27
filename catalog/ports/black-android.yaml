@@ -1,0 +1,15 @@
+id: black-android
+name: "Black para Android"
+game: "Black"
+original_platform: xbox
+type: recomp
+upstream: https://github.com/RanggaCasper/Black-Android
+description: "Port nativo con controles táctiles, giroscopio y mando. Necesita tu copia de Xbox."
+
+forks:
+  - repo: RanggaCasper/Black-Android
+    asset_pattern: '(?i)\.apk$'
+
+requirements:
+  abi: [arm64-v8a]
+  min_sdk: 24

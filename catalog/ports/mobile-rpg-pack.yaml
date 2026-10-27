@@ -1,0 +1,15 @@
+id: mobile-rpg-pack
+name: "Mobile RPG Pack"
+game: "Wolfenstein RPG"
+original_platform: pc
+type: source-port
+upstream: https://github.com/sandstranger/com.mobilerpgpack.phone
+description: "Colección de ports de motores clásicos: Doom, la saga Wolfenstein RPG, Doom 64 EX+, UZDoom y Red Alert. Necesita los archivos de tus juegos."
+
+forks:
+  - repo: sandstranger/com.mobilerpgpack.phone
+    asset_pattern: '(?i)arm64-v8a.*\.apk$'
+
+requirements:
+  abi: [arm64-v8a]
+  min_sdk: 24

@@ -3,14 +3,20 @@ name: "Halo CE Android"
 game: "Halo: Combat Evolved"
 original_platform: xbox
 type: decomp
-upstream: https://github.com/FulGerNet/halo-ce-android
+upstream: https://github.com/OpenCommunityEdition/OpenCE
 description: "Ports de Halo: Combat Evolved basados en su decompilación, con mando y controles táctiles. Necesita tu copia del juego."
 
 forks:
+  - repo: OpenCommunityEdition/OpenCE
+    asset_pattern: '(?i)android-release\.zip$'
+    zip_entry: '(?i)\.apk$'
   - repo: FulGerNet/halo-ce-android
     asset_pattern: '(?i)\.apk$'
   - repo: Andiweli/HaloCE-Android-AAOS
     asset_pattern: '(?i)\.apk$'
+  - repo: ChupathingyCE/chupathingyce
+    asset_pattern: '(?i)android64-release\.zip$'
+    zip_entry: '(?i)\.apk$'
 
 requirements:
   abi: [arm64-v8a]

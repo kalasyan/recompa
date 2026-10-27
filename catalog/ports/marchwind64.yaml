@@ -1,0 +1,15 @@
+id: marchwind64
+name: "Marchwind 64"
+game: "Super Robot Wars 64"
+original_platform: n64
+type: recomp
+upstream: https://github.com/dyzz/srw64-recomp
+description: "Recompilación experimental con textos en inglés y chino. Necesita tu ROM de N64."
+
+forks:
+  - repo: dyzz/srw64-recomp
+    asset_pattern: '(?i)\.apk$'
+
+requirements:
+  abi: [arm64-v8a]
+  min_sdk: 24

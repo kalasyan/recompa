@@ -1,0 +1,15 @@
+id: sonic-r
+name: "Sonic R"
+game: "Sonic R"
+original_platform: pc
+type: decomp
+upstream: https://github.com/ZinexDa/sonic-r-android
+description: "Port de la decompilación de Sonic R con GLES2 y controles táctiles. Necesita los datos de tu copia de PC."
+
+forks:
+  - repo: ZinexDa/sonic-r-android
+    asset_pattern: '(?i)\.apk$'
+
+requirements:
+  abi: [arm64-v8a]
+  min_sdk: 24

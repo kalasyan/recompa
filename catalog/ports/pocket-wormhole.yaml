@@ -1,0 +1,15 @@
+id: pocket-wormhole
+name: "Pocket Wormhole"
+game: "FTL: Faster Than Light"
+original_platform: pc
+type: source-port
+upstream: https://github.com/adamkulik/pocket-wormhole
+description: "Port de Project Wormhole, una reimplementación del motor de FTL. Necesita los datos de tu copia."
+
+forks:
+  - repo: adamkulik/pocket-wormhole
+    asset_pattern: '(?i)\.apk$'
+
+requirements:
+  abi: [arm64-v8a]
+  min_sdk: 24

@@ -1,0 +1,15 @@
+id: zuma-portable
+name: "Zuma Portable"
+game: "Zuma Deluxe"
+original_platform: pc
+type: source-port
+upstream: https://github.com/abduznik/ZumaPortable
+description: "Port libre con SDL2 de Zuma Deluxe. Necesita los datos de tu copia."
+
+forks:
+  - repo: abduznik/ZumaPortable
+    asset_pattern: '(?i)\.apk$'
+
+requirements:
+  abi: [arm64-v8a]
+  min_sdk: 24

@@ -1,0 +1,16 @@
+id: am2r
+name: "AM2R Autopatcher"
+game: "AM2R: Another Metroid 2 Remake"
+original_platform: pc
+type: source-port
+upstream: https://github.com/am2r-android/AM2R-Autopatcher-Android
+description: "Convierte tu zip de AM2R 1.1 en una versión nativa de Android."
+
+forks:
+  - repo: am2r-android/AM2R-Autopatcher-Android
+    channel: beta
+    asset_pattern: '(?i)\.apk$'
+
+requirements:
+  abi: [arm64-v8a]
+  min_sdk: 24

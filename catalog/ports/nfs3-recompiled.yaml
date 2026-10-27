@@ -1,0 +1,17 @@
+id: nfs3-recompiled
+name: "NFS III Recompiled"
+game: "Need for Speed III: Hot Pursuit"
+original_platform: pc
+type: recomp
+upstream: https://github.com/ZloiKILLER/nfs3recompiled-android
+description: "Port recompilado de la versión de PC de 1998. Necesita tu copia."
+
+forks:
+  - repo: ZloiKILLER/nfs3recompiled-android
+    asset_pattern: '(?i)\.apk$'
+  - repo: codepdbh/NFS3-HP-AndroidEvolved
+    asset_pattern: '(?i)\.apk$'
+
+requirements:
+  abi: [arm64-v8a]
+  min_sdk: 24

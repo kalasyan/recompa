@@ -1,0 +1,15 @@
+id: free-riders-recompiled
+name: "Free Riders Recompiled"
+game: "Sonic Free Riders"
+original_platform: xbox360
+type: recomp
+upstream: https://github.com/YuutaTsubasa/Free-Riders-Recompiled
+description: "Recompilación estática con soporte de mando y teclado. Necesita tu copia de Xbox 360."
+
+forks:
+  - repo: YuutaTsubasa/Free-Riders-Recompiled
+    asset_pattern: '(?i)-android-arm64\.apk$'
+
+requirements:
+  abi: [arm64-v8a]
+  min_sdk: 24

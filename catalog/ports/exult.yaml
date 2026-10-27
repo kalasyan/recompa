@@ -1,0 +1,16 @@
+id: exult
+name: "Exult"
+game: "Ultima VII"
+original_platform: pc
+type: source-port
+upstream: https://github.com/exult/exult
+description: "Recreación del motor de Ultima VII. Necesita los datos de tu copia."
+
+forks:
+  - repo: exult/exult
+    channel: beta
+    asset_pattern: '(?i)signed\.apk$'
+
+requirements:
+  abi: [arm64-v8a]
+  min_sdk: 24

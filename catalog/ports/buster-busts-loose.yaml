@@ -1,0 +1,15 @@
+id: buster-busts-loose
+name: "Buster Busts Loose!"
+game: "Tiny Toon Adventures: Buster Busts Loose!"
+original_platform: snes
+type: recomp
+upstream: https://github.com/Darhkfox/BusterBustsLoose
+description: "Port del juego de SNES con panorámico real. Necesita tu ROM."
+
+forks:
+  - repo: Darhkfox/BusterBustsLoose
+    asset_pattern: '(?i)\.apk$'
+
+requirements:
+  abi: [arm64-v8a]
+  min_sdk: 24

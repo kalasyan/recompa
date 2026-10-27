@@ -1,0 +1,15 @@
+id: yknytt
+name: "YKnytt"
+game: "Knytt Stories"
+original_platform: pc
+type: source-port
+upstream: https://github.com/youkaicountry/yknytt
+description: "Implementación libre de Knytt Stories en Godot."
+
+forks:
+  - repo: youkaicountry/yknytt
+    asset_pattern: '(?i)\.apk$'
+
+requirements:
+  abi: [arm64-v8a]
+  min_sdk: 24

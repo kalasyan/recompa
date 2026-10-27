@@ -1,0 +1,16 @@
+id: warioware-twisted-recomp
+name: "WarioWare: Twisted! Recomp"
+game: "WarioWare: Twisted!"
+original_platform: gba
+type: recomp
+upstream: https://github.com/mstan/WarioWareTwistedRecomp
+description: "Recompilación estática experimental que usa el giroscopio del móvil. Necesita tu ROM de GBA."
+
+forks:
+  - repo: mstan/WarioWareTwistedRecomp
+    channel: beta
+    asset_pattern: '(?i)\.apk$'
+
+requirements:
+  abi: [arm64-v8a]
+  min_sdk: 24

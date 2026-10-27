@@ -1,0 +1,15 @@
+id: freeserf
+name: "Freeserf.net"
+game: "The Settlers"
+original_platform: pc
+type: source-port
+upstream: https://github.com/Pyrdacor/freeserf.net
+description: "Remake fiel en C# de The Settlers. Necesita los datos de tu copia."
+
+forks:
+  - repo: Pyrdacor/freeserf.net
+    asset_pattern: '(?i)\.apk$'
+
+requirements:
+  abi: [arm64-v8a]
+  min_sdk: 24

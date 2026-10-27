@@ -1,0 +1,20 @@
+id: mario-party-4
+name: "PartyBoard"
+game: "Mario Party 4"
+original_platform: gamecube
+type: decomp
+upstream: https://github.com/zeranemesis/Marioparty4
+description: "Port de Mario Party 4 basado en su decompilación, con juego online. Necesita tu disco de GameCube."
+
+forks:
+  - repo: zeranemesis/Marioparty4
+    channel: beta
+    asset_pattern: '(?i)phone.*\.apk$'
+  - repo: mariopartyrd/partyboard
+    channel: beta
+    asset_pattern: '(?i)android.*\.zip$'
+    zip_entry: '(?i)\.apk$'
+
+requirements:
+  abi: [arm64-v8a]
+  min_sdk: 24

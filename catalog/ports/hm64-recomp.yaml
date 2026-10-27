@@ -1,0 +1,15 @@
+id: hm64-recomp
+name: "Harvest Moon 64: Recompiled"
+game: "Harvest Moon 64"
+original_platform: n64
+type: recomp
+upstream: https://github.com/igawa6/HarvestMoon64Recomp
+description: "Port de Harvest Moon 64: Recompiled con controles táctiles. Necesita tu ROM de N64."
+
+forks:
+  - repo: igawa6/HarvestMoon64Recomp
+    asset_pattern: '(?i)\.apk$'
+
+requirements:
+  abi: [arm64-v8a]
+  min_sdk: 24

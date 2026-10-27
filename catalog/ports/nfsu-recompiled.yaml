@@ -1,0 +1,15 @@
+id: nfsu-recompiled
+name: "NFSU Recompiled"
+game: "Need for Speed: Underground"
+original_platform: pc
+type: recomp
+upstream: https://github.com/codepdbh/nfsu1-recompiled
+description: "Recompilación estática de la versión de PC. Necesita tu copia."
+
+forks:
+  - repo: codepdbh/nfsu1-recompiled
+    asset_pattern: '(?i)\.apk$'
+
+requirements:
+  abi: [arm64-v8a]
+  min_sdk: 24

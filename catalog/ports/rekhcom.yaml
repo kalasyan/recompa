@@ -1,0 +1,15 @@
+id: rekhcom
+name: "ReKHCoM"
+game: "Kingdom Hearts: Chain of Memories"
+original_platform: gba
+type: decomp
+upstream: https://github.com/MatyMeatBoy/ReKHCoM
+description: "Port basado en la decompilación de Chain of Memories, en alfa. Necesita tu ROM de GBA."
+
+forks:
+  - repo: MatyMeatBoy/ReKHCoM
+    asset_pattern: '(?i)\.apk$'
+
+requirements:
+  abi: [arm64-v8a]
+  min_sdk: 24

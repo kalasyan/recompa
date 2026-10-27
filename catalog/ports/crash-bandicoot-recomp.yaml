@@ -1,0 +1,15 @@
+id: crash-bandicoot-recomp
+name: "Crash Bandicoot Recompiled"
+game: "Crash Bandicoot"
+original_platform: ps1
+type: recomp
+upstream: https://github.com/Matteo842/CrashBandicoot-Launcher
+description: "Recompilación estática con panorámico y alta tasa de imágenes. Necesita tu disco de PS1."
+
+forks:
+  - repo: Matteo842/CrashBandicoot-Launcher
+    asset_pattern: '(?i)\.apk$'
+
+requirements:
+  abi: [arm64-v8a]
+  min_sdk: 24

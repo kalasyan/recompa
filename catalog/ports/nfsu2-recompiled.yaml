@@ -1,0 +1,15 @@
+id: nfsu2-recompiled
+name: "NFSU2 Recompiled"
+game: "Need for Speed: Underground 2"
+original_platform: pc
+type: recomp
+upstream: https://github.com/codepdbh/nfsu2-recompiled
+description: "Recompilación estática de SPEED2.EXE. Necesita tu copia de PC."
+
+forks:
+  - repo: codepdbh/nfsu2-recompiled
+    asset_pattern: '(?i)\.apk$'
+
+requirements:
+  abi: [arm64-v8a]
+  min_sdk: 24

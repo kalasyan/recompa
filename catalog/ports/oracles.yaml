@@ -1,0 +1,17 @@
+id: oracles
+name: "Oracles"
+game: "The Legend of Zelda: Oracle of Ages"
+original_platform: other
+type: decomp
+upstream: https://github.com/kirby-letsgo/oracles-decomp
+description: "Oracle of Ages y Oracle of Seasons reconstruidos en C. Necesita tus ROM de Game Boy Color."
+
+forks:
+  - repo: kirby-letsgo/oracles-decomp
+    asset_pattern: '(?i)\.apk$'
+  - repo: thibautbus/top
+    asset_pattern: '(?i)\.apk$'
+
+requirements:
+  abi: [arm64-v8a]
+  min_sdk: 24

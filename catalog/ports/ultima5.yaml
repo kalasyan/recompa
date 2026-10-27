@@ -1,0 +1,15 @@
+id: ultima5
+name: "Ultima V"
+game: "Ultima V: Warriors of Destiny"
+original_platform: pc
+type: source-port
+upstream: https://github.com/synthwave-pixel/ultima5
+description: "Motor en TypeScript que juega tu copia de Ultima V."
+
+forks:
+  - repo: synthwave-pixel/ultima5
+    asset_pattern: '(?i)\.apk$'
+
+requirements:
+  abi: [arm64-v8a]
+  min_sdk: 24

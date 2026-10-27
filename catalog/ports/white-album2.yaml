@@ -1,0 +1,16 @@
+id: white-album2
+name: "WHITE ALBUM2 para Android"
+game: "WHITE ALBUM2"
+original_platform: other
+type: recomp
+upstream: https://github.com/dorakyuraduang/whitealbum2-Android
+description: "Recompilación estática para Android ARM64. Necesita tu copia del juego."
+
+forks:
+  - repo: dorakyuraduang/whitealbum2-Android
+    channel: beta
+    asset_pattern: '(?i)\.apk$'
+
+requirements:
+  abi: [arm64-v8a]
+  min_sdk: 24

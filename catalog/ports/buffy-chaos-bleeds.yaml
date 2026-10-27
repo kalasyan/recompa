@@ -1,0 +1,15 @@
+id: buffy-chaos-bleeds
+name: "Buffy: Chaos Bleeds PC"
+game: "Buffy the Vampire Slayer: Chaos Bleeds"
+original_platform: xbox
+type: recomp
+upstream: https://github.com/KaikoClanworth1/buffy-chaos-bleeds-pc
+description: "Port nativo del juego de Xbox. Necesita tu disco."
+
+forks:
+  - repo: KaikoClanworth1/buffy-chaos-bleeds-pc
+    asset_pattern: '(?i)\.apk$'
+
+requirements:
+  abi: [arm64-v8a]
+  min_sdk: 24

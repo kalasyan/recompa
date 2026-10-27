@@ -1,0 +1,15 @@
+id: pvz-portable
+name: "PvZ Portable"
+game: "Plants vs. Zombies"
+original_platform: pc
+type: source-port
+upstream: https://github.com/wszqkzqk/PvZ-Portable
+description: "Reimplementación de la edición GOTY. Necesita los datos de tu copia."
+
+forks:
+  - repo: wszqkzqk/PvZ-Portable
+    asset_pattern: '(?i)\.apk$'
+
+requirements:
+  abi: [arm64-v8a]
+  min_sdk: 24
