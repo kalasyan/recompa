@@ -2,10 +2,10 @@ name: Android
 
 on:
   pull_request:
-    paths-ignore: ["catalog/**", "tools/catalog/**", "**.md"]
+    paths-ignore: ["**.md"]
   push:
     branches: [main]
-    paths-ignore: ["catalog/**", "tools/catalog/**", "**.md"]
+    paths-ignore: ["**.md"]
   workflow_dispatch:
 
 permissions:

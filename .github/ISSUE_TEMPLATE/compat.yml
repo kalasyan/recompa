@@ -8,7 +8,7 @@ body:
       value: |
         Recompa rellena casi todo al abrir este formulario desde la ficha de un port. Solo tienes que elegir el resultado.
         Los informes aparecen en la app en unas horas, cuando se vuelve a generar el catálogo.
-  # The labels below are parsed by tools/catalog/build_index.py: keep them in sync.
+  # The labels below are parsed by the catalog build (private repository): keep them in sync.
   - type: input
     id: port
     attributes:

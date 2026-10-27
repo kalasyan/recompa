@@ -63,7 +63,7 @@ Requirements: JDK 17 and the Android SDK.
 ./gradlew :app:assembleDebug  # debug APK
 ```
 
-To add or update a port, see [`catalog/README.md`](catalog/README.md).
+The port catalog is managed in a private repository and published at <https://kalasyan.github.io/recompa/index.json>.
 
 ## 🤖 Use of AI
 

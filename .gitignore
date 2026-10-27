@@ -19,8 +19,5 @@ __pycache__/
 .venv/
 .pytest_cache/
 
-# Catalog output
-catalog/dist/
-
 # OS
 .DS_Store
