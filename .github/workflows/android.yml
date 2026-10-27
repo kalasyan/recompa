@@ -34,3 +34,40 @@ jobs:
           name: recompa-debug-apk
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
+
+  # Every build of main becomes a "nightly-N" release marked as latest, so the newest APK is
+  # always at https://github.com/kalasyan/recompa/releases/latest/download/recompa.apk
+  # and Obtainium sees a new version on each build. Only the last few nightlies are kept.
+  nightly:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: nightly-release
+      cancel-in-progress: false
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: recompa-debug-apk
+          path: apk
+      - name: Publish nightly release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          cp apk/*.apk recompa.apk
+          gh release create "nightly-${GITHUB_RUN_NUMBER}" recompa.apk \
+            --latest \
+            --target "$GITHUB_SHA" \
+            --title "Nightly ${GITHUB_RUN_NUMBER}" \
+            --notes "Build automática de main (${GITHUB_SHA::7})."
+      - name: Prune old nightlies
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release list --limit 100 --json tagName --jq '.[].tagName' \
+            | grep '^nightly-' | sort -t- -k2 -n -r | tail -n +6 \
+            | xargs -r -n1 gh release delete --cleanup-tag --yes

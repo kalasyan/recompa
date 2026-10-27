@@ -40,6 +40,13 @@ python tools/catalog/build_index.py             # genera catalog/dist/index.json
 
 Para usar otro catálogo durante el desarrollo: `./gradlew :app:assembleDebug -Precompa.catalogUrl=https://…/index.json`.
 
+## Probar la última build
+
+Cada push a `main` publica el APK como release `nightly-N`. La última está siempre en
+<https://github.com/kalasyan/recompa/releases/latest/download/recompa.apk>, así que basta con abrir ese enlace en el dispositivo.
+
+Para actualizar sin buscar el enlace, añade `https://github.com/kalasyan/recompa` en [Obtainium](https://github.com/ImranR98/Obtainium): avisará e instalará cada nueva build. Todas van firmadas con la misma clave de depuración, así que se instalan encima de la anterior sin perder datos.
+
 ## Añadir un port
 
 Lee [`catalog/README.md`](catalog/README.md). En resumen: copia un manifiesto existente, rellena los datos del port y abre un pull request. La CI valida el archivo contra el esquema.
