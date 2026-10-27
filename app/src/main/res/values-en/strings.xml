@@ -20,7 +20,7 @@
     <string name="issue_vulkan">Needs a Vulkan-capable GPU.</string>
     <string name="fork_recommended">Recommended</string>
     <string name="fork_official">Official</string>
-    <string name="fork_unverified">Unverified</string>
+    <string name="fork_tested_on">Tested on %1$s</string>
     <string name="fork_release">%1$s · %2$s</string>
     <string name="files_disclaimer">Recompa does not include or download games. You need your own legitimate copy.</string>
     <string name="phase_downloading">Downloading…</string>

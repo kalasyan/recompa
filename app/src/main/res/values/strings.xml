@@ -21,7 +21,7 @@
     <string name="issue_vulkan">Necesita una GPU con Vulkan.</string>
     <string name="fork_recommended">Recomendada</string>
     <string name="fork_official">Oficial</string>
-    <string name="fork_unverified">Sin verificar</string>
+    <string name="fork_tested_on">Probado en %1$s</string>
     <string name="fork_release">%1$s · %2$s</string>
     <string name="files_disclaimer">Recompa no incluye ni descarga juegos. Necesitas tu propia copia legítima.</string>
     <string name="phase_downloading">Descargando…</string>

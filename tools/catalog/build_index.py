@@ -191,6 +191,16 @@ def make_downloader(workdir: Path) -> Callable[[str], Path]:
     return download
 
 
+def apk_package(apk: Path) -> str:
+    """Package name of an APK, via Android build-tools' aapt2."""
+    return subprocess.run(["aapt2", "dump", "packagename", str(apk)],
+                          check=True, capture_output=True, text=True).stdout.strip()
+
+
+def inspect_apk(apk: Path) -> tuple[str, list[str]]:
+    return apk_package(apk), apk_signer_sha256(apk)
+
+
 def apk_signer_sha256(apk: Path) -> list[str]:
     """SHA-256 of each signer certificate, via Android build-tools' apksigner."""
     out = subprocess.run(["apksigner", "verify", "--print-certs", str(apk)],
@@ -270,6 +280,20 @@ def previous_hashes(previous: dict[str, Any] | None) -> dict[tuple[str, str, str
     return pinned
 
 
+PIN_KEYS = ("package", "signer_sha256")
+
+
+def previous_pins(previous: dict[str, Any] | None) -> dict[str, dict[str, str]]:
+    """Map fork repo -> package and signer published in a previous index."""
+    pins: dict[str, dict[str, str]] = {}
+    for port in (previous or {}).get("ports", []):
+        for fork in port.get("forks", []):
+            found = {k: fork[k] for k in PIN_KEYS if fork.get(k)}
+            if found:
+                pins[fork["repo"]] = found
+    return pins
+
+
 def build_index(
     manifests: list[Manifest],
     fetch: Fetcher,
@@ -278,11 +302,20 @@ def build_index(
     verify_signers: bool = False,
     now: dt.datetime | None = None,
     art_fetch: Fetcher | None = None,
+    inspect: Callable[[Path], tuple[str, list[str]]] = inspect_apk,
 ) -> tuple[dict[str, Any], list[str], list[str]]:
-    """Return (index, errors, warnings)."""
+    """Return (index, errors, warnings).
+
+    With ``verify_signers``, each release APK is inspected for its package and
+    signer. The first values seen for a fork are pinned in the index (trust on
+    first use) and later releases must match them; values written in the
+    manifest take precedence, which is also how a legitimate key rotation is
+    accepted.
+    """
     errors: list[str] = []
     warnings: list[str] = []
     pinned = previous_hashes(previous)
+    old_pins = previous_pins(previous)
     old_art = previous_art(previous)
     ports = []
     for m in manifests:
@@ -297,6 +330,10 @@ def build_index(
             entry = dict(fork)
             entry["release"] = None
             repo = fork["repo"]
+            for key in PIN_KEYS:
+                value = fork.get(key) or old_pins.get(repo, {}).get(key)
+                if value:
+                    entry[key] = value
             try:
                 releases = fetch(f"{GITHUB_API}/repos/{repo}/releases?per_page=20")
             except Exception as exc:  # noqa: BLE001 - network errors become warnings
@@ -321,13 +358,25 @@ def build_index(
                               f"was {pinned[key]}, now {sha}")
                 forks.append(entry)
                 continue
-            if verify_signers and fork.get("signer_sha256") and download is not None:
-                signers = apk_signer_sha256(download(asset["browser_download_url"]))
-                if fork["signer_sha256"] not in signers:
-                    errors.append(f"{m.path.name}: {repo} {rel['tag_name']}: signer {signers} "
-                                  f"does not match {fork['signer_sha256']}")
+            if verify_signers and download is not None:
+                try:
+                    package, signers = inspect(download(asset["browser_download_url"]))
+                except Exception as exc:  # noqa: BLE001 - an APK we cannot inspect is not published
+                    errors.append(f"{m.path.name}: {repo} {rel['tag_name']}: could not inspect APK ({exc})")
                     forks.append(entry)
                     continue
+                problems = []
+                if entry.get("package") and entry["package"] != package:
+                    problems.append(f"package {package} does not match {entry['package']}")
+                if entry.get("signer_sha256") and entry["signer_sha256"] not in signers:
+                    problems.append(f"signer {signers} does not match {entry['signer_sha256']}")
+                if problems or not signers:
+                    errors.append(f"{m.path.name}: {repo} {rel['tag_name']}: "
+                                  + ("; ".join(problems) or "APK is not signed"))
+                    forks.append(entry)
+                    continue
+                entry.setdefault("package", package)
+                entry.setdefault("signer_sha256", signers[0])
             entry["release"] = {
                 "tag": rel["tag_name"],
                 "name": rel.get("name") or rel["tag_name"],
@@ -375,7 +424,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--download", action="store_true",
                         help="download APKs to hash them when GitHub gives no digest")
     parser.add_argument("--verify-signers", action="store_true",
-                        help="check signer_sha256 with apksigner (implies --download)")
+                        help="read package and signer of each APK with aapt2 and apksigner, "
+                             "pin them on first sight and reject changes (implies --download)")
     parser.add_argument("--strict", action="store_true", help="treat warnings as errors")
     args = parser.parse_args(argv)
 

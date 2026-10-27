@@ -191,7 +191,7 @@ private fun ForkRow(fork: Fork, recommended: Boolean) {
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             if (recommended) Pill(stringResource(R.string.fork_recommended), color = Accent, textColor = Night)
             if (fork.official) Pill(stringResource(R.string.fork_official))
-            if (!fork.verified) Pill(stringResource(R.string.fork_unverified))
+            if (fork.testedOn.isNotEmpty()) Pill(stringResource(R.string.fork_tested_on, fork.testedOn.joinToString()))
         }
     }
 }

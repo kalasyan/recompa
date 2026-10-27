@@ -175,5 +175,52 @@ def test_build_index_publishes_art_without_search_hints():
     assert again["ports"][0]["art"]["cover"] == "https://cdn/cover.png"
 
 
+SIGNER = "c" * 64
+
+
+def inspected(package="com.demo", signers=(SIGNER,)):
+    return lambda apk: (package, list(signers))
+
+
+def build_verified(manifests, inspect, previous=None, tmp_path=Path(".")):
+    return bi.build_index(manifests, fetch=lambda url: [release()], previous=previous,
+                          download=lambda url: tmp_path / "demo.apk", verify_signers=True,
+                          inspect=inspect)
+
+
+def test_first_sight_pins_package_and_signer():
+    index, errors, _ = build_verified([manifest()], inspected())
+    fork = index["ports"][0]["forks"][0]
+    assert errors == []
+    assert (fork["package"], fork["signer_sha256"]) == ("com.demo", SIGNER)
+
+
+def test_pins_from_previous_index_reject_a_new_signer():
+    first, _, _ = build_verified([manifest()], inspected())
+    index, errors, _ = build_verified([manifest()], inspected(signers=["d" * 64]), previous=first)
+    assert any("signer" in e for e in errors)
+    assert index["ports"][0]["forks"][0]["release"] is None
+    _, errors, _ = build_verified([manifest()], inspected(package="com.evil"), previous=first)
+    assert any("package com.evil" in e for e in errors)
+
+
+def test_manifest_pin_overrides_previous_index():
+    first, _, _ = build_verified([manifest()], inspected())
+    rotated = manifest(forks=[{"repo": "someone/demo-android", "asset_pattern": r"\.apk$",
+                               "signer_sha256": "d" * 64}])
+    index, errors, _ = build_verified([rotated], inspected(signers=["d" * 64]), previous=first)
+    assert errors == []
+    assert index["ports"][0]["forks"][0]["signer_sha256"] == "d" * 64
+
+
+def test_uninspectable_apk_is_not_published():
+    def broken(apk):
+        raise OSError("not an APK")
+
+    index, errors, _ = build_verified([manifest()], broken)
+    assert any("could not inspect" in e for e in errors)
+    assert index["ports"][0]["forks"][0]["release"] is None
+
+
 if __name__ == "__main__":
     sys.exit(pytest.main([__file__]))

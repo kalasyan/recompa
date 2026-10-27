@@ -11,8 +11,8 @@ Cada archivo de [`ports/`](ports) describe un port. El esquema completo está en
 | `original_platform`, `type` | Plataforma original y tipo (`recomp`, `decomp` o `source-port`) |
 | `forks` | Builds de Android, **en orden de preferencia**: el primero con release es el recomendado |
 | `forks[].asset_pattern` | Expresión regular para encontrar el APK entre los assets del release |
-| `forks[].package`, `forks[].signer_sha256` | Package name y SHA-256 del certificado de firma. Se rellenan al probar el port; la CI rechaza APKs con otra firma |
-| `forks[].verified` | `true` cuando alguien lo ha probado en un dispositivo real |
+| `forks[].package`, `forks[].signer_sha256` | Opcionales. La CI los lee del APK la primera vez que ve el fork y los fija en `index.json`; después rechaza cualquier release con otro package u otra firma. Escríbelos solo para fijarlos tú o para aceptar un cambio de clave legítimo |
+| `forks[].verified`, `forks[].tested_on` | Opcionales. Marca que alguien lo ha probado en un dispositivo real, y en cuál |
 | `requirements` | ABI, versión mínima de Android (`min_sdk`) y si necesita Vulkan |
 | `assets` | Archivos que aporta el usuario: hashes SHA-1 aceptados, conversiones permitidas y cómo se entregan al port |
 | `art` | Opcional. Carátulas: la CI las busca en SteamGridDB por `game`. Usa `search` si el nombre no coincide, `steamgriddb_id` para fijar el juego, o `cover`, `hero` y `logo` para poner URLs a mano |
@@ -34,4 +34,8 @@ pip install -r tools/catalog/requirements.txt
 python tools/catalog/build_index.py --offline
 ```
 
-Para obtener `signer_sha256` de un APK: `apksigner verify --print-certs port.apk` (línea `certificate SHA-256 digest`).
+## Añadir un port
+
+Basta con `id`, `name`, `game`, `original_platform`, `type`, `requirements` y un fork con `repo` y `asset_pattern`. No hace falta instalarlo ni sacar hashes a mano: la CI descarga el APK, calcula su SHA-256 y fija package y firma.
+
+Si un día la CI falla porque un port ha cambiado de firma, comprueba con su autor que el cambio es legítimo y escribe la nueva `signer_sha256` en el manifiesto (la saca `apksigner verify --print-certs port.apk`, línea `certificate SHA-256 digest`).
