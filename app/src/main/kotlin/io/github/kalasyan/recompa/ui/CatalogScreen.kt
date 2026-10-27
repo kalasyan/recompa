@@ -21,6 +21,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -32,8 +33,20 @@ import io.github.kalasyan.recompa.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CatalogScreen(state: CatalogState, onRetry: () -> Unit, onOpen: (PortItem) -> Unit) {
-    Scaffold(topBar = { TopAppBar(title = { Text(stringResource(R.string.catalog_title)) }) }) { padding ->
+fun CatalogScreen(
+    state: CatalogState,
+    onRetry: () -> Unit,
+    onOpen: (PortItem) -> Unit,
+    onDiagnostics: () -> Unit,
+) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.catalog_title)) },
+                actions = { TextButton(onClick = onDiagnostics) { Text(stringResource(R.string.diagnostics_title)) } },
+            )
+        },
+    ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             when (state) {
                 CatalogState.Loading -> Column(

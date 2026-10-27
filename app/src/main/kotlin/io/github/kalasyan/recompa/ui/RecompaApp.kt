@@ -9,17 +9,29 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 
-/** Two screens for now: the catalog and a port's detail page. */
+private const val DIAGNOSTICS = "#diagnostics"
+
+/** Three screens for now: the catalog, a port's detail page and diagnostics. */
 @Composable
 fun RecompaApp(viewModel: CatalogViewModel = viewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    var selectedId by rememberSaveable { mutableStateOf<String?>(null) }
+    var route by rememberSaveable { mutableStateOf<String?>(null) }
 
-    val selected = (state as? CatalogState.Ready)?.items?.firstOrNull { it.port.id == selectedId }
+    if (route == DIAGNOSTICS) {
+        BackHandler { route = null }
+        DiagnosticsScreen(onBack = { route = null })
+        return
+    }
+    val selected = (state as? CatalogState.Ready)?.items?.firstOrNull { it.port.id == route }
     if (selected != null) {
-        BackHandler { selectedId = null }
-        PortDetailScreen(item = selected, onBack = { selectedId = null })
+        BackHandler { route = null }
+        PortDetailScreen(item = selected, onBack = { route = null })
     } else {
-        CatalogScreen(state = state, onRetry = viewModel::refresh, onOpen = { selectedId = it.port.id })
+        CatalogScreen(
+            state = state,
+            onRetry = viewModel::refresh,
+            onOpen = { route = it.port.id },
+            onDiagnostics = { route = DIAGNOSTICS },
+        )
     }
 }

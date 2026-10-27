@@ -4,13 +4,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -54,9 +52,7 @@ fun PortDetailScreen(item: PortItem, onBack: () -> Unit) {
             }
 
             Spacer(Modifier.height(16.dp))
-            Button(onClick = {}, enabled = false, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.install_soon))
-            }
+            if (port.recommendedFork != null) InstallActions(item) else Text(stringResource(R.string.no_release))
 
             Section(stringResource(R.string.section_requirements)) {
                 Text(stringResource(R.string.req_abi, port.requirements.abi.joinToString()))
