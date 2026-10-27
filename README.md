@@ -2,7 +2,7 @@
 
 Recompa es un launcher para Android de **ports nativos de juegos**: recompilaciones, decompilaciones y source ports que se ejecutan sin emulación. Encuentra un port, instálalo desde el GitHub de su autor, prepara tu copia del juego y juega.
 
-> **Estado:** en desarrollo temprano (MVP). Ahora mismo la app muestra el catálogo y la ficha de cada port; la instalación y el asistente de ROM llegan en los próximos hitos.
+> **Estado:** beta. La app instala, actualiza y desinstala ports desde un catálogo de más de 100, y prepara tus archivos de juego con un asistente.
 
 ## Cómo funciona
 
@@ -40,12 +40,18 @@ python tools/catalog/build_index.py             # genera catalog/dist/index.json
 
 Para usar otro catálogo durante el desarrollo: `./gradlew :app:assembleDebug -Precompa.catalogUrl=https://…/index.json`.
 
-## Probar la última build
+## Instalar
 
-Cada push a `main` publica el APK como release `nightly-N`. La última está siempre en
-<https://github.com/kalasyan/recompa/releases/latest/download/recompa.apk>, así que basta con abrir ese enlace en el dispositivo.
+1. En el dispositivo Android (8.0 o superior), abre <https://github.com/kalasyan/recompa/releases/latest/download/recompa.apk> y abre el archivo descargado.
+2. Android pedirá permitir instalar apps desde el navegador o el gestor de archivos. Acéptalo para instalar Recompa.
+3. Al abrir Recompa por primera vez te explicará el permiso que necesita para instalar ports.
+4. Elige un port, pulsa **Instalar** y, si necesita archivos del juego, usa **Archivos que necesitas** en su ficha.
 
-Para actualizar sin buscar el enlace, añade `https://github.com/kalasyan/recompa` en [Obtainium](https://github.com/ImranR98/Obtainium): avisará e instalará cada nueva build. Todas van firmadas con la misma clave de depuración, así que se instalan encima de la anterior sin perder datos.
+Recompa avisa cuando hay una versión nueva y se actualiza desde la propia app. También puedes seguirla con [Obtainium](https://github.com/ImranR98/Obtainium) añadiendo `https://github.com/kalasyan/recompa`.
+
+### Builds de prueba
+
+Cada push a `main` publica una release `nightly-N` con el último código. Están firmadas con una clave de depuración pública, distinta de la de las versiones estables, así que no se pueden instalar encima de una estable (ni al revés) sin desinstalar antes. Para publicar una versión estable, mira [RELEASING.md](RELEASING.md).
 
 ## Añadir un port
 
