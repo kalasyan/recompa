@@ -2,6 +2,7 @@ package io.github.kalasyan.recompa.ui
 
 import android.view.KeyEvent as AndroidKeyEvent
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -22,6 +23,8 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -51,6 +54,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.key.KeyEventType
@@ -153,7 +158,7 @@ private fun Library(state: CatalogState.Ready, onOpen: (PortItem) -> Unit, onDia
         BoxWithConstraints(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
             // Landscape handhelds have little height: one shelf of covers instead of a grid.
             val shelf = maxHeight < 520.dp
-            val featuredHeight = if (shelf) 140.dp else 236.dp
+            val featuredHeight = if (shelf) 164.dp else 256.dp
             // Shelf covers take whatever height is left under the top bar and the details.
             val shelfCoverWidth = ((maxHeight - TopBarHeight - featuredHeight - 64.dp) * 2f / 3f).coerceIn(84.dp, 150.dp)
             val gridState = rememberLazyGridState()
@@ -202,7 +207,7 @@ private fun Library(state: CatalogState.Ready, onOpen: (PortItem) -> Unit, onDia
                     Spacer(Modifier.weight(1f))
                     LazyRow(
                         state = rowState,
-                        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp),
+                        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 18.dp),
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
                         items(visible, key = { it.port.id }) { item ->
@@ -231,7 +236,11 @@ private fun Library(state: CatalogState.Ready, onOpen: (PortItem) -> Unit, onDia
 @Composable
 private fun TopBar(filter: Filter?, onFilter: (Filter) -> Unit, offline: Boolean, onDiagnostics: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().height(TopBarHeight).padding(start = 24.dp, end = 12.dp),
+        Modifier
+            .fillMaxWidth()
+            .height(TopBarHeight)
+            .background(Brush.verticalGradient(listOf(Panel, Color.Transparent)))
+            .padding(start = 24.dp, end = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
@@ -244,6 +253,7 @@ private fun TopBar(filter: Filter?, onFilter: (Filter) -> Unit, offline: Boolean
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Filter.entries.forEach { option ->
                     FilterChip(
+                        modifier = Modifier.focusRing(),
                         selected = option == filter,
                         onClick = { onFilter(option) },
                         label = { Text(stringResource(option.label)) },
@@ -260,7 +270,7 @@ private fun TopBar(filter: Filter?, onFilter: (Filter) -> Unit, offline: Boolean
         }
         Spacer(Modifier.weight(1f))
         if (offline) Pill(stringResource(R.string.offline_badge))
-        IconButton(onClick = onDiagnostics) {
+        IconButton(onClick = onDiagnostics, modifier = Modifier.focusRing(CircleShape)) {
             Icon(Icons.Filled.Info, contentDescription = stringResource(R.string.diagnostics_title))
         }
     }
@@ -270,27 +280,36 @@ private fun TopBar(filter: Filter?, onFilter: (Filter) -> Unit, offline: Boolean
 @Composable
 private fun Featured(item: PortItem, status: PortStatus?, compact: Boolean, modifier: Modifier = Modifier) {
     val port = item.port
-    Column(modifier.fillMaxWidth(0.7f).padding(top = if (compact) 0.dp else 24.dp)) {
-        PortTitle(
-            port,
-            logoHeight = if (compact) 56.dp else 96.dp,
-            style = if (compact) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.headlineMedium,
-        )
-        Spacer(Modifier.height(8.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-            Pill(platformName(port.originalPlatform))
-            Pill(typeName(port.type))
-            StatusPill(item, status)
-        }
-        port.description?.let {
-            Spacer(Modifier.height(8.dp))
-            Text(
-                it,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
-                maxLines = if (compact) 2 else 3,
-                overflow = TextOverflow.Ellipsis,
+    // A translucent panel keeps the text readable over bright art.
+    Box(modifier) {
+        Column(
+            Modifier
+                .fillMaxWidth(0.7f)
+                .padding(top = if (compact) 0.dp else 24.dp)
+                .background(Panel, RoundedCornerShape(16.dp))
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+        ) {
+            PortTitle(
+                port,
+                logoHeight = if (compact) 56.dp else 96.dp,
+                style = if (compact) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.headlineMedium,
             )
+            Spacer(Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Pill(platformName(port.originalPlatform))
+                Pill(typeName(port.type))
+                StatusPill(item, status)
+            }
+            port.description?.let {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    it,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                    maxLines = if (compact) 2 else 3,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
     }
 }
@@ -320,7 +339,7 @@ private fun Poster(
 ) {
     val interaction = remember { MutableInteractionSource() }
     val focused by interaction.collectIsFocusedAsState()
-    val scale by animateFloatAsState(if (focused) 1.07f else 1f, label = "poster-scale")
+    val scale by animateFloatAsState(if (focused) 1.12f else 1f, label = "poster-scale")
     LaunchedEffect(focused) { if (focused) onFocused() }
     val unavailable = !item.compatible || item.port.recommendedFork == null
 
@@ -328,9 +347,10 @@ private fun Poster(
         Box(
             Modifier
                 .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
+                .shadow(if (focused) 24.dp else 0.dp, CoverShape, ambientColor = Accent, spotColor = Accent)
                 .border(
-                    width = if (focused) 3.dp else 1.dp,
-                    color = if (focused) Accent else Color.White.copy(alpha = 0.08f),
+                    width = if (focused) 4.dp else 1.dp,
+                    color = if (focused) Color.White else Color.White.copy(alpha = 0.08f),
                     shape = CoverShape,
                 )
                 .clickable(interactionSource = interaction, indication = ripple(), onClick = onClick),
@@ -350,9 +370,14 @@ private fun Poster(
         Text(
             item.port.name,
             style = MaterialTheme.typography.labelLarge,
-            color = if (focused) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+            color = if (focused) Night else MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
+            modifier = if (focused) {
+                Modifier.background(Accent, RoundedCornerShape(6.dp)).padding(horizontal = 6.dp, vertical = 2.dp)
+            } else {
+                Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+            },
         )
     }
 }

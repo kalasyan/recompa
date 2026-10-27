@@ -1,10 +1,10 @@
 package io.github.kalasyan.recompa.ui
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -25,24 +25,27 @@ fun RecompaApp(viewModel: CatalogViewModel = viewModel()) {
     // Keeps the catalog's list, selection and scroll while another screen is open.
     val screens = rememberSaveableStateHolder()
 
-    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        if (route == DIAGNOSTICS) {
-            BackHandler { route = null }
-            DiagnosticsScreen(onBack = { route = null })
-            return@Box
-        }
-        val selected = (state as? CatalogState.Ready)?.items?.firstOrNull { it.port.id == route }
-        if (selected != null) {
-            BackHandler { route = null }
-            PortDetailScreen(item = selected, onBack = { route = null })
-        } else {
-            screens.SaveableStateProvider("catalog") {
-                CatalogScreen(
-                    state = state,
-                    onRetry = viewModel::refresh,
-                    onOpen = { route = it.port.id },
-                    onDiagnostics = { route = DIAGNOSTICS },
-                )
+    // Surface sets the default text colour; without it, text outside a Scaffold is black.
+    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+        Box(Modifier.fillMaxSize()) {
+            if (route == DIAGNOSTICS) {
+                BackHandler { route = null }
+                DiagnosticsScreen(onBack = { route = null })
+                return@Box
+            }
+            val selected = (state as? CatalogState.Ready)?.items?.firstOrNull { it.port.id == route }
+            if (selected != null) {
+                BackHandler { route = null }
+                PortDetailScreen(item = selected, onBack = { route = null })
+            } else {
+                screens.SaveableStateProvider("catalog") {
+                    CatalogScreen(
+                        state = state,
+                        onRetry = viewModel::refresh,
+                        onOpen = { route = it.port.id },
+                        onDiagnostics = { route = DIAGNOSTICS },
+                    )
+                }
             }
         }
     }

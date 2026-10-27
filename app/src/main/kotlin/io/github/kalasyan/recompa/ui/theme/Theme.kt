@@ -1,9 +1,14 @@
 package io.github.kalasyan.recompa.ui.theme
 
+import androidx.compose.material.ripple.RippleAlpha
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.LocalRippleConfiguration
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RippleConfiguration
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 
@@ -50,7 +55,17 @@ private val Type = Base.copy(
     labelLarge = Base.labelLarge.copy(fontWeight = FontWeight.SemiBold),
 )
 
+// Stronger focus and press overlays than Material's defaults, for gamepad navigation.
+@OptIn(ExperimentalMaterial3Api::class)
+private val Ripple = RippleConfiguration(
+    color = Color.White,
+    rippleAlpha = RippleAlpha(draggedAlpha = 0.16f, focusedAlpha = 0.35f, hoveredAlpha = 0.08f, pressedAlpha = 0.3f),
+)
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RecompaTheme(content: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = Colors, typography = Type, content = content)
+    MaterialTheme(colorScheme = Colors, typography = Type) {
+        CompositionLocalProvider(LocalRippleConfiguration provides Ripple, content = content)
+    }
 }

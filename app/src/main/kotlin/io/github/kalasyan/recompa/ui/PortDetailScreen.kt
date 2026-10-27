@@ -67,8 +67,8 @@ fun PortDetailScreen(item: PortItem, onBack: () -> Unit) {
         ) {
             IconButton(
                 onClick = onBack,
-                colors = IconButtonDefaults.iconButtonColors(containerColor = Night.copy(alpha = 0.6f)),
-                modifier = Modifier.padding(top = 8.dp),
+                colors = IconButtonDefaults.iconButtonColors(containerColor = Panel),
+                modifier = Modifier.padding(top = 8.dp).focusRing(CircleShape),
             ) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
             }
@@ -76,7 +76,15 @@ fun PortDetailScreen(item: PortItem, onBack: () -> Unit) {
 
             Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
                 PortCover(port, Modifier.width(if (wide) 200.dp else 120.dp))
-                Column(Modifier.weight(1f).widthIn(max = 640.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                // A translucent panel keeps the text readable over bright art.
+                Column(
+                    Modifier
+                        .weight(1f)
+                        .widthIn(max = 640.dp)
+                        .background(Panel, RoundedCornerShape(16.dp))
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
                     PortTitle(
                         port,
                         logoHeight = if (wide) 96.dp else 64.dp,
@@ -98,11 +106,13 @@ fun PortDetailScreen(item: PortItem, onBack: () -> Unit) {
             }
 
             if (!wide) {
-                Spacer(Modifier.height(20.dp))
-                Actions(item)
-                port.description?.let {
-                    Spacer(Modifier.height(16.dp))
-                    Description(it)
+                Spacer(Modifier.height(16.dp))
+                Column(
+                    Modifier.fillMaxWidth().background(Panel, RoundedCornerShape(16.dp)).padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    Actions(item)
+                    port.description?.let { Description(it) }
                 }
             }
 

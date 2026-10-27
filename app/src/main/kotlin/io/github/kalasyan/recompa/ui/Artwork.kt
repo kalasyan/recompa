@@ -3,6 +3,7 @@ package io.github.kalasyan.recompa.ui
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
@@ -20,11 +21,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
@@ -38,6 +42,19 @@ import io.github.kalasyan.recompa.core.catalog.Port
 import io.github.kalasyan.recompa.ui.theme.Night
 
 val CoverShape = RoundedCornerShape(12.dp)
+
+/** Translucent background for text that sits on top of art. */
+val Panel = Night.copy(alpha = 0.72f)
+
+/**
+ * A thick white ring while this element, or the control inside it, has focus, so the gamepad
+ * cursor is easy to follow. Material's own focus overlay is too subtle on a TV-like screen.
+ */
+fun Modifier.focusRing(shape: Shape = RoundedCornerShape(50)): Modifier = composed {
+    var focused by remember { mutableStateOf(false) }
+    onFocusChanged { focused = it.hasFocus }
+        .then(if (focused) Modifier.border(3.dp, Color.White, shape) else Modifier)
+}
 
 /** Vertical 2:3 cover. Until the art loads, or when the catalog has none, a generated one. */
 @Composable

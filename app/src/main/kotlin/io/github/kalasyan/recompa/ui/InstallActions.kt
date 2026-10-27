@@ -68,14 +68,14 @@ fun InstallActions(item: PortItem, manager: InstallManager = rememberInstallMana
             InstallPhase.AwaitingUser -> Busy(stringResource(R.string.phase_awaiting_user))
             InstallPhase.NeedsPermission -> {
                 Text(stringResource(R.string.needs_permission))
-                Button(onClick = {
+                Button(modifier = Modifier.focusRing(), onClick = {
                     context.startSafely(manager.unknownSourcesSettingsIntent())
                     manager.dismiss(port.id)
                 }) { Text(stringResource(R.string.open_settings)) }
             }
             is InstallPhase.Failed -> {
                 Text(errorText(phase.error), color = MaterialTheme.colorScheme.error)
-                TextButton(onClick = { manager.dismiss(port.id) }) { Text(stringResource(R.string.dismiss)) }
+                TextButton(onClick = { manager.dismiss(port.id) }, modifier = Modifier.focusRing()) { Text(stringResource(R.string.dismiss)) }
             }
             InstallPhase.Idle -> Unit
         }
@@ -87,10 +87,10 @@ fun InstallActions(item: PortItem, manager: InstallManager = rememberInstallMana
                 PortStatus.NotInstalled -> Button(
                     onClick = { manager.install(port, fork!!) },
                     enabled = canInstall,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).focusRing(),
                 ) { Text(stringResource(R.string.action_install)) }
                 is PortStatus.UpdateAvailable -> {
-                    Button(onClick = { manager.install(port, fork!!) }, enabled = canInstall, modifier = Modifier.weight(1f)) {
+                    Button(onClick = { manager.install(port, fork!!) }, enabled = canInstall, modifier = Modifier.weight(1f).focusRing()) {
                         Text(stringResource(R.string.action_update, status.tag))
                     }
                     OpenButton(manager, item, Modifier.weight(1f))
@@ -105,7 +105,7 @@ fun InstallActions(item: PortItem, manager: InstallManager = rememberInstallMana
             else -> Unit
         }
         if (status != PortStatus.NotInstalled) {
-            TextButton(onClick = { manager.uninstallIntent(port)?.let(context::startSafely) }) {
+            TextButton(onClick = { manager.uninstallIntent(port)?.let(context::startSafely) }, modifier = Modifier.focusRing()) {
                 Text(stringResource(R.string.action_uninstall))
             }
         }
@@ -115,7 +115,7 @@ fun InstallActions(item: PortItem, manager: InstallManager = rememberInstallMana
 @Composable
 private fun OpenButton(manager: InstallManager, item: PortItem, modifier: Modifier) {
     val context = LocalContext.current
-    OutlinedButton(onClick = { manager.launchIntent(item.port)?.let(context::startSafely) }, modifier = modifier) {
+    OutlinedButton(onClick = { manager.launchIntent(item.port)?.let(context::startSafely) }, modifier = modifier.focusRing()) {
         Text(stringResource(R.string.action_open))
     }
 }

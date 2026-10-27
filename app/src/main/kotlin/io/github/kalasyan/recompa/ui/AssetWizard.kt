@@ -139,7 +139,7 @@ private fun AssetCard(port: Port, asset: Asset, files: AssetFiles) {
                 val ready = (step as? AssetStep.Ready) ?: (step as? AssetStep.Delivered)?.ready
                 val working = step == AssetStep.Working
                 if (ready != null) {
-                    Button(enabled = !working, onClick = {
+                    Button(enabled = !working, modifier = Modifier.focusRing(), onClick = {
                         when (asset.delivery.mode) {
                             DeliveryMode.IN_APP_PICKER -> saveFile.launch(ready.fileName)
                             DeliveryMode.SHARED_FOLDER -> pickFolder.launch(null)
@@ -152,8 +152,8 @@ private fun AssetCard(port: Port, asset: Asset, files: AssetFiles) {
                 }
                 val pickLabel = stringResource(if (step == AssetStep.Idle) R.string.asset_pick else R.string.asset_pick_other)
                 val onPick = { pickFile.launch(arrayOf("*/*")) }
-                if (ready == null) Button(onClick = onPick, enabled = !working) { Text(pickLabel) }
-                else OutlinedButton(onClick = onPick, enabled = !working) { Text(pickLabel) }
+                if (ready == null) Button(onClick = onPick, enabled = !working, modifier = Modifier.focusRing()) { Text(pickLabel) }
+                else OutlinedButton(onClick = onPick, enabled = !working, modifier = Modifier.focusRing()) { Text(pickLabel) }
             }
         }
     }
