@@ -289,3 +289,76 @@ def test_zip_entry_publishes_the_apk_inside_the_archive(tmp_path):
 
 if __name__ == "__main__":
     sys.exit(pytest.main([__file__]))
+
+
+def test_history_keeps_the_previous_release_and_seeds_hashed_older_ones():
+    releases = [release("v3.0"), release("v2.0"), release("v1.0", assets=[asset("demo.apk", digest=None)])]
+    index, _, _ = bi.build_index([manifest()], fetch=lambda url: releases)
+    fork = index["ports"][0]["forks"][0]
+    assert fork["release"]["tag"] == "v3.0"
+    # v1.0 has no GitHub digest, so it is not offered without downloading it.
+    assert [r["tag"] for r in fork["history"]] == ["v2.0"]
+
+    newer = [release("v4.0")] + releases
+    index, _, _ = bi.build_index([manifest()], fetch=lambda url: newer, previous=index)
+    assert [r["tag"] for r in index["ports"][0]["forks"][0]["history"]] == ["v3.0", "v2.0"]
+
+
+def test_blocked_release_is_skipped_withdrawn_and_published():
+    blocked = {"repo": "someone/demo-android", "asset_pattern": r"\.apk$",
+               "blocked": [{"tag": "v2.0", "reason": "breaks saves"}]}
+    releases = [release("v2.0"), release("v1.0")]
+    first, _, _ = bi.build_index([manifest()], fetch=lambda url: releases)
+    assert first["ports"][0]["forks"][0]["release"]["tag"] == "v2.0"
+
+    index, _, _ = bi.build_index([manifest(forks=[blocked])], fetch=lambda url: releases, previous=first)
+    fork = index["ports"][0]["forks"][0]
+    assert fork["release"]["tag"] == "v1.0"
+    assert fork["history"] == []
+    assert fork["blocked"] == [{"tag": "v2.0", "reason": "breaks saves"}]
+
+    def boom(url):
+        raise OSError("offline")
+
+    # Even when GitHub cannot be reached, a blocked release is not kept.
+    index, _, _ = bi.build_index([manifest(forks=[blocked])], fetch=boom, previous=first)
+    assert index["ports"][0]["forks"][0]["release"] is None
+
+
+def report_issue(port="demo", device="AYN Thor", result="Funciona perfecto", version="v1.0", **extra):
+    body = (f"### Port\n\n{port}\n\n### Dispositivo\n\n{device}\n\n"
+            f"### Versión del port\n\n{version}\n\n### Resultado\n\n{result}\n\n### Notas\n\n_No response_\n")
+    issue = {"title": f"[compat] {port} en {device}", "body": body, "created_at": "2026-10-27T10:00:00Z",
+             "labels": [], "state_reason": None}
+    issue.update(extra)
+    return issue
+
+
+def test_collect_reports_counts_results_per_device():
+    issues = [
+        report_issue(),
+        report_issue(device="ayn  thor", result="Jugable con fallos", version="v1.1",
+                     created_at="2026-10-28T10:00:00Z"),
+        report_issue(device="Retroid Pocket 5", result="No funciona", version="_No response_"),
+        report_issue(port="unknown"),
+        report_issue(labels=[{"name": "invalid"}]),
+        report_issue(state_reason="not_planned"),
+        report_issue(result="Maybe"),
+        dict(report_issue(), pull_request={}),
+        dict(report_issue(), title="Bug in the app"),
+    ]
+    reports = bi.collect_reports(issues, {"demo"})
+    assert reports == {"demo": [
+        {"device": "AYN Thor", "great": 1, "playable": 1, "broken": 0,
+         "last_tag": "v1.1", "last_at": "2026-10-28T10:00:00Z"},
+        {"device": "Retroid Pocket 5", "great": 0, "playable": 0, "broken": 1,
+         "last_at": "2026-10-27T10:00:00Z"},
+    ]}
+
+
+def test_build_index_publishes_reports_or_keeps_previous_ones():
+    rows = [{"device": "AYN Thor", "great": 2, "playable": 0, "broken": 0}]
+    first, _, _ = bi.build_index([manifest()], fetch=lambda url: [release()], reports={"demo": rows})
+    assert first["ports"][0]["reports"] == rows
+    again, _, _ = bi.build_index([manifest()], fetch=lambda url: [release()], previous=first)
+    assert again["ports"][0]["reports"] == rows

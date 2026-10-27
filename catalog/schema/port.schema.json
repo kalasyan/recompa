@@ -80,7 +80,20 @@
           "default": false,
           "description": "True once someone has run the port on a real device."
         },
-        "tested_on": { "type": "array", "items": { "type": "string" } }
+        "tested_on": { "type": "array", "items": { "type": "string" } },
+        "blocked": {
+          "type": "array",
+          "description": "Releases Recompa must not offer, for example because they break saves.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["tag"],
+            "properties": {
+              "tag": { "type": "string", "minLength": 1 },
+              "reason": { "type": "string" }
+            }
+          }
+        }
       }
     },
     "asset": {

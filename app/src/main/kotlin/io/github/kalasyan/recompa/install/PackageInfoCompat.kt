@@ -50,5 +50,9 @@ fun PackageInfo.signerSha256(): List<String> {
     return signatures.orEmpty().map { Sha256.hex(it.toByteArray()) }.distinct()
 }
 
+@Suppress("DEPRECATION")
+val PackageInfo.versionCodeCompat: Long
+    get() = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) longVersionCode else versionCode.toLong()
+
 fun PackageInfo.toInstalledPackage(): InstalledPackage =
     InstalledPackage(packageName, versionName, signerSha256())

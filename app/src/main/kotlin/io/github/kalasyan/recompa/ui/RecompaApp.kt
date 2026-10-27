@@ -18,11 +18,13 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 
 private const val DIAGNOSTICS = "#diagnostics"
 
-/** Three screens for now: the catalog, a port's detail page and diagnostics. */
+/** Three screens for now: the catalog, a port's detail page and diagnostics, plus the settings dialog. */
 @Composable
 fun RecompaApp(viewModel: CatalogViewModel = viewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var route by rememberSaveable { mutableStateOf<String?>(null) }
+    var settings by rememberSaveable { mutableStateOf(false) }
+    val frontendMode by rememberUserPrefs().frontendMode.collectAsStateWithLifecycle()
     // Keeps the catalog's list, selection and scroll while another screen is open.
     val screens = rememberSaveableStateHolder()
 
@@ -39,17 +41,22 @@ fun RecompaApp(viewModel: CatalogViewModel = viewModel()) {
                 BackHandler { route = null }
                 PortDetailScreen(item = selected, onBack = { route = null })
             } else {
+                // As the home app, Back on the library has nowhere to go.
+                if (frontendMode) BackHandler { }
                 screens.SaveableStateProvider("catalog") {
                     CatalogScreen(
                         state = state,
                         onRetry = viewModel::refresh,
                         onOpen = { route = it.port.id },
                         onDiagnostics = { route = DIAGNOSTICS },
+                        onSettings = { settings = true },
                     )
                 }
                 UpdateBanner(Modifier.align(Alignment.BottomCenter))
                 WelcomeDialog()
+                NotificationPermissionRequest()
             }
+            if (settings) SettingsDialog(onDismiss = { settings = false })
         }
     }
 }

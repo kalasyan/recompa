@@ -18,6 +18,13 @@ object AndroidDevice {
         ),
     )
 
+    /** Brand and model, for example "AYN Thor", without repeating the brand when the model has it. */
+    fun modelName(): String {
+        val brand = Build.MANUFACTURER.trim().replaceFirstChar { it.uppercase() }
+        val model = Build.MODEL.trim()
+        return if (model.startsWith(brand, ignoreCase = true)) model else "$brand $model"
+    }
+
     /** Marketing version for an API level, for messages such as "Android 7.0 or newer". */
     fun versionName(sdk: Int): String = when (sdk) {
         21 -> "5.0"

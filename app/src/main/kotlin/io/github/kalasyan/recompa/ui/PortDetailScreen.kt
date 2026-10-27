@@ -24,6 +24,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -54,6 +56,9 @@ fun PortDetailScreen(item: PortItem, onBack: () -> Unit) {
     val manager = rememberInstallManager()
     val revision by manager.revision.collectAsStateWithLifecycle()
     val status = remember(port, revision) { manager.status(port) }
+    val prefs = rememberUserPrefs()
+    val favorites by prefs.favorites.collectAsStateWithLifecycle()
+    val favorite = port.id in favorites
 
     val scroll = rememberScrollState()
     BoxWithConstraints(Modifier.fillMaxSize()) {
@@ -67,12 +72,25 @@ fun PortDetailScreen(item: PortItem, onBack: () -> Unit) {
                 .windowInsetsPadding(WindowInsets.safeDrawing)
                 .padding(horizontal = 24.dp),
         ) {
-            IconButton(
-                onClick = onBack,
-                colors = IconButtonDefaults.iconButtonColors(containerColor = Panel),
-                modifier = Modifier.padding(top = 8.dp).focusRing(CircleShape),
-            ) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+            Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                IconButton(
+                    onClick = onBack,
+                    colors = IconButtonDefaults.iconButtonColors(containerColor = Panel),
+                    modifier = Modifier.focusRing(CircleShape),
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                }
+                IconButton(
+                    onClick = { prefs.toggleFavorite(port.id) },
+                    colors = IconButtonDefaults.iconButtonColors(containerColor = Panel),
+                    modifier = Modifier.focusRing(CircleShape),
+                ) {
+                    Icon(
+                        if (favorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                        contentDescription = stringResource(if (favorite) R.string.favorite_remove else R.string.favorite_add),
+                        tint = if (favorite) Accent else Color.White,
+                    )
+                }
             }
             Spacer(Modifier.height(if (wide) 16.dp else 96.dp))
 
@@ -128,6 +146,10 @@ fun PortDetailScreen(item: PortItem, onBack: () -> Unit) {
                     Text(stringResource(R.string.req_sdk, AndroidDevice.versionName(port.requirements.minSdk)))
                     if (port.requirements.vulkan) Text(stringResource(R.string.req_vulkan))
                 }
+                if (port.recommendedFork?.release != null) {
+                    Section(stringResource(R.string.section_versions)) { VersionsSection(item) }
+                }
+                Section(stringResource(R.string.section_reports)) { ReportsSection(port) }
                 Section(stringResource(R.string.section_forks)) {
                     port.forks.forEach { fork -> ForkRow(fork, recommended = fork == port.recommendedFork) }
                 }

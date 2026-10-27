@@ -12,6 +12,7 @@ on:
 
 permissions:
   contents: read
+  issues: read
 
 concurrency:
   group: catalog-${{ github.ref }}
@@ -46,6 +47,7 @@ jobs:
           --out catalog/dist/index.json
           --previous "$PAGES_INDEX_URL"
           --download --verify-signers
+          --reports "${{ github.repository }}"
       - name: Assemble site
         run: |
           mkdir -p catalog/dist/schema

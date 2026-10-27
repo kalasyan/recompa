@@ -25,6 +25,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -37,7 +42,15 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -68,7 +81,9 @@ import androidx.compose.ui.input.key.nativeKeyCode
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -76,6 +91,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.kalasyan.recompa.R
+import io.github.kalasyan.recompa.core.catalog.PortSearch
 import io.github.kalasyan.recompa.core.install.PortStatus
 import io.github.kalasyan.recompa.ui.theme.Accent
 import io.github.kalasyan.recompa.ui.theme.Night
@@ -87,6 +103,7 @@ private enum class Filter(val label: Int) {
     ALL(R.string.filter_all),
     COMPATIBLE(R.string.filter_compatible),
     INSTALLED(R.string.filter_installed),
+    FAVORITES(R.string.filter_favorites),
 }
 
 @Composable
@@ -95,11 +112,12 @@ fun CatalogScreen(
     onRetry: () -> Unit,
     onOpen: (PortItem) -> Unit,
     onDiagnostics: () -> Unit,
+    onSettings: () -> Unit,
 ) {
     when (state) {
-        is CatalogState.Ready -> Library(state, onOpen, onDiagnostics)
+        is CatalogState.Ready -> Library(state, onOpen, onDiagnostics, onSettings)
         else -> Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
-            TopBar(filter = null, onFilter = {}, offline = false, onDiagnostics = onDiagnostics)
+            TopBar(filter = null, onFilter = {}, offline = false, onDiagnostics = onDiagnostics, onSettings = onSettings)
             Column(
                 Modifier.align(Alignment.Center).padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -125,26 +143,46 @@ fun CatalogScreen(
 /**
  * The library: the selected port's art fills the background, its details sit beside or above
  * a grid of covers. Built for a gamepad: the D-pad moves between covers, A opens one, L1/R1
- * switch between All, Compatible and Installed, and L2/R2 between original platforms.
+ * switch between All, Compatible, Installed and Favourites, L2/R2 between original platforms,
+ * Y marks the selected port as a favourite and X opens the search.
  */
 @Composable
-private fun Library(state: CatalogState.Ready, onOpen: (PortItem) -> Unit, onDiagnostics: () -> Unit) {
+private fun Library(
+    state: CatalogState.Ready,
+    onOpen: (PortItem) -> Unit,
+    onDiagnostics: () -> Unit,
+    onSettings: () -> Unit,
+) {
     val manager = rememberInstallManager()
+    val prefs = rememberUserPrefs()
+    val favorites by prefs.favorites.collectAsStateWithLifecycle()
+    val updatingAll by manager.updatingAll.collectAsStateWithLifecycle()
     val revision by manager.revision.collectAsStateWithLifecycle()
     LifecycleResumeEffect(manager) {
         manager.refresh()
         onPauseOrDispose { }
     }
     val statuses = remember(state.items, revision) { state.items.associate { it.port.id to manager.status(it.port) } }
+    val updates = remember(state.items, revision) { manager.pendingUpdates(state.items.map { it.port }) }
 
     var filter by rememberSaveable { mutableStateOf(Filter.ALL) }
     var platform by rememberSaveable { mutableStateOf<String?>(null) }
+    var query by rememberSaveable { mutableStateOf("") }
+    var searching by rememberSaveable { mutableStateOf(false) }
+    if (searching) {
+        BackHandler {
+            query = ""
+            searching = false
+        }
+    }
     val inList = state.items.filter {
-        when (filter) {
+        val inFilter = when (filter) {
             Filter.ALL -> true
             Filter.COMPATIBLE -> it.compatible && it.port.recommendedFork != null
             Filter.INSTALLED -> statuses[it.port.id] != PortStatus.NotInstalled
+            Filter.FAVORITES -> it.port.id in favorites
         }
+        inFilter && PortSearch.matches(it.port, query)
     }
     // Platforms of the current list, the most common first and "other" last.
     val platforms = inList.groupingBy { it.port.originalPlatform }.eachCount().entries
@@ -165,6 +203,8 @@ private fun Library(state: CatalogState.Ready, onOpen: (PortItem) -> Unit, onDia
                     val step = if (event.key.nativeKeyCode == AndroidKeyEvent.KEYCODE_BUTTON_L2) -1 else 1
                     platform = options[(options.indexOf(platform) + step).mod(options.size)]
                 }
+                AndroidKeyEvent.KEYCODE_BUTTON_Y -> selected?.let { prefs.toggleFavorite(it.port.id) }
+                AndroidKeyEvent.KEYCODE_BUTTON_X -> searching = true
                 else -> return@onPreviewKeyEvent false
             }
             true
@@ -204,6 +244,7 @@ private fun Library(state: CatalogState.Ready, onOpen: (PortItem) -> Unit, onDia
                             Poster(
                                 item = item,
                                 status = statuses[item.port.id],
+                                favorite = item.port.id in favorites,
                                 onClick = {
                                     selectedId = item.port.id
                                     onOpen(item)
@@ -216,7 +257,28 @@ private fun Library(state: CatalogState.Ready, onOpen: (PortItem) -> Unit, onDia
                 }
             }
             Column(Modifier.fillMaxSize()) {
-                TopBar(filter, onFilter = { filter = it }, offline = state.fromCache, onDiagnostics = onDiagnostics)
+                TopBar(
+                    filter,
+                    onFilter = { filter = it },
+                    offline = state.fromCache,
+                    onDiagnostics = onDiagnostics,
+                    onSettings = onSettings,
+                    onSearch = { searching = true },
+                    updates = updates.size,
+                    updatingAll = updatingAll,
+                    onUpdateAll = { manager.updateAll(state.items.map { it.port }) },
+                )
+                if (searching) {
+                    SearchField(
+                        query,
+                        onQuery = { query = it },
+                        onClose = {
+                            query = ""
+                            searching = false
+                        },
+                        onDone = { runCatching { focusTarget.requestFocus() } },
+                    )
+                }
                 PlatformBar(platforms, platform, total = inList.size, onPlatform = { platform = it })
                 if (side) {
                     Row(Modifier.weight(1f)) {
@@ -249,7 +311,17 @@ private fun Library(state: CatalogState.Ready, onOpen: (PortItem) -> Unit, onDia
 private fun Filter.cycle(step: Int) = Filter.entries[(ordinal + step).mod(Filter.entries.size)]
 
 @Composable
-private fun TopBar(filter: Filter?, onFilter: (Filter) -> Unit, offline: Boolean, onDiagnostics: () -> Unit) {
+private fun TopBar(
+    filter: Filter?,
+    onFilter: (Filter) -> Unit,
+    offline: Boolean,
+    onDiagnostics: () -> Unit,
+    onSettings: () -> Unit,
+    onSearch: (() -> Unit)? = null,
+    updates: Int = 0,
+    updatingAll: Boolean = false,
+    onUpdateAll: () -> Unit = {},
+) {
     Row(
         Modifier
             .fillMaxWidth()
@@ -264,19 +336,84 @@ private fun TopBar(filter: Filter?, onFilter: (Filter) -> Unit, offline: Boolean
             color = Accent,
         )
         Spacer(Modifier.width(20.dp))
-        if (filter != null) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        // The chips scroll when the bar is too narrow; a focused chip scrolls itself into view.
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.weight(1f).horizontalScroll(rememberScrollState()),
+        ) {
+            filter?.let { current ->
                 Filter.entries.forEach { option ->
-                    Chip(stringResource(option.label), selected = option == filter, onClick = { onFilter(option) })
+                    Chip(stringResource(option.label), selected = option == current, onClick = { onFilter(option) })
                 }
             }
         }
-        Spacer(Modifier.weight(1f))
         if (offline) Pill(stringResource(R.string.offline_badge))
+        if (updates > 0 || updatingAll) {
+            Button(
+                onClick = onUpdateAll,
+                enabled = !updatingAll,
+                colors = ButtonDefaults.buttonColors(containerColor = Accent, contentColor = Night),
+                contentPadding = PaddingValues(horizontal = 12.dp),
+                modifier = Modifier.padding(start = 8.dp).focusRing(),
+            ) {
+                Icon(Icons.Filled.Refresh, contentDescription = null)
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    if (updatingAll) stringResource(R.string.updating_all) else stringResource(R.string.update_all, updates),
+                    maxLines = 1,
+                )
+            }
+        }
+        if (onSearch != null) {
+            IconButton(onClick = onSearch, modifier = Modifier.focusRing(CircleShape)) {
+                Icon(Icons.Filled.Search, contentDescription = stringResource(R.string.search))
+            }
+        }
+        IconButton(onClick = onSettings, modifier = Modifier.focusRing(CircleShape)) {
+            Icon(Icons.Filled.Settings, contentDescription = stringResource(R.string.settings_title))
+        }
         IconButton(onClick = onDiagnostics, modifier = Modifier.focusRing(CircleShape)) {
             Icon(Icons.Filled.Info, contentDescription = stringResource(R.string.diagnostics_title))
         }
     }
+}
+
+/** Search by name or game; opens with the keyboard focused, closes with Back or the X. */
+@Composable
+private fun SearchField(query: String, onQuery: (String) -> Unit, onClose: () -> Unit, onDone: () -> Unit) {
+    val focus = remember { FocusRequester() }
+    val keyboard = LocalSoftwareKeyboardController.current
+    LaunchedEffect(Unit) {
+        withFrameNanos { }
+        runCatching { focus.requestFocus() }
+    }
+    OutlinedTextField(
+        value = query,
+        onValueChange = onQuery,
+        singleLine = true,
+        placeholder = { Text(stringResource(R.string.search_hint)) },
+        leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+        trailingIcon = {
+            IconButton(onClick = onClose, modifier = Modifier.focusRing(CircleShape)) {
+                Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.search_close))
+            }
+        },
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+        keyboardActions = KeyboardActions(onSearch = {
+            keyboard?.hide()
+            onDone()
+        }),
+        shape = RoundedCornerShape(50),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedContainerColor = Panel,
+            unfocusedContainerColor = Panel,
+            focusedBorderColor = Accent,
+        ),
+        modifier = Modifier
+            .padding(horizontal = 24.dp, vertical = 4.dp)
+            .fillMaxWidth(0.6f)
+            .focusRequester(focus),
+    )
 }
 
 /** One chip per original platform in the current list, with how many ports each has. */
@@ -399,6 +536,7 @@ fun StatusPill(item: PortItem, status: PortStatus?) {
 private fun Poster(
     item: PortItem,
     status: PortStatus?,
+    favorite: Boolean,
     onClick: () -> Unit,
     onFocused: () -> Unit,
     modifier: Modifier = Modifier,
@@ -431,6 +569,18 @@ private fun Poster(
             }
             badge?.let { (text, color) ->
                 Pill(text, color = color, textColor = Night, modifier = Modifier.align(Alignment.TopEnd).padding(6.dp))
+            }
+            if (favorite) {
+                Icon(
+                    Icons.Filled.Favorite,
+                    contentDescription = stringResource(R.string.favorite),
+                    tint = Accent,
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(6.dp)
+                        .background(Panel, CircleShape)
+                        .padding(4.dp),
+                )
             }
         }
         Spacer(Modifier.height(8.dp))

@@ -8,6 +8,7 @@ import android.net.Uri
 import android.os.Build
 import io.github.kalasyan.recompa.core.catalog.Fork
 import io.github.kalasyan.recompa.core.catalog.Port
+import io.github.kalasyan.recompa.core.catalog.Release
 import io.github.kalasyan.recompa.core.install.ApkCheck
 import io.github.kalasyan.recompa.core.install.ApkCheckResult
 import io.github.kalasyan.recompa.core.install.PortStatus
@@ -20,6 +21,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -50,6 +52,9 @@ sealed interface InstallError {
     data object Aborted : InstallError
     data class Conflict(val message: String?) : InstallError
     data class Incompatible(val message: String?) : InstallError
+
+    /** The release is older than the installed build: Android only accepts it after an uninstall. */
+    data object Downgrade : InstallError
     data object Storage : InstallError
     data class Other(val message: String?) : InstallError
 }
@@ -98,6 +103,45 @@ class InstallManager(private val context: Context) {
         return PortStatusResolver.resolve(fork, port.forks, installed, records.get(port.id)?.tag)
     }
 
+    /** The release tag Recompa installed, or null when it did not install this port. */
+    fun installedTag(port: Port): String? = records.get(port.id)?.tag?.takeIf { it.isNotEmpty() }
+
+    /** True when the user chose to stay on an earlier release of [port]. */
+    fun isHeld(port: Port): Boolean = records.get(port.id)?.held == true
+
+    /** Ports with an update that "update all" would install: not held on an earlier release. */
+    fun pendingUpdates(ports: List<Port>): List<Port> =
+        ports.filter { it.id != SELF_ID && status(it) is PortStatus.UpdateAvailable && !isHeld(it) }
+
+    private val _updatingAll = MutableStateFlow(false)
+    val updatingAll: StateFlow<Boolean> = _updatingAll.asStateFlow()
+
+    /**
+     * Updates [ports] one after another, so at most one confirmation shows at a time.
+     * A port that fails is skipped; its error stays on its page.
+     */
+    fun updateAll(ports: List<Port>) {
+        if (_updatingAll.value) return
+        val queue = pendingUpdates(ports)
+        if (queue.isEmpty()) return
+        if (!canInstall()) {
+            setPhase(queue.first().id, InstallPhase.NeedsPermission)
+            return
+        }
+        _updatingAll.value = true
+        scope.launch {
+            try {
+                for (port in queue) {
+                    val fork = port.recommendedFork ?: continue
+                    install(port, fork)
+                    phases.first { phase -> phase[port.id].let { it == null || it in IDLE_PHASES || it is InstallPhase.Failed } }
+                }
+            } finally {
+                _updatingAll.value = false
+            }
+        }
+    }
+
     fun launchIntent(port: Port): Intent? =
         packageName(port)?.let { context.packageManager.getLaunchIntentForPackage(it) }
             ?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -107,14 +151,21 @@ class InstallManager(private val context: Context) {
 
     fun dismiss(portId: String) = setPhase(portId, InstallPhase.Idle)
 
-    fun install(port: Port, fork: Fork) {
-        val release = fork.release ?: return
+    /**
+     * Installs [release] of [fork], the fork's latest by default. Installing an earlier
+     * release marks the port as held, so "update all" does not undo the user's choice.
+     */
+    fun install(port: Port, fork: Fork, release: Release? = fork.release) {
+        release ?: return
         val current = phaseOf(port.id)
         if (current !is InstallPhase.Failed && current !in IDLE_PHASES) return
         if (!canInstall()) {
             setPhase(port.id, InstallPhase.NeedsPermission)
             return
         }
+        val held = release.tag != fork.release?.tag
+        // Set before the download starts, so callers waiting on the phase see the install begin.
+        setPhase(port.id, InstallPhase.Downloading(null))
         scope.launch {
             try {
                 val entry = release.asset.entry
@@ -145,14 +196,19 @@ class InstallManager(private val context: Context) {
                     fail(port.id, InstallError.InvalidApk, apk)
                     return@launch
                 }
-                val installed = context.packageManager.packageInfoOrNull(info.packageName)?.toInstalledPackage()
+                val installedInfo = context.packageManager.packageInfoOrNull(info.packageName)
+                val installed = installedInfo?.toInstalledPackage()
                 val check = ApkCheck.check(release.asset, sha, fork, info.packageName, info.signerSha256(), installed, entrySha)
                 if (check != ApkCheckResult.Ok) {
                     fail(port.id, InstallError.Check(check), apk)
                     return@launch
                 }
+                if (installedInfo != null && info.versionCodeCompat < installedInfo.versionCodeCompat) {
+                    fail(port.id, InstallError.Downgrade, apk)
+                    return@launch
+                }
                 setPhase(port.id, InstallPhase.Installing)
-                synchronized(pending) { pending[port.id] = InstallRecord(info.packageName, release.tag, fork.repo) }
+                synchronized(pending) { pending[port.id] = InstallRecord(info.packageName, release.tag, fork.repo, held) }
                 withContext(Dispatchers.IO) { commitSession(port.id, info.packageName, apk) }
             } catch (e: CancellationException) {
                 throw e
@@ -264,5 +320,8 @@ class InstallManager(private val context: Context) {
 
     private companion object {
         val IDLE_PHASES = setOf(InstallPhase.Idle, InstallPhase.NeedsPermission)
+
+        /** Recompa's own update goes through this manager too (see AppUpdater.UPDATE_ID). */
+        const val SELF_ID = "recompa"
     }
 }

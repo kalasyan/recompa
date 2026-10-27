@@ -1,0 +1,45 @@
+name: Informe de compatibilidad
+description: Cuenta cómo funciona un port en tu dispositivo. Recompa lo muestra en la ficha del port.
+title: "[compat] "
+labels: ["compat"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Recompa rellena casi todo al abrir este formulario desde la ficha de un port. Solo tienes que elegir el resultado.
+        Los informes aparecen en la app en unas horas, cuando se vuelve a generar el catálogo.
+  # The labels below are parsed by tools/catalog/build_index.py: keep them in sync.
+  - type: input
+    id: port
+    attributes:
+      label: Port
+      description: Identificador del port en el catálogo (por ejemplo, 2ship2harkinian).
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Dispositivo
+      description: Marca y modelo (por ejemplo, AYN Thor).
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Versión del port
+      description: La release que tienes instalada.
+  - type: dropdown
+    id: result
+    attributes:
+      label: Resultado
+      options:
+        - Funciona perfecto
+        - Jugable con fallos
+        - No funciona
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notas
+      description: Rendimiento, fallos, ajustes que has tenido que cambiar…

@@ -2,8 +2,11 @@ package io.github.kalasyan.recompa.install
 
 import android.content.Context
 
-/** What Recompa installed for each port: the package it turned out to be and the release tag. */
-data class InstallRecord(val packageName: String, val tag: String, val repo: String)
+/**
+ * What Recompa installed for each port: the package it turned out to be and the release tag.
+ * [held] is set when the user picked an earlier release, so "update all" leaves it alone.
+ */
+data class InstallRecord(val packageName: String, val tag: String, val repo: String, val held: Boolean = false)
 
 class InstallRecords(context: Context) {
     private val prefs = context.getSharedPreferences("install_records", Context.MODE_PRIVATE)
@@ -14,6 +17,7 @@ class InstallRecords(context: Context) {
             packageName = pkg,
             tag = prefs.getString("$portId.tag", null).orEmpty(),
             repo = prefs.getString("$portId.repo", null).orEmpty(),
+            held = prefs.getBoolean("$portId.held", false),
         )
     }
 
@@ -22,10 +26,11 @@ class InstallRecords(context: Context) {
             .putString("$portId.package", record.packageName)
             .putString("$portId.tag", record.tag)
             .putString("$portId.repo", record.repo)
+            .putBoolean("$portId.held", record.held)
             .apply()
     }
 
     fun remove(portId: String) {
-        prefs.edit().remove("$portId.package").remove("$portId.tag").remove("$portId.repo").apply()
+        prefs.edit().remove("$portId.package").remove("$portId.tag").remove("$portId.repo").remove("$portId.held").apply()
     }
 }

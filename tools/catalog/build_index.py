@@ -3,8 +3,10 @@
 
 Reads every ``catalog/ports/*.yaml``, validates it against the JSON schema,
 looks up the latest GitHub release of each fork, and writes ``index.json``
-with the APK asset, its size and its SHA-256 for every fork. With a
-``STEAMGRIDDB_API_KEY`` it also looks up cover art for every port.
+with the APK asset, its size and its SHA-256 for every fork, plus a few
+earlier releases that can still be installed. With a ``STEAMGRIDDB_API_KEY``
+it also looks up cover art for every port, and with ``--reports`` it adds
+players' compatibility reports from the repository's issues.
 
 Usage:
     python tools/catalog/build_index.py --offline          # validate only
@@ -140,23 +142,32 @@ def steamgriddb_fetcher(api_key: str) -> Fetcher:
     return fetch
 
 
-def pick_release(
+def eligible_releases(
     releases: list[dict[str, Any]], channel: str, pattern: str | None = None,
-) -> dict[str, Any] | None:
-    """Newest published release; stable channels skip prereleases.
+    skip: frozenset[str] | set[str] = frozenset(),
+) -> Iterable[dict[str, Any]]:
+    """Published releases, newest first; stable channels skip prereleases.
 
-    With ``pattern``, the newest one with an asset matching it, since many
-    repositories alternate desktop and Android releases.
+    With ``pattern``, only those with an asset matching it, since many
+    repositories alternate desktop and Android releases. Tags in ``skip``
+    (blocked in the manifest) are never offered.
     """
     for rel in releases:
-        if rel.get("draft"):
+        if rel.get("draft") or rel.get("tag_name") in skip:
             continue
         if channel == "stable" and rel.get("prerelease"):
             continue
         if pattern is not None and select_asset(rel.get("assets", []), pattern) is None:
             continue
-        return rel
-    return None
+        yield rel
+
+
+def pick_release(
+    releases: list[dict[str, Any]], channel: str, pattern: str | None = None,
+    skip: frozenset[str] | set[str] = frozenset(),
+) -> dict[str, Any] | None:
+    """The newest eligible release (see ``eligible_releases``)."""
+    return next(iter(eligible_releases(releases, channel, pattern, skip)), None)
 
 
 def prefer_arm64(names: list[str]) -> str | None:
@@ -370,6 +381,14 @@ def resolve_release(
         entry.setdefault("package", package)
         entry.setdefault("signer_sha256", signers[0])
 
+    return release_entry(rel, asset, sha, zip_entry)
+
+
+def release_entry(
+    rel: dict[str, Any], asset: dict[str, Any], sha: str | None,
+    zip_entry: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    tag = rel["tag_name"]
     return {
         "tag": tag,
         "name": rel.get("name") or tag,
@@ -385,6 +404,53 @@ def resolve_release(
     }
 
 
+HISTORY_SIZE = 5
+
+
+def blocked_tags(fork: dict[str, Any]) -> set[str]:
+    return {b["tag"] for b in fork.get("blocked") or []}
+
+
+def older_releases(
+    releases: list[dict[str, Any]], current: str | None, fork: dict[str, Any], skip: set[str],
+) -> list[dict[str, Any]]:
+    """Releases older than ``current`` whose asset GitHub already hashed.
+
+    They seed a fork's history without downloading anything. The app still
+    checks package and signer before installing one. ZIP forks are left out,
+    since the APK inside would have to be downloaded to hash it.
+    """
+    if fork.get("zip_entry"):
+        return []
+    found, past_current = [], current is None
+    for rel in eligible_releases(releases, fork.get("channel", "stable"), fork["asset_pattern"], skip):
+        if not past_current:
+            past_current = rel["tag_name"] == current
+            continue
+        asset = select_asset(rel.get("assets", []), fork["asset_pattern"])
+        digest = (asset.get("digest") or "").removeprefix("sha256:").lower()
+        if digest:
+            found.append(release_entry(rel, asset, digest))
+        if len(found) >= HISTORY_SIZE:
+            break
+    return found
+
+
+def merge_history(
+    current: dict[str, Any] | None, old: dict[str, Any], seeded: list[dict[str, Any]], skip: set[str],
+) -> list[dict[str, Any]]:
+    """Earlier installable releases, newest first: what the previous index had, then ``seeded``."""
+    seen = {current["tag"]} if current else set()
+    history = []
+    for rel in [old.get("release"), *old.get("history", []), *seeded]:
+        if not rel or rel["tag"] in seen or rel["tag"] in skip or not rel["asset"].get("sha256"):
+            continue
+        seen.add(rel["tag"])
+        history.append(rel)
+    history.sort(key=lambda r: r.get("published_at") or "", reverse=True)
+    return history[:HISTORY_SIZE]
+
+
 def build_index(
     manifests: list[Manifest],
     fetch: Fetcher,
@@ -394,6 +460,7 @@ def build_index(
     now: dt.datetime | None = None,
     art_fetch: Fetcher | None = None,
     inspect: Callable[[Path], tuple[str, list[str]]] = inspect_apk,
+    reports: dict[str, list[dict[str, Any]]] | None = None,
 ) -> tuple[dict[str, Any], list[str], list[str]]:
     """Return (index, errors, warnings).
 
@@ -407,11 +474,15 @@ def build_index(
     of the previous index and a warning is reported, so one broken port never
     blocks the rest of the catalog. ``errors`` is kept for problems that make
     the whole catalog unpublishable.
+
+    ``reports`` maps port id -> compatibility reports (see ``collect_reports``);
+    without it, each port keeps the reports of the previous index.
     """
     errors: list[str] = []
     warnings: list[str] = []
     old_forks = previous_forks(previous)
     old_art = previous_art(previous)
+    old_reports = {p["id"]: p["reports"] for p in (previous or {}).get("ports", []) if p.get("reports")}
     ports = []
     for m in manifests:
         port = dict(m.data)
@@ -420,12 +491,19 @@ def build_index(
         port.pop("art", None)
         if art:
             port["art"] = art
+        port_reports = old_reports.get(m.data["id"]) if reports is None else reports.get(m.data["id"])
+        if port_reports:
+            port["reports"] = port_reports
         forks = []
         for fork in m.data["forks"]:
             repo = fork["repo"]
             old = old_forks.get((m.data["id"], repo), {})
             entry = dict(fork)
             entry["release"] = None
+            skip = blocked_tags(fork)
+            # A release blocked after it was published is withdrawn, not kept.
+            kept = old.get("release") if (old.get("release") or {}).get("tag") not in skip else None
+            entry["history"] = merge_history(kept, old, [], skip)
             for key in PIN_KEYS:
                 value = fork.get(key) or old.get(key)
                 if value:
@@ -435,16 +513,16 @@ def build_index(
                 releases = fetch(f"{GITHUB_API}/repos/{repo}/releases?per_page=20")
             except Exception as exc:  # noqa: BLE001 - network errors become warnings
                 warnings.append(f"{m.path.name}: {repo}: could not list releases ({exc})")
-                entry["release"] = old.get("release")
+                entry["release"] = kept
                 continue
             channel = fork.get("channel", "stable")
-            rel = pick_release(releases, channel, fork["asset_pattern"])
+            rel = pick_release(releases, channel, fork["asset_pattern"], skip)
             if rel is None:
-                newest = pick_release(releases, channel)
+                newest = pick_release(releases, channel, skip=skip)
                 warnings.append(f"{m.path.name}: {repo}: " + (
                     f"no recent release has an asset matching '{fork['asset_pattern']}'"
                     if newest else "no published release"))
-                entry["release"] = old.get("release")
+                entry["release"] = kept
                 continue
             asset = select_asset(rel.get("assets", []), fork["asset_pattern"])
 
@@ -462,7 +540,6 @@ def build_index(
                     fork, entry, rel, asset, old,
                     fork_download if download is not None else None, verify_signers, inspect)
             except ForkRejected as exc:
-                kept = old.get("release")
                 warnings.append(f"{m.path.name}: {repo}: {exc}; "
                                 + (f"keeping {kept['tag']}" if kept else "not published"))
                 entry["release"] = kept
@@ -470,6 +547,9 @@ def build_index(
                 for path in fetched.values():
                     for leftover in (path, path.with_name(path.name + ".entry")):
                         leftover.unlink(missing_ok=True)
+            current = entry["release"]
+            seeded = older_releases(releases, current["tag"] if current else None, fork, skip)
+            entry["history"] = merge_history(current, old, seeded, skip)
         port["forks"] = forks
         ports.append(port)
 
@@ -480,6 +560,73 @@ def build_index(
         "ports": ports,
     }
     return index, errors, warnings
+
+
+# --------------------------------------------------------------------------- #
+# Compatibility reports
+# --------------------------------------------------------------------------- #
+
+# Must match .github/ISSUE_TEMPLATE/compat.yml: the title prefix, the field
+# labels (GitHub renders each as a "### label" heading) and the dropdown options.
+REPORT_TITLE_PREFIX = "[compat]"
+REPORT_FIELDS = {"port": "Port", "device": "Dispositivo", "version": "Versión del port", "result": "Resultado"}
+REPORT_RESULTS = {"Funciona perfecto": "great", "Jugable con fallos": "playable", "No funciona": "broken"}
+
+
+def parse_report(body: str) -> dict[str, str] | None:
+    """Port id, device, version and result of an issue-form body, or None when incomplete."""
+    sections: dict[str, str] = {}
+    for chunk in re.split(r"^###\s+", body or "", flags=re.M)[1:]:
+        label, _, value = chunk.partition("\n")
+        value = value.strip()
+        if value and value != "_No response_":
+            sections[label.strip()] = value
+    report = {key: sections.get(label) for key, label in REPORT_FIELDS.items()}
+    result = REPORT_RESULTS.get(report["result"] or "")
+    if not (report["port"] and report["device"] and result):
+        return None
+    report["result"] = result
+    report["device"] = " ".join(report["device"].split())[:60]
+    return report
+
+
+def collect_reports(issues: list[dict[str, Any]], port_ids: set[str]) -> dict[str, list[dict[str, Any]]]:
+    """Map port id -> per-device counts, the devices with most reports first.
+
+    Pull requests, issues closed as not planned and issues labelled
+    ``invalid`` are ignored, so a maintainer can discard a bogus report.
+    """
+    counts: dict[tuple[str, str], dict[str, Any]] = {}
+    for issue in sorted(issues, key=lambda i: i.get("created_at") or ""):
+        if "pull_request" in issue or not (issue.get("title") or "").lower().startswith(REPORT_TITLE_PREFIX):
+            continue
+        if issue.get("state_reason") == "not_planned" or any(
+                (lbl.get("name") if isinstance(lbl, dict) else lbl) == "invalid" for lbl in issue.get("labels", [])):
+            continue
+        report = parse_report(issue.get("body") or "")
+        if report is None or report["port"] not in port_ids:
+            continue
+        key = (report["port"], report["device"].casefold())
+        row = counts.setdefault(key, {"device": report["device"], "great": 0, "playable": 0, "broken": 0})
+        row[report["result"]] += 1
+        row["last_tag"] = report["version"]
+        row["last_at"] = issue.get("created_at")
+    by_port: dict[str, list[dict[str, Any]]] = {}
+    for (port_id, _), row in counts.items():
+        by_port.setdefault(port_id, []).append({k: v for k, v in row.items() if v is not None})
+    for rows in by_port.values():
+        rows.sort(key=lambda r: -(r["great"] + r["playable"] + r["broken"]))
+    return by_port
+
+
+def fetch_issues(fetch: Fetcher, repo: str, max_pages: int = 10) -> list[dict[str, Any]]:
+    issues: list[dict[str, Any]] = []
+    for page in range(1, max_pages + 1):
+        batch = fetch(f"{GITHUB_API}/repos/{repo}/issues?state=all&per_page=100&page={page}")
+        issues.extend(batch)
+        if len(batch) < 100:
+            break
+    return issues
 
 
 def load_previous(source: str | None) -> dict[str, Any] | None:
@@ -506,6 +653,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--verify-signers", action="store_true",
                         help="read package and signer of each APK with aapt2 and apksigner, "
                              "pin them on first sight and reject changes (implies --download)")
+    parser.add_argument("--reports", metavar="OWNER/REPO",
+                        help="add compatibility reports from this repository's issues")
     parser.add_argument("--strict", action="store_true", help="treat warnings as errors")
     args = parser.parse_args(argv)
 
@@ -522,11 +671,19 @@ def main(argv: list[str] | None = None) -> int:
     if not art_key:
         print("warning: STEAMGRIDDB_API_KEY is not set, keeping the art of the previous index",
               file=sys.stderr)
+    fetch = github_fetcher(os.environ.get("GITHUB_TOKEN"))
+    reports = None
+    if args.reports:
+        try:
+            reports = collect_reports(fetch_issues(fetch, args.reports), {m.data["id"] for m in manifests})
+        except Exception as exc:  # noqa: BLE001 - keep the previous reports
+            print(f"warning: could not read compatibility reports ({exc})", file=sys.stderr)
     with tempfile.TemporaryDirectory() as tmp:
         download = make_downloader(Path(tmp)) if (args.download or args.verify_signers) else None
         index, errors, warnings = build_index(
             manifests,
-            fetch=github_fetcher(os.environ.get("GITHUB_TOKEN")),
+            fetch=fetch,
+            reports=reports,
             download=download,
             previous=load_previous(args.previous),
             verify_signers=args.verify_signers,

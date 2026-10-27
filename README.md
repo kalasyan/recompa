@@ -34,7 +34,10 @@ Pick a game, install its port straight from the author's GitHub, set up your cop
 - 🖼 **Cover art** and a dark launcher UI made for the D-pad and shoulder buttons.
 - 🔒 **Verified installs:** every APK's SHA-256 and signature are checked before installing.
 - 🧩 **Game files wizard** that checks your ROM or data files and gets them ready.
-- 🔄 **Updates** for ports and for Recompa itself, from inside the app.
+- 🔄 **Updates** for ports and for Recompa itself, from inside the app: update everything at once, get notified when ports have new versions, or go back to an earlier version if an update breaks something.
+- 🔍 **Search and favorites**, both one button away on the gamepad (X and Y).
+- 🕹 **Frontend mode:** full screen, and Recompa can be your handheld's home screen.
+- 📊 **Compatibility reports:** see how each port runs on other players' devices, and report your own.
 
 ## 📸 Screenshots
 

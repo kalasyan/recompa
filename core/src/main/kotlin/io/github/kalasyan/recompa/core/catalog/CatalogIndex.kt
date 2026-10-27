@@ -26,6 +26,8 @@ data class Port(
     val assets: List<Asset> = emptyList(),
     val media: Media? = null,
     val art: Art? = null,
+    /** How the port runs on each device, from players' reports. */
+    val reports: List<DeviceReport> = emptyList(),
 ) {
     /** The first fork with a published release; forks are listed in order of preference. */
     val recommendedFork: Fork? get() = forks.firstOrNull { it.release != null }
@@ -42,7 +44,33 @@ data class Fork(
     val verified: Boolean = false,
     @SerialName("tested_on") val testedOn: List<String> = emptyList(),
     val release: Release? = null,
+    /** Earlier releases that can still be installed, newest first. */
+    val history: List<Release> = emptyList(),
+    /** Releases the catalog warns against, for example because they break saves. */
+    val blocked: List<BlockedRelease> = emptyList(),
+) {
+    fun blockedReason(tag: String?): BlockedRelease? = blocked.firstOrNull { it.tag == tag }
+}
+
+@Serializable
+data class BlockedRelease(
+    val tag: String,
+    val reason: String? = null,
 )
+
+/** Players' reports for one device model. */
+@Serializable
+data class DeviceReport(
+    val device: String,
+    val great: Int = 0,
+    val playable: Int = 0,
+    val broken: Int = 0,
+    /** The release tag of the newest report, when the player gave one. */
+    @SerialName("last_tag") val lastTag: String? = null,
+    @SerialName("last_at") val lastAt: String? = null,
+) {
+    val total: Int get() = great + playable + broken
+}
 
 @Serializable
 data class Release(

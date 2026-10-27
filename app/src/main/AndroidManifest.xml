@@ -5,6 +5,8 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
+    <!-- The background check tells when ports have updates. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- Needed to detect ports installed outside Recompa and for the diagnostics screen.
          Recompa is distributed outside Google Play. -->
     <uses-permission
@@ -25,12 +27,26 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:launchMode="singleTask"
             android:configChanges="orientation|screenSize|screenLayout|keyboard|keyboardHidden|navigation">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Frontend mode enables this alias so Android can offer Recompa as the home app. -->
+        <activity-alias
+            android:name=".HomeActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.HOME" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity-alias>
 
         <receiver
             android:name=".install.InstallResultReceiver"

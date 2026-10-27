@@ -27,6 +27,7 @@ import io.github.kalasyan.recompa.R
 import io.github.kalasyan.recompa.RecompaApplication
 import io.github.kalasyan.recompa.core.install.ApkCheckResult
 import io.github.kalasyan.recompa.core.install.PortStatus
+import io.github.kalasyan.recompa.data.UserPrefs
 import io.github.kalasyan.recompa.install.InstallError
 import io.github.kalasyan.recompa.install.InstallManager
 import io.github.kalasyan.recompa.install.InstallPhase
@@ -35,6 +36,12 @@ import io.github.kalasyan.recompa.install.InstallPhase
 fun rememberInstallManager(): InstallManager {
     val context = LocalContext.current
     return remember { (context.applicationContext as RecompaApplication).installManager }
+}
+
+@Composable
+fun rememberUserPrefs(): UserPrefs {
+    val context = LocalContext.current
+    return remember { (context.applicationContext as RecompaApplication).prefs }
 }
 
 /** Install, update, open and uninstall buttons for a port, with progress and errors. */
@@ -102,7 +109,21 @@ fun InstallActions(item: PortItem, manager: InstallManager = rememberInstallMana
         when (status) {
             PortStatus.UnknownSigner -> Note(stringResource(R.string.status_unknown_signer))
             is PortStatus.OtherFork -> Note(stringResource(R.string.status_other_fork, status.fork.repo))
+            is PortStatus.UpdateAvailable -> if (manager.isHeld(port)) {
+                Note(stringResource(R.string.status_held, manager.installedTag(port).orEmpty()))
+            }
             else -> Unit
+        }
+        if (status != PortStatus.NotInstalled) {
+            val installedTag = manager.installedTag(port)
+            fork?.blockedReason(installedTag)?.let { blocked ->
+                Text(
+                    blocked.reason?.let { stringResource(R.string.status_blocked_reason, installedTag.orEmpty(), it) }
+                        ?: stringResource(R.string.status_blocked, installedTag.orEmpty()),
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
         }
         if (status != PortStatus.NotInstalled) {
             TextButton(onClick = { manager.uninstallIntent(port)?.let(context::startSafely) }, modifier = Modifier.focusRing()) {
@@ -142,6 +163,7 @@ internal fun errorText(error: InstallError): String = when (error) {
     InstallError.InvalidApk -> stringResource(R.string.error_invalid_apk)
     InstallError.Aborted -> stringResource(R.string.error_aborted)
     InstallError.Storage -> stringResource(R.string.error_storage)
+    InstallError.Downgrade -> stringResource(R.string.error_downgrade)
     is InstallError.Blocked -> stringResource(R.string.error_blocked)
     is InstallError.Conflict -> stringResource(R.string.error_conflict)
     is InstallError.Incompatible -> stringResource(R.string.error_incompatible)

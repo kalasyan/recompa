@@ -19,6 +19,9 @@ import io.github.kalasyan.recompa.R
 private const val PREFS = "welcome"
 private const val SEEN = "seen"
 
+fun welcomeSeen(context: Context): Boolean =
+    context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(SEEN, false)
+
 /** Explains what Recompa does and the one permission it needs, on first launch only. */
 @Composable
 fun WelcomeDialog() {
