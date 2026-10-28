@@ -1,11 +1,16 @@
 name: Release
 
-# Pushing a tag like v0.2.0 builds Recompa with the private release key and publishes
-# it as the latest GitHub release, with the APK at
-# https://github.com/kalasyan/recompa/releases/latest/download/recompa.apk
+# Pushing a tag like v0.2.0, or running this workflow by hand with a version, builds
+# Recompa with the private release key and publishes it as the latest GitHub release,
+# with the APK at https://github.com/kalasyan/recompa/releases/latest/download/recompa.apk
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to publish, without the v (for example 0.2.0)"
+        required: true
 
 permissions:
   contents: write
@@ -27,6 +32,7 @@ jobs:
       - name: Decode the release key
         env:
           KEYSTORE_BASE64: ${{ secrets.RECOMPA_KEYSTORE_BASE64 }}
+          INPUT_VERSION: ${{ inputs.version }}
         run: |
           if [ -z "$KEYSTORE_BASE64" ]; then
             echo "::error::Missing RECOMPA_KEYSTORE_BASE64 secret; see RELEASING.md"
@@ -34,7 +40,12 @@ jobs:
           fi
           echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
           echo "RECOMPA_KEYSTORE=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
-          echo "RECOMPA_VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+          if [ -n "$INPUT_VERSION" ]; then version="${INPUT_VERSION#v}"; else version="${GITHUB_REF_NAME#v}"; fi
+          if ! echo "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::Version '$version' is not X.Y.Z"
+            exit 1
+          fi
+          echo "RECOMPA_VERSION=$version" >> "$GITHUB_ENV"
       - name: Test, lint and build the release APK
         env:
           RECOMPA_KEYSTORE_PASSWORD: ${{ secrets.RECOMPA_KEYSTORE_PASSWORD }}
@@ -51,9 +62,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          gh release create "$GITHUB_REF_NAME" recompa.apk \
+          # A manual run creates the tag on the commit it built.
+          gh release create "v$RECOMPA_VERSION" recompa.apk \
             --latest \
-            --verify-tag \
+            --target "$GITHUB_SHA" \
             --title "Recompa $RECOMPA_VERSION" \
             --generate-notes
       - name: Remove the key

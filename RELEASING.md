@@ -17,6 +17,8 @@ En **Settings → Secrets and variables → Actions** del repositorio, crea esto
 
 ## Publicar
 
+Desde GitHub: **Actions → Release → Run workflow**, escribe la versión (por ejemplo `0.2.0`) y ejecútalo sobre `main`. O desde la terminal:
+
 ```bash
 git tag v0.2.0
 git push origin v0.2.0
