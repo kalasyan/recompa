@@ -41,7 +41,13 @@ Pick a game, install its port straight from the author's GitHub, set up your cop
 
 ## 📸 Screenshots
 
-> Coming soon.
+<p align="center">
+  <img src="docs/screenshots/library.png" width="49%" alt="Library with cover art and platform filters">
+  <img src="docs/screenshots/platform.png" width="49%" alt="Nintendo 64 ports">
+</p>
+<p align="center">
+  <img src="docs/screenshots/port.png" width="49%" alt="A port's page">
+</p>
 
 ## 📥 Install
 
