@@ -2,10 +2,10 @@ name: Android
 
 on:
   pull_request:
-    paths-ignore: ["**.md"]
+    paths-ignore: ["**.md", "site/**", ".github/workflows/site.yml"]
   push:
     branches: [main]
-    paths-ignore: ["**.md"]
+    paths-ignore: ["**.md", "site/**", ".github/workflows/site.yml"]
   workflow_dispatch:
 
 permissions:

@@ -1,0 +1,46 @@
+name: Site
+
+# Publishes the download website (site/) to the gh-pages branch, next to the catalog's
+# index.json. The private catalog CI rebuilds gh-pages from scratch and includes the site
+# too, so this only has to keep the published copy current between catalog runs.
+on:
+  push:
+    branches: [main]
+    paths: ["site/**", "docs/logo.svg", "docs/screenshots/**", ".github/workflows/site.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: site
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pillow
+      - name: Check out gh-pages
+        run: |
+          git fetch --depth 1 origin gh-pages
+          git worktree add pages FETCH_HEAD
+      - name: Build the site over the published catalog
+        run: python site/build.py pages
+      # gh-pages always holds a single commit, like the catalog CI leaves it. The lease makes
+      # the push fail instead of overwriting a catalog published in the meantime.
+      - name: Push
+        run: |
+          cd pages
+          old=$(git rev-parse HEAD)
+          git config user.name kalasyan
+          git config user.email 10440484+kalasyan@users.noreply.github.com
+          git add -A
+          if git diff --cached --quiet; then echo "Nothing to publish"; exit 0; fi
+          tree=$(git write-tree)
+          commit=$(git commit-tree "$tree" -m "Publish the catalog")
+          git push --force-with-lease=gh-pages:"$old" origin "$commit":refs/heads/gh-pages
