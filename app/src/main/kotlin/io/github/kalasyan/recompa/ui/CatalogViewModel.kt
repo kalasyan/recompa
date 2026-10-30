@@ -29,7 +29,13 @@ data class PortItem(val port: Port, val issues: List<CompatibilityIssue>) {
 
 sealed interface CatalogState {
     data object Loading : CatalogState
-    data class Ready(val items: List<PortItem>, val fromCache: Boolean, val feedbackUrl: String? = null) : CatalogState
+    data class Ready(
+        val items: List<PortItem>,
+        val fromCache: Boolean,
+        val feedbackUrl: String? = null,
+        /** Platform names from the catalog, by id. */
+        val platformNames: Map<String, String> = emptyMap(),
+    ) : CatalogState
     data class Failed(val reason: Reason) : CatalogState
 
     enum class Reason { NETWORK, NEWER_CATALOG }
@@ -122,6 +128,7 @@ class CatalogViewModel(application: Application) : AndroidViewModel(application)
             items,
             fromCache = loaded.source == CatalogSource.CACHE,
             feedbackUrl = feedbackUrl(),
+            platformNames = loaded.index.platforms.associate { it.id to it.name },
         )
     }
 }

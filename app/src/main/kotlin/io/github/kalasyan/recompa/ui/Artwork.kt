@@ -19,6 +19,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
@@ -206,8 +207,18 @@ fun Pill(text: String, modifier: Modifier = Modifier, color: Color = Color.White
     )
 }
 
+/** Platform names from the catalog, by id; see [platformName]. */
+val LocalPlatformNames = staticCompositionLocalOf<Map<String, String>> { emptyMap() }
+
+/**
+ * The name of a platform: the catalog's, so one added or renamed later shows as it should,
+ * then the app's own (for catalogs cached before names were published), then the id itself.
+ */
 @Composable
-fun platformName(code: String): String = PLATFORMS[code] ?: stringResource(R.string.platform_other)
+fun platformName(code: String): String = when (code) {
+    "other" -> stringResource(R.string.platform_other)
+    else -> LocalPlatformNames.current[code] ?: PLATFORMS[code] ?: code.uppercase()
+}
 
 @Composable
 fun typeName(type: String): String = when (type) {

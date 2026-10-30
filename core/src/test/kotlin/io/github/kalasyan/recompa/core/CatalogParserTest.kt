@@ -48,6 +48,14 @@ class CatalogParserTest {
     }
 
     @Test
+    fun readsPlatformNames() {
+        assertEquals(emptyList(), CatalogParser.parse(sample).platforms)
+        val index = CatalogParser.parse(sample.replace("\"future_field\"",
+            "\"platforms\": [{\"id\": \"dreamcast\", \"name\": \"Dreamcast\"}], \"x\""))
+        assertEquals("Dreamcast", index.platforms.single { it.id == "dreamcast" }.name)
+    }
+
+    @Test
     fun recommendedForkSkipsForksWithoutRelease() {
         val port = CatalogParser.parse(sample).ports.single()
         assertEquals("izzy2lost/Starship", port.recommendedFork?.repo)

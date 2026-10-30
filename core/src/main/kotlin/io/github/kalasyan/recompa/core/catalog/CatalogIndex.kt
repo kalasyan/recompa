@@ -11,7 +11,12 @@ data class CatalogIndex(
     val ports: List<Port>,
     /** Where the app sends reports and suggestions without a GitHub account; null opens the GitHub forms. */
     @SerialName("feedback_url") val feedbackUrl: String? = null,
+    /** The original platforms with their names, so the app can show ones added after it was built. */
+    val platforms: List<Platform> = emptyList(),
 )
+
+@Serializable
+data class Platform(val id: String, val name: String)
 
 @Serializable
 data class Port(

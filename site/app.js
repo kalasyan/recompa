@@ -102,6 +102,7 @@ let lang = "es";
 let release = null;
 let ports = [];
 let platform = "";
+let platformNames = {};
 let showAll = false;
 
 function store(key, value) {
@@ -177,8 +178,10 @@ async function useCountedDownload() {
   } catch (e) { /* not deployed yet, or blocked: GitHub's link works */ }
 }
 
+// The catalog's names first, so platforms added or renamed in the catalog show as they should.
 function platformName(code) {
-  return PLATFORMS[code] || code;
+  if (code === "other") return lang === "es" ? "Otra" : "Other";
+  return platformNames[code] || PLATFORMS[code] || code.toUpperCase();
 }
 
 function renderChips() {
@@ -269,6 +272,7 @@ async function loadCatalog() {
     const res = await fetch("index.json", { cache: "no-cache" });
     if (!res.ok) throw new Error(res.status);
     const index = await res.json();
+    platformNames = Object.fromEntries((index.platforms || []).map((p) => [p.id, p.name]));
     ports = index.ports.filter((p) => p.forks.some((f) => f.release))
       .sort((a, b) => a.name.localeCompare(b.name));
     document.getElementById("stat-ports").textContent = ports.length;

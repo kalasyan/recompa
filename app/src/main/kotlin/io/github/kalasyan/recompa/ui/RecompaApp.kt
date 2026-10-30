@@ -34,7 +34,11 @@ fun RecompaApp(viewModel: CatalogViewModel = viewModel()) {
     val language = LocalConfiguration.current.locales[0].language
     LaunchedEffect(language) { viewModel.setLanguage(language) }
 
-    CompositionLocalProvider(LocalFeedbackUrl provides (state as? CatalogState.Ready)?.feedbackUrl) {
+    val ready = state as? CatalogState.Ready
+    CompositionLocalProvider(
+        LocalFeedbackUrl provides ready?.feedbackUrl,
+        LocalPlatformNames provides ready?.platformNames.orEmpty(),
+    ) {
         // Surface sets the default text colour; without it, text outside a Scaffold is black.
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             Box(Modifier.fillMaxSize()) {
