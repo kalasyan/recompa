@@ -23,6 +23,7 @@ import io.github.kalasyan.recompa.BuildConfig
 import io.github.kalasyan.recompa.MainActivity
 import io.github.kalasyan.recompa.R
 import io.github.kalasyan.recompa.RecompaApplication
+import io.github.kalasyan.recompa.data.AppLanguage
 import io.github.kalasyan.recompa.data.AppUpdater
 import io.github.kalasyan.recompa.data.CatalogRepository
 import java.io.File
@@ -59,11 +60,12 @@ class UpdateCheckWorker(context: Context, params: WorkerParameters) : CoroutineW
         val signature = pending.joinToString("|") { "${it.id}@${it.recommendedFork?.release?.tag}" }
         if (signature == prefs.getString(LAST_NOTIFIED, null) || !canNotify(app)) return Result.success()
 
-        createChannel(app)
+        val texts = AppLanguage.wrap(app)
+        createChannel(texts)
         val names = pending.joinToString(", ") { it.name }
         val notification = NotificationCompat.Builder(app, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle(app.resources.getQuantityString(R.plurals.updates_notification_title, pending.size, pending.size))
+            .setContentTitle(texts.resources.getQuantityString(R.plurals.updates_notification_title, pending.size, pending.size))
             .setContentText(names)
             .setStyle(NotificationCompat.BigTextStyle().bigText(names))
             .setContentIntent(openApp(app))
@@ -84,11 +86,12 @@ class UpdateCheckWorker(context: Context, params: WorkerParameters) : CoroutineW
         val release = AppUpdater().check() ?: return
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         if (release.tag == prefs.getString(LAST_APP_NOTIFIED, null) || !canNotify(context)) return
-        createChannel(context)
+        val texts = AppLanguage.wrap(context)
+        createChannel(texts)
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle(context.getString(R.string.update_available, release.version))
-            .setContentText(context.getString(R.string.update_notification_text))
+            .setContentTitle(texts.getString(R.string.update_available, release.version))
+            .setContentText(texts.getString(R.string.update_notification_text))
             .setContentIntent(openApp(context))
             .setAutoCancel(true)
             .build()

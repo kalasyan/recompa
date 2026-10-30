@@ -21,6 +21,7 @@ import androidx.core.content.ContextCompat
 import io.github.kalasyan.recompa.MainActivity
 import io.github.kalasyan.recompa.R
 import io.github.kalasyan.recompa.RecompaApplication
+import io.github.kalasyan.recompa.data.AppLanguage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -38,6 +39,11 @@ import kotlinx.coroutines.launch
 class DownloadService : Service() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var started = false
+
+    override fun attachBaseContext(newBase: Context) {
+        // The notification follows Recompa's language, not the system's.
+        super.attachBaseContext(AppLanguage.wrap(newBase))
+    }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -146,7 +152,8 @@ class DownloadService : Service() {
         @SuppressLint("MissingPermission") // canNotify() checks it; lint can't see through the helper.
         fun notifyConfirm(context: Context, portId: String, label: String, confirm: Intent) {
             if (isInForeground() || !canNotify(context)) return
-            createChannel(context, CONFIRM_CHANNEL_ID, R.string.confirm_channel, NotificationManager.IMPORTANCE_HIGH)
+            val texts = AppLanguage.wrap(context)
+            createChannel(texts, CONFIRM_CHANNEL_ID, R.string.confirm_channel, NotificationManager.IMPORTANCE_HIGH)
             val open = PendingIntent.getActivity(
                 context,
                 portId.hashCode(),
@@ -155,8 +162,8 @@ class DownloadService : Service() {
             )
             val notification = NotificationCompat.Builder(context, CONFIRM_CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_notification)
-                .setContentTitle(context.getString(R.string.confirm_notification_title, label))
-                .setContentText(context.getString(R.string.confirm_notification_text))
+                .setContentTitle(texts.getString(R.string.confirm_notification_title, label))
+                .setContentText(texts.getString(R.string.confirm_notification_text))
                 .setContentIntent(open)
                 .setAutoCancel(true)
                 .build()

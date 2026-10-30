@@ -1,5 +1,6 @@
 package io.github.kalasyan.recompa
 
+import android.content.Context
 import android.graphics.Color
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -12,10 +13,15 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.kalasyan.recompa.data.AppLanguage
 import io.github.kalasyan.recompa.ui.RecompaApp
 import io.github.kalasyan.recompa.ui.theme.RecompaTheme
 
 class MainActivity : ComponentActivity() {
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(AppLanguage.wrap(newBase))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // The UI is always dark, so the system bars keep light icons whatever the system theme.
