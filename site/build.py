@@ -4,6 +4,7 @@ The catalog CI and the Site workflow both publish it next to the catalog's index
 Usage: python site/build.py OUT_DIR (needs Pillow).
 """
 
+import hashlib
 import shutil
 import sys
 from pathlib import Path
@@ -19,6 +20,12 @@ def main(out: Path) -> None:
     out.mkdir(parents=True, exist_ok=True)
     for name in FILES:
         shutil.copy2(SITE / name, out / name)
+    # Browsers cache app.js and style.css; versioning their URLs keeps them in step with index.html.
+    html = (out / "index.html").read_text(encoding="utf-8")
+    for name in ("app.js", "style.css"):
+        version = hashlib.sha256((SITE / name).read_bytes()).hexdigest()[:10]
+        html = html.replace(f'"{name}"', f'"{name}?v={version}"')
+    (out / "index.html").write_text(html, encoding="utf-8")
     shutil.copy2(ROOT / "docs" / "logo.svg", out / "logo.svg")
     # The README screenshots are large PNGs; the site uses smaller JPEGs.
     shots = out / "screenshots"

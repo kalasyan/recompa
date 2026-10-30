@@ -113,7 +113,8 @@ function stored(key) {
 }
 
 function t(key) {
-  return (lang === "en" ? EN[key] : ES[key] ?? ES_EXTRA[key]) ?? key;
+  // Falls back to the Spanish text in the HTML, so a missing translation never shows the key.
+  return (lang === "en" ? EN[key] : undefined) ?? ES[key] ?? ES_EXTRA[key] ?? key;
 }
 
 function applyLang() {
