@@ -23,6 +23,7 @@ import io.github.kalasyan.recompa.BuildConfig
 import io.github.kalasyan.recompa.MainActivity
 import io.github.kalasyan.recompa.R
 import io.github.kalasyan.recompa.RecompaApplication
+import io.github.kalasyan.recompa.data.AppLanguage
 import io.github.kalasyan.recompa.data.CatalogRepository
 import java.io.File
 import java.util.concurrent.TimeUnit
@@ -56,7 +57,8 @@ class UpdateCheckWorker(context: Context, params: WorkerParameters) : CoroutineW
         val signature = pending.joinToString("|") { "${it.id}@${it.recommendedFork?.release?.tag}" }
         if (signature == prefs.getString(LAST_NOTIFIED, null) || !canNotify(app)) return Result.success()
 
-        createChannel(app)
+        val texts = AppLanguage.wrap(app)
+        createChannel(texts)
         val open = PendingIntent.getActivity(
             app,
             0,
@@ -66,7 +68,7 @@ class UpdateCheckWorker(context: Context, params: WorkerParameters) : CoroutineW
         val names = pending.joinToString(", ") { it.name }
         val notification = NotificationCompat.Builder(app, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle(app.resources.getQuantityString(R.plurals.updates_notification_title, pending.size, pending.size))
+            .setContentTitle(texts.resources.getQuantityString(R.plurals.updates_notification_title, pending.size, pending.size))
             .setContentText(names)
             .setStyle(NotificationCompat.BigTextStyle().bigText(names))
             .setContentIntent(open)

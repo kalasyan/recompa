@@ -28,10 +28,35 @@ data class Port(
     val art: Art? = null,
     /** How the port runs on each device, from players' reports. */
     val reports: List<DeviceReport> = emptyList(),
+    /** The texts in other languages, by language code. The fields above are in English. */
+    val i18n: Map<String, PortTexts> = emptyMap(),
 ) {
     /** The first fork with a published release; forks are listed in order of preference. */
     val recommendedFork: Fork? get() = forks.firstOrNull { it.release != null }
+
+    /** This port with its texts in [language] when the catalog has them, in English otherwise. */
+    fun localized(language: String): Port {
+        val texts = i18n[language] ?: return this
+        return copy(
+            description = texts.description ?: description,
+            assets = assets.map { asset -> texts.assets[asset.id]?.let(asset::localized) ?: asset },
+        )
+    }
 }
+
+@Serializable
+data class PortTexts(
+    val description: String? = null,
+    val assets: Map<String, AssetTexts> = emptyMap(),
+)
+
+@Serializable
+data class AssetTexts(
+    val label: String? = null,
+    @SerialName("instructions_md") val instructionsMd: String? = null,
+    /** Labels of the accepted files that have one, in the same order. */
+    val accepted: List<String> = emptyList(),
+)
 
 @Serializable
 data class Fork(
@@ -114,7 +139,18 @@ data class Asset(
     @SerialName("zip_ok") val zipOk: Boolean = true,
     val delivery: Delivery,
     @SerialName("instructions_md") val instructionsMd: String? = null,
-)
+) {
+    fun localized(texts: AssetTexts): Asset {
+        val labels = texts.accepted.iterator()
+        return copy(
+            label = texts.label ?: label,
+            instructionsMd = texts.instructionsMd ?: instructionsMd,
+            accepted = accepted.map { file ->
+                if (file.label != null && labels.hasNext()) file.copy(label = labels.next()) else file
+            },
+        )
+    }
+}
 
 @Serializable
 data class AcceptedFile(

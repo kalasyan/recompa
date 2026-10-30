@@ -1,6 +1,9 @@
 package io.github.kalasyan.recompa.ui
 
 import android.Manifest
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
@@ -9,6 +12,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,6 +24,7 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
@@ -37,8 +43,9 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.kalasyan.recompa.R
+import io.github.kalasyan.recompa.data.AppLanguage
 
-/** Frontend mode and update notifications. */
+/** Language, frontend mode and update notifications. */
 @Composable
 fun SettingsDialog(onDismiss: () -> Unit) {
     val context = LocalContext.current
@@ -51,6 +58,7 @@ fun SettingsDialog(onDismiss: () -> Unit) {
         title = { Text(stringResource(R.string.settings_title)) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                LanguagePicker()
                 SettingSwitch(
                     title = stringResource(R.string.settings_frontend),
                     summary = stringResource(R.string.settings_frontend_help),
@@ -79,6 +87,32 @@ fun SettingsDialog(onDismiss: () -> Unit) {
             TextButton(onClick = onDismiss, modifier = Modifier.focusRing()) { Text(stringResource(R.string.dismiss)) }
         },
     )
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun LanguagePicker() {
+    val activity = LocalContext.current.findActivity()
+    val current = remember { AppLanguage.current(activity) }
+    Column(Modifier.padding(horizontal = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(stringResource(R.string.settings_language), style = MaterialTheme.typography.titleSmall)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            AppLanguage.supported.forEach { (code, name) ->
+                FilterChip(
+                    selected = code == current,
+                    onClick = { if (code != current) AppLanguage.set(activity, code) },
+                    label = { Text(name) },
+                    modifier = Modifier.focusRing(),
+                )
+            }
+        }
+    }
+}
+
+private tailrec fun Context.findActivity(): Activity = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> error("No activity")
 }
 
 @Composable
