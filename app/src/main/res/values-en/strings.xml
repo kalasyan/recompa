@@ -22,6 +22,7 @@
     <string name="fork_official">Official</string>
     <string name="fork_tested_on">Tested on %1$s</string>
     <string name="fork_release">%1$s · %2$s</string>
+    <string name="fork_open_repo">Open the repository in the browser</string>
     <string name="files_disclaimer">Recompa does not include or download games. You need your own legitimate copy.</string>
     <string name="phase_downloading">Downloading…</string>
     <string name="phase_verifying">Checking the APK…</string>
