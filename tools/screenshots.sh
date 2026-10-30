@@ -40,3 +40,61 @@ shot platform 8
 
 key KEYCODE_DPAD_CENTER
 shot port 8
+
+# Screens that show where the newer features live. Each one is optional: if a button can't be
+# found (the UI changed), the step is skipped instead of failing the whole run.
+ui() {
+  for _ in 1 2 3; do
+    adb shell uiautomator dump /sdcard/ui.xml >/dev/null 2>&1 && break
+    sleep 2
+  done
+  adb pull /sdcard/ui.xml /tmp/ui.xml >/dev/null
+  python3 tools/ui.py find /tmp/ui.xml "$@"
+}
+tap() {
+  local box
+  box=$(ui "$@") || { echo "not found: $*"; return 1; }
+  read -r x1 y1 x2 y2 <<<"$box"
+  adb shell input tap $(((x1 + x2) / 2)) $(((y1 + y2) / 2))
+  sleep 4
+}
+# Scrolls down until LABEL is fully on screen.
+scroll_to() {
+  for _ in 1 2 3 4 5 6 7 8; do
+    local box
+    if box=$(ui "$1") && read -r _ _ _ y2 <<<"$box" && [ "$y2" -lt 1040 ]; then return 0; fi
+    adb shell input swipe 960 850 960 400 500
+    sleep 2
+  done
+  echo "not found: $1"
+  return 1
+}
+# Saves a screenshot with an orange frame around the given labels.
+marked() {
+  local name=$1 box
+  shift
+  box=$(ui "$@") || { echo "not found: $*"; return 1; }
+  shot "$name" 1
+  # shellcheck disable=SC2086
+  python3 tools/ui.py highlight "$OUT/$name.png" $box
+}
+
+# On the port page: link a port installed elsewhere, and send a compatibility report.
+marked port-link "I already have it installed" || true
+if scroll_to "Report how it runs"; then
+  marked report-button "Report how it runs" || true
+  tap "Report how it runs" && shot report 2 && key KEYCODE_BACK
+fi
+
+# Back in the library: the suggest and settings buttons.
+key KEYCODE_BACK
+sleep 3
+marked toolbar "Suggest a port" "Settings" || true
+if tap "Suggest a port"; then
+  shot suggest 2
+  key KEYCODE_BACK
+fi
+if tap "Settings"; then
+  marked settings "Language" "English" "Deutsch" || true
+  key KEYCODE_BACK
+fi
