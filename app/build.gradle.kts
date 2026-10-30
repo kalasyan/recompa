@@ -22,7 +22,7 @@ android {
         buildConfigField(
             "String",
             "CATALOG_URL",
-            "\"${providers.gradleProperty("recompa.catalogUrl").getOrElse("https://kalasyan.github.io/recompa/index.json")}\"",
+            "\"${providers.gradleProperty("recompa.catalogUrl").getOrElse("https://recompa.app/index.json")}\"",
         )
     }
 

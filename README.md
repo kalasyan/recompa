@@ -51,7 +51,7 @@ Pick a game, install its port straight from the author's GitHub, set up your cop
 
 ## 📥 Install
 
-Download page: <https://kalasyan.github.io/recompa/>
+Download page: <https://recompa.app/>
 
 1. On your Android device (8.0 or later), open <https://github.com/kalasyan/recompa/releases/latest/download/recompa.apk> and open the downloaded file.
 2. Android will ask you to allow installing apps from your browser or file manager. Allow it to install Recompa. If Google Play Protect says it is harmful, tap **More details** and then **Install anyway** (see below).
@@ -73,7 +73,7 @@ Requirements: JDK 17 and the Android SDK.
 ./gradlew :app:assembleDebug  # debug APK
 ```
 
-The port catalog is managed in a private repository and published at <https://kalasyan.github.io/recompa/index.json>.
+The port catalog is managed in a private repository and published at <https://recompa.app/index.json>.
 
 The download website lives in `site/` and is published next to the catalog on GitHub Pages (`python site/build.py OUT_DIR` builds it; needs Pillow).
 
