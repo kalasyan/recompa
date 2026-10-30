@@ -16,7 +16,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -31,6 +33,7 @@ import io.github.kalasyan.recompa.data.UserPrefs
 import io.github.kalasyan.recompa.install.InstallError
 import io.github.kalasyan.recompa.install.InstallManager
 import io.github.kalasyan.recompa.install.InstallPhase
+import io.github.kalasyan.recompa.install.LinkCandidate
 
 @Composable
 fun rememberInstallManager(): InstallManager {
@@ -58,6 +61,31 @@ fun InstallActions(item: PortItem, manager: InstallManager = rememberInstallMana
     val status = remember(port, revision) { manager.status(port) }
     val phase = phases[port.id] ?: InstallPhase.Idle
     val fork = port.recommendedFork
+    val linked = remember(port, revision) { manager.isLinked(port) }
+    var picking by remember { mutableStateOf(false) }
+    var mismatch by remember { mutableStateOf<LinkCandidate?>(null) }
+
+    if (picking) {
+        LinkPickerDialog(
+            manager = manager,
+            onPick = { app ->
+                picking = false
+                if (manager.matchesCatalog(port, app.packageName)) manager.link(port, app.packageName) else mismatch = app
+            },
+            onDismiss = { picking = false },
+        )
+    }
+    mismatch?.let { app ->
+        LinkMismatchDialog(
+            app = app,
+            portName = port.name,
+            onLinkAnyway = {
+                manager.link(port, app.packageName)
+                mismatch = null
+            },
+            onDismiss = { mismatch = null },
+        )
+    }
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         when (phase) {
@@ -107,7 +135,8 @@ fun InstallActions(item: PortItem, manager: InstallManager = rememberInstallMana
             }
         }
         when (status) {
-            PortStatus.UnknownSigner -> Note(stringResource(R.string.status_unknown_signer))
+            PortStatus.UnknownSigner ->
+                Note(stringResource(if (linked) R.string.status_linked_mismatch else R.string.status_unknown_signer))
             is PortStatus.OtherFork -> Note(stringResource(R.string.status_other_fork, status.fork.repo))
             is PortStatus.UpdateAvailable -> if (manager.isHeld(port)) {
                 Note(stringResource(R.string.status_held, manager.installedTag(port).orEmpty()))
@@ -125,9 +154,21 @@ fun InstallActions(item: PortItem, manager: InstallManager = rememberInstallMana
                 )
             }
         }
+        if (status == PortStatus.NotInstalled && fork != null && !busy) {
+            TextButton(onClick = { picking = true }, modifier = Modifier.focusRing()) {
+                Text(stringResource(R.string.action_link))
+            }
+        }
         if (status != PortStatus.NotInstalled) {
-            TextButton(onClick = { manager.uninstallIntent(port)?.let(context::startSafely) }, modifier = Modifier.focusRing()) {
-                Text(stringResource(R.string.action_uninstall))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(onClick = { manager.uninstallIntent(port)?.let(context::startSafely) }, modifier = Modifier.focusRing()) {
+                    Text(stringResource(R.string.action_uninstall))
+                }
+                if (linked) {
+                    TextButton(onClick = { manager.unlink(port) }, modifier = Modifier.focusRing()) {
+                        Text(stringResource(R.string.action_unlink))
+                    }
+                }
             }
         }
     }

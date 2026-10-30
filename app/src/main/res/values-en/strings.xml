@@ -37,6 +37,16 @@
     <string name="action_uninstall">Uninstall</string>
     <string name="status_unknown_signer">This port is installed with a signature the catalog does not know; Recompa will not update it.</string>
     <string name="status_other_fork">Installed from another build (%1$s). To switch to the recommended one, uninstall it first; saves may be lost.</string>
+    <string name="action_link">I already have it installed</string>
+    <string name="action_unlink">Unlink</string>
+    <string name="cancel">Cancel</string>
+    <string name="link_title">Which app is it?</string>
+    <string name="link_help">Pick the app for this port that you installed outside Recompa. If it is the same app as the repository\'s, Recompa can update it.</string>
+    <string name="link_empty">There are no apps to link.</string>
+    <string name="link_mismatch_title">This does not look like the same app</string>
+    <string name="link_mismatch">“%1$s” does not match the app in the %2$s repository: its package or signature is different. It may be another build of the game or a different app, so Recompa cannot update it.\n\nDo not uninstall it expecting Recompa to install the same app: it may not be, and you could lose your saves.</string>
+    <string name="link_anyway">Link anyway</string>
+    <string name="status_linked_mismatch">You linked this app by hand, but it does not look like the one in the repository. Recompa will not update it.</string>
     <string name="error_download">Could not download the APK. Check your connection.</string>
     <string name="error_invalid_apk">The downloaded file is not a valid APK.</string>
     <string name="error_aborted">Installation cancelled.</string>
