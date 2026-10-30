@@ -26,23 +26,8 @@ adb shell run-as "$PKG" cp /data/local/tmp/welcome.xml shared_prefs/welcome.xml
 key() { adb shell input keyevent "$@"; sleep 2; }
 shot() { sleep "${2:-4}"; adb exec-out screencap -p > "$OUT/$1.png"; echo "saved $OUT/$1.png"; }
 
-adb shell am start -W -n "$PKG/.MainActivity"
-# Let the catalog and its cover art load.
-sleep 30
-key KEYCODE_DPAD_RIGHT
-key KEYCODE_DPAD_RIGHT
-shot library 8
-
-key KEYCODE_BUTTON_R2
-key KEYCODE_BUTTON_R2
-key KEYCODE_DPAD_RIGHT
-shot platform 8
-
-key KEYCODE_DPAD_CENTER
-shot port 8
-
-# Screens that show where the newer features live. Each one is optional: if a button can't be
-# found (the UI changed), the step is skipped instead of failing the whole run.
+# Helpers that find buttons by their label. The screens taken with them are optional: if a
+# button can't be found (the UI changed), the step is skipped instead of failing the run.
 ui() {
   for _ in 1 2 3; do
     adb shell uiautomator dump /sdcard/ui.xml >/dev/null 2>&1 && break
@@ -79,6 +64,25 @@ marked() {
   python3 tools/ui.py highlight "$OUT/$name.png" $box
 }
 
+adb shell am start -W -n "$PKG/.MainActivity"
+# Let the catalog and its cover art load.
+sleep 30
+# The debug build always sees a newer nightly; hide that banner.
+tap "Later" || true
+key KEYCODE_DPAD_RIGHT
+key KEYCODE_DPAD_RIGHT
+shot library 8
+
+key KEYCODE_BUTTON_R2
+key KEYCODE_BUTTON_R2
+key KEYCODE_DPAD_RIGHT
+shot platform 8
+
+key KEYCODE_DPAD_CENTER
+shot port 8
+
+# Screens that show where the newer features live.
+
 # On the port page: link a port installed elsewhere, and send a compatibility report.
 marked port-link "I already have it installed" || true
 if scroll_to "Report how it runs"; then
@@ -95,6 +99,6 @@ if tap "Suggest a port"; then
   key KEYCODE_BACK
 fi
 if tap "Settings"; then
-  marked settings "Language" "English" "Deutsch" || true
+  marked settings "Language" "English" "Español" "Français" "Português" "Deutsch" || true
   key KEYCODE_BACK
 fi
