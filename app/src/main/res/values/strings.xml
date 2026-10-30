@@ -23,6 +23,7 @@
     <string name="fork_official">Oficial</string>
     <string name="fork_tested_on">Probado en %1$s</string>
     <string name="fork_release">%1$s · %2$s</string>
+    <string name="fork_open_repo">Abrir el repositorio en el navegador</string>
     <string name="files_disclaimer">Recompa no incluye ni descarga juegos. Necesitas tu propia copia legítima.</string>
     <string name="phase_downloading">Descargando…</string>
     <string name="phase_verifying">Comprobando el APK…</string>

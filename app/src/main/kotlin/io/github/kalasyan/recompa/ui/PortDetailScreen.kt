@@ -1,6 +1,9 @@
 package io.github.kalasyan.recompa.ui
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -38,7 +41,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -204,7 +209,20 @@ private fun Section(title: String, content: @Composable () -> Unit) {
 
 @Composable
 private fun ForkRow(fork: Fork, recommended: Boolean) {
-    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+    val context = LocalContext.current
+    val shape = RoundedCornerShape(12.dp)
+    // The whole row opens the fork's repo, so players can check where the APK comes from.
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .focusRing(shape)
+            .clip(shape)
+            .clickable(onClickLabel = stringResource(R.string.fork_open_repo)) {
+                context.startSafely(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/${fork.repo}")))
+            }
+            .padding(horizontal = 8.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         Box(
             Modifier
                 .padding(end = 12.dp)
@@ -213,7 +231,7 @@ private fun ForkRow(fork: Fork, recommended: Boolean) {
                 .background(if (recommended) Accent else Color.White.copy(alpha = 0.2f), CircleShape),
         )
         Column(Modifier.weight(1f)) {
-            Text(fork.repo, style = MaterialTheme.typography.bodyLarge)
+            Text("${fork.repo} ↗", style = MaterialTheme.typography.bodyLarge, color = Accent)
             val release = fork.release
             Text(
                 if (release == null) stringResource(R.string.no_release)
