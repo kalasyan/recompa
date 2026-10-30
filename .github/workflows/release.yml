@@ -1,6 +1,6 @@
 name: Release
 
-# Pushing a tag like v0.2.0, or running this workflow by hand with a version, builds
+# Pushing a tag like v0.3.0, or running this workflow by hand with a version, builds
 # Recompa with the private release key and publishes it as the latest GitHub release,
 # with the APK at https://github.com/kalasyan/recompa/releases/latest/download/recompa.apk
 on:
@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Version to publish, without the v (for example 0.2.0)"
+        description: "Version to publish, without the v (for example 0.3.0)"
         required: true
 
 permissions:
@@ -62,12 +62,15 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          # A manual run creates the tag on the commit it built.
+          # A manual run creates the tag on the commit it built. Hand-written notes in
+          # docs/release-notes/X.Y.Z.md win over GitHub's generated list of commits.
+          notes="docs/release-notes/$RECOMPA_VERSION.md"
+          if [ -f "$notes" ]; then notes_args=(--notes-file "$notes"); else notes_args=(--generate-notes); fi
           gh release create "v$RECOMPA_VERSION" recompa.apk \
             --latest \
             --target "$GITHUB_SHA" \
             --title "Recompa $RECOMPA_VERSION" \
-            --generate-notes
+            "${notes_args[@]}"
       - name: Remove the key
         if: always()
         run: rm -f "$RUNNER_TEMP/release.jks"

@@ -24,6 +24,8 @@ git tag v0.2.0
 git push origin v0.2.0
 ```
 
+Antes de publicar, escribe las notas de la versión en inglés en `docs/release-notes/X.Y.Z.md` (por ejemplo `docs/release-notes/0.3.0.md`). Si no existe ese archivo, la release usa la lista de commits que genera GitHub.
+
 El workflow `Release` compila, pasa los tests y lint, firma el APK, comprueba la firma y crea la release `v0.2.0` como la última, con `recompa.apk` adjunto.
 
 La versión instalada con una build nightly está firmada con otra clave, así que hay que desinstalarla una vez antes de instalar la primera versión estable.
