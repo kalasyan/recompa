@@ -54,9 +54,11 @@ Pick a game, install its port straight from the author's GitHub, set up your cop
 Download page: <https://kalasyan.github.io/recompa/>
 
 1. On your Android device (8.0 or later), open <https://github.com/kalasyan/recompa/releases/latest/download/recompa.apk> and open the downloaded file.
-2. Android will ask you to allow installing apps from your browser or file manager. Allow it to install Recompa.
+2. Android will ask you to allow installing apps from your browser or file manager. Allow it to install Recompa. If Google Play Protect says it is harmful, tap **More details** and then **Install anyway** (see below).
 3. The first time you open Recompa, it explains the permission it needs to install ports.
 4. Pick a port, tap **Install** and, if it needs game files, use **Files you need** on its page.
+
+**About the Play Protect warning:** Play Protect distrusts new apps that are not on Google Play and can install other apps, as any store does. It has not found anything specific in Recompa: you can check by uploading the APK to [VirusTotal](https://www.virustotal.com/). Its code is public, it is always signed with the same key, and the warning fades as more people install it.
 
 Recompa tells you when a new version is out and updates itself from inside the app. You can also track it with [Obtainium](https://github.com/ImranR98/Obtainium) by adding `https://github.com/kalasyan/recompa`.
 
