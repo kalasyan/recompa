@@ -84,6 +84,7 @@
     <string name="update_available">A new version of Recompa is available: %1$s</string>
     <string name="update_install">Update</string>
     <string name="update_later">Later</string>
+    <string name="update_notification_text">Open Recompa to install it.</string>
     <string name="welcome_title">Welcome to Recompa</string>
     <string name="welcome_what">Recompa installs native Android game ports and keeps them up to date. It downloads each port from its author\'s page and checks its signature before installing it.</string>
     <string name="welcome_files">Games are not included: when a port needs your files (a ROM, the game data), Recompa helps you prepare them from your own copy.</string>
@@ -105,8 +106,8 @@
     <string name="settings_choose_home">Choose home app</string>
     <string name="settings_android">Android settings</string>
     <string name="settings_notify">Notify about updates</string>
-    <string name="settings_notify_help">Checks twice a day whether your ports have a new version and tells you with a notification.</string>
-    <string name="updates_channel">Port updates</string>
+    <string name="settings_notify_help">Checks twice a day whether Recompa or your ports have a new version and tells you with a notification.</string>
+    <string name="updates_channel">Updates</string>
     <string name="status_held">You stayed on %1$s. Update all will leave this port alone.</string>
     <string name="status_blocked">The installed version (%1$s) was withdrawn from the catalog. Update or go back to an earlier one.</string>
     <string name="status_blocked_reason">The installed version (%1$s) was withdrawn from the catalog: %2$s. Update or go back to an earlier one.</string>

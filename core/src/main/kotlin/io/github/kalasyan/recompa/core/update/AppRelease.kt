@@ -4,7 +4,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-/** A published version of Recompa itself, from GitHub's "latest release" API. */
+/** A published version of Recompa itself, from GitHub's releases API. */
 data class AppRelease(
     val tag: String,
     val version: String,
@@ -15,7 +15,10 @@ data class AppRelease(
 
 object AppReleases {
     const val LATEST_URL = "https://api.github.com/repos/kalasyan/recompa/releases/latest"
+    const val RELEASES_URL = "https://api.github.com/repos/kalasyan/recompa/releases?per_page=30"
     const val APK_NAME = "recompa.apk"
+
+    private val nightlyTag = Regex("""nightly-(\d+)""")
 
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -39,10 +42,29 @@ object AppReleases {
     fun parse(body: String): AppRelease? {
         val release = json.decodeFromString<GitHubRelease>(body)
         if (release.draft || release.prerelease) return null
-        val apk = release.assets.firstOrNull { it.name == APK_NAME } ?: return null
+        return release.toAppRelease(release.tagName.removePrefix("v"))
+    }
+
+    /**
+     * The newest nightly build in a releases list, or null when there is none with the APK.
+     * Nightlies are signed with another key than stable releases, so a nightly install can
+     * only update to another nightly.
+     */
+    fun parseNewestNightly(body: String): AppRelease? =
+        json.decodeFromString<List<GitHubRelease>>(body)
+            .filter { !it.draft }
+            .mapNotNull { release -> nightlyNumber(release.tagName)?.let { it to release } }
+            .sortedByDescending { it.first }
+            .firstNotNullOfOrNull { (number, release) -> release.toAppRelease("nightly $number") }
+
+    /** The build number of a `nightly-N` tag, or null for any other tag. */
+    fun nightlyNumber(tag: String): Int? = nightlyTag.matchEntire(tag)?.groupValues?.get(1)?.toIntOrNull()
+
+    private fun GitHubRelease.toAppRelease(version: String): AppRelease? {
+        val apk = assets.firstOrNull { it.name == APK_NAME } ?: return null
         return AppRelease(
-            tag = release.tagName,
-            version = release.tagName.removePrefix("v"),
+            tag = tagName,
+            version = version,
             apkUrl = apk.url,
             size = apk.size,
             sha256 = apk.digest?.takeIf { it.startsWith("sha256:") }?.removePrefix("sha256:"),

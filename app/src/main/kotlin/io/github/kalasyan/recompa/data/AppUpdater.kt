@@ -14,29 +14,38 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.util.concurrent.TimeUnit
 
-/** Looks for a newer stable release of Recompa on GitHub. */
+/**
+ * Looks for a newer version of Recompa on GitHub. Stable builds look for stable releases;
+ * debug builds (the nightlies) are signed with another key and can only update to a newer
+ * nightly, so they look for those.
+ */
 class AppUpdater(
     private val client: OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
         .build(),
 ) {
-    /**
-     * The newer release, or null when there is none or it cannot be checked. Debug and
-     * nightly builds are signed with another key and cannot update to a stable release.
-     */
+    /** The newer release, or null when there is none or it cannot be checked. */
     suspend fun check(): AppRelease? = withContext(Dispatchers.IO) {
-        if (BuildConfig.DEBUG) return@withContext null
+        runCatching {
+            if (BuildConfig.DEBUG) {
+                fetch(AppReleases.RELEASES_URL)?.let(AppReleases::parseNewestNightly)
+                    ?.takeIf { (AppReleases.nightlyNumber(it.tag) ?: 0) > BuildConfig.VERSION_CODE }
+            } else {
+                fetch(AppReleases.LATEST_URL)?.let(AppReleases::parse)
+                    ?.takeIf { AppReleases.isNewer(it.version, BuildConfig.VERSION_NAME) }
+            }
+        }.getOrNull()
+    }
+
+    private fun fetch(url: String): String? {
         val request = Request.Builder()
-            .url(AppReleases.LATEST_URL)
+            .url(url)
             .header("Accept", "application/vnd.github+json")
             .build()
-        runCatching {
-            client.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) return@use null
-                AppReleases.parse(response.body?.string().orEmpty())
-            }
-        }.getOrNull()?.takeIf { AppReleases.isNewer(it.version, BuildConfig.VERSION_NAME) }
+        return client.newCall(request).execute().use { response ->
+            if (response.isSuccessful) response.body?.string() else null
+        }
     }
 
     companion object {
