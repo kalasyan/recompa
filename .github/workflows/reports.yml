@@ -12,7 +12,10 @@ permissions: {}
 
 jobs:
   rebuild:
-    if: startsWith(github.event.issue.title, '[compat]')
+    # A new issue also fires "labeled" for its form label; only "invalid" discards a report.
+    if: >-
+      startsWith(github.event.issue.title, '[compat]') &&
+      (!contains(fromJSON('["labeled","unlabeled"]'), github.event.action) || github.event.label.name == 'invalid')
     runs-on: ubuntu-latest
     steps:
       - name: Start the catalog workflow
