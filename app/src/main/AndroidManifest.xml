@@ -7,6 +7,9 @@
     <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
     <!-- The background check tells when ports have updates. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Downloads keep going when the user leaves the app (DownloadService). -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <!-- Needed to detect ports installed outside Recompa and for the diagnostics screen.
          Recompa is distributed outside Google Play. -->
     <uses-permission
@@ -51,6 +54,11 @@
         <receiver
             android:name=".install.InstallResultReceiver"
             android:exported="false" />
+
+        <service
+            android:name=".install.DownloadService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
 
         <provider
             android:name="androidx.core.content.FileProvider"
