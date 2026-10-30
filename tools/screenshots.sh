@@ -67,8 +67,6 @@ marked() {
 adb shell am start -W -n "$PKG/.MainActivity"
 # Let the catalog and its cover art load.
 sleep 30
-# The debug build always sees a newer nightly; hide that banner.
-tap "Later" || true
 key KEYCODE_DPAD_RIGHT
 key KEYCODE_DPAD_RIGHT
 shot library 8
