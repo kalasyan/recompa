@@ -14,6 +14,8 @@ from PIL import Image
 SITE = Path(__file__).resolve().parent
 ROOT = SITE.parent
 FILES = ["index.html", "style.css", "app.js", "icon.png"]
+# Cloudflare Web Analytics (visits, no cookies). The token is public: it is in the page.
+WEB_ANALYTICS_TOKEN = ""
 
 
 def main(out: Path) -> None:
@@ -25,6 +27,10 @@ def main(out: Path) -> None:
     for name in ("app.js", "style.css"):
         version = hashlib.sha256((SITE / name).read_bytes()).hexdigest()[:10]
         html = html.replace(f'"{name}"', f'"{name}?v={version}"')
+    if WEB_ANALYTICS_TOKEN:
+        beacon = ("<script defer src=\"https://static.cloudflareinsights.com/beacon.min.js\" "
+                  f"data-cf-beacon='{{\"token\": \"{WEB_ANALYTICS_TOKEN}\"}}'></script>\n")
+        html = html.replace("</body>", beacon + "</body>")
     (out / "index.html").write_text(html, encoding="utf-8")
     shutil.copy2(ROOT / "docs" / "logo.svg", out / "logo.svg")
     # The README screenshots are large PNGs; the site uses smaller JPEGs.

@@ -166,6 +166,17 @@ async function loadRelease() {
   } catch (e) { /* the button works without it */ }
 }
 
+// Downloads through dl.recompa.app are counted (anonymously, by the feedback Worker).
+// The button keeps its direct GitHub link until the Worker answers.
+async function useCountedDownload() {
+  try {
+    const res = await fetch("https://dl.recompa.app/", { signal: AbortSignal.timeout(4000) });
+    if (res.ok && (await res.json()).ok) {
+      document.getElementById("download").href = "https://dl.recompa.app/download?from=web";
+    }
+  } catch (e) { /* not deployed yet, or blocked: GitHub's link works */ }
+}
+
 function platformName(code) {
   return PLATFORMS[code] || code;
 }
@@ -274,4 +285,5 @@ async function loadCatalog() {
 setupLang();
 document.getElementById("search").addEventListener("input", renderCatalog);
 loadRelease();
+useCountedDownload();
 loadCatalog();
