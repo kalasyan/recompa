@@ -1,0 +1,28 @@
+name: Sugerir un port
+description: Propón un port que aún no está en el catálogo de Recompa.
+title: "[port] "
+labels: ["sugerencia"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Recompa rellena este formulario cuando sugieres un port desde la app. Lo revisamos a mano y, si encaja, lo añadimos al catálogo y cerramos este issue.
+        Para que entre, el repositorio tiene que publicar releases con un APK para Android.
+  # The labels below are parsed by the admin panel (private repository): keep them in sync.
+  - type: input
+    id: repo
+    attributes:
+      label: Repositorio
+      description: Enlace al repositorio de GitHub del port (por ejemplo, https://github.com/autor/port-android).
+    validations:
+      required: true
+  - type: input
+    id: game
+    attributes:
+      label: Juego
+      description: El juego original.
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notas
+      description: Cualquier cosa útil, como en qué dispositivo lo has probado o qué archivos necesita.

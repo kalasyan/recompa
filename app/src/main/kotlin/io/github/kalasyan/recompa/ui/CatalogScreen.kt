@@ -49,6 +49,7 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedTextField
@@ -60,6 +61,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -175,6 +177,10 @@ private fun Library(
     var platform by rememberSaveable { mutableStateOf<String?>(null) }
     var query by rememberSaveable { mutableStateOf("") }
     var searching by rememberSaveable { mutableStateOf(false) }
+    var suggesting by rememberSaveable { mutableStateOf(false) }
+    if (suggesting) {
+        SuggestPortDialog(state.items.map { it.port }, initialGame = query.trim(), onDismiss = { suggesting = false })
+    }
     if (searching) {
         BackHandler {
             query = ""
@@ -234,11 +240,20 @@ private fun Library(
             }
             val grid: @Composable (Modifier, Dp) -> Unit = { modifier, minCover ->
                 if (visible.isEmpty()) {
-                    Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Column(
+                        modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
                         Text(
                             stringResource(if (state.items.isEmpty()) R.string.empty_catalog else R.string.empty_filter),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                        if (query.isNotBlank()) {
+                            TextButton(onClick = { suggesting = true }, modifier = Modifier.focusRing()) {
+                                Text(stringResource(R.string.suggest_missing))
+                            }
+                        }
                     }
                 } else {
                     LazyVerticalGrid(
@@ -273,6 +288,7 @@ private fun Library(
                     onDiagnostics = onDiagnostics,
                     onSettings = onSettings,
                     onSearch = { searching = true },
+                    onSuggest = { suggesting = true },
                     updates = updates.size,
                     updatingAll = updatingAll,
                     onUpdateAll = { manager.updateAll(state.items.map { it.port }) },
@@ -327,6 +343,7 @@ private fun TopBar(
     onDiagnostics: () -> Unit,
     onSettings: () -> Unit,
     onSearch: (() -> Unit)? = null,
+    onSuggest: (() -> Unit)? = null,
     updates: Int = 0,
     updatingAll: Boolean = false,
     onUpdateAll: () -> Unit = {},
@@ -376,6 +393,11 @@ private fun TopBar(
         if (onSearch != null) {
             IconButton(onClick = onSearch, modifier = Modifier.focusRing(CircleShape)) {
                 Icon(Icons.Filled.Search, contentDescription = stringResource(R.string.search))
+            }
+        }
+        if (onSuggest != null) {
+            IconButton(onClick = onSuggest, modifier = Modifier.focusRing(CircleShape)) {
+                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.suggest_title))
             }
         }
         IconButton(onClick = onSettings, modifier = Modifier.focusRing(CircleShape)) {
