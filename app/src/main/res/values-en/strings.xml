@@ -128,4 +128,15 @@
         <item quantity="one">%1$d port has an update</item>
         <item quantity="other">%1$d ports have an update</item>
     </plurals>
+    <string name="suggest_title">Suggest a port</string>
+    <string name="suggest_help">Missing a port? Paste the link to its GitHub repository. We\'ll review it and, if it fits, add it to the catalog for everyone.</string>
+    <string name="suggest_url">GitHub repository</string>
+    <string name="suggest_game">Game (optional)</string>
+    <string name="suggest_notes">Notes (optional)</string>
+    <string name="suggest_github_note">GitHub will open with the suggestion filled in: you only have to submit it. You need a GitHub account.</string>
+    <string name="suggest_send">Continue on GitHub</string>
+    <string name="suggest_bad_url">That doesn\'t look like a GitHub repository. Use a link like https://github.com/owner/repository.</string>
+    <string name="suggest_already">Already in the catalog: %1$s.</string>
+    <string name="suggest_missing">Can\'t find it? Suggest it</string>
+    <string name="cancel">Cancel</string>
 </resources>
