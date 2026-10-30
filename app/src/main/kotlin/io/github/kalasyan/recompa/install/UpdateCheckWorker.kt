@@ -23,20 +23,23 @@ import io.github.kalasyan.recompa.BuildConfig
 import io.github.kalasyan.recompa.MainActivity
 import io.github.kalasyan.recompa.R
 import io.github.kalasyan.recompa.RecompaApplication
+import io.github.kalasyan.recompa.data.AppUpdater
 import io.github.kalasyan.recompa.data.CatalogRepository
 import java.io.File
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.cancellation.CancellationException
 
 /**
- * Twice a day, downloads the catalog and notifies when installed ports have updates.
- * It only tells; installing still happens in the app, with "update all".
+ * Twice a day, notifies when Recompa itself has a new version and downloads the catalog
+ * to notify when installed ports have updates. It only tells; installing still happens in
+ * the app, with the update banner and "update all".
  */
 class UpdateCheckWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     @SuppressLint("MissingPermission") // canNotify() checks it; lint can't see through the helper.
     override suspend fun doWork(): Result {
         val app = applicationContext as RecompaApplication
         if (!app.prefs.updateNotifications.value) return Result.success()
+        notifyAppUpdate(app)
         val index = try {
             CatalogRepository(BuildConfig.CATALOG_URL, File(app.filesDir, "catalog/index.json")).load().index
         } catch (e: CancellationException) {
@@ -57,19 +60,13 @@ class UpdateCheckWorker(context: Context, params: WorkerParameters) : CoroutineW
         if (signature == prefs.getString(LAST_NOTIFIED, null) || !canNotify(app)) return Result.success()
 
         createChannel(app)
-        val open = PendingIntent.getActivity(
-            app,
-            0,
-            Intent(app, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-        )
         val names = pending.joinToString(", ") { it.name }
         val notification = NotificationCompat.Builder(app, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(app.resources.getQuantityString(R.plurals.updates_notification_title, pending.size, pending.size))
             .setContentText(names)
             .setStyle(NotificationCompat.BigTextStyle().bigText(names))
-            .setContentIntent(open)
+            .setContentIntent(openApp(app))
             .setAutoCancel(true)
             .build()
         try {
@@ -80,6 +77,35 @@ class UpdateCheckWorker(context: Context, params: WorkerParameters) : CoroutineW
         }
         return Result.success()
     }
+
+    /** Tells once about each new version of Recompa; the banner in the app installs it. */
+    @SuppressLint("MissingPermission") // canNotify() checks it.
+    private suspend fun notifyAppUpdate(context: Context) {
+        val release = AppUpdater().check() ?: return
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        if (release.tag == prefs.getString(LAST_APP_NOTIFIED, null) || !canNotify(context)) return
+        createChannel(context)
+        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle(context.getString(R.string.update_available, release.version))
+            .setContentText(context.getString(R.string.update_notification_text))
+            .setContentIntent(openApp(context))
+            .setAutoCancel(true)
+            .build()
+        try {
+            NotificationManagerCompat.from(context).notify(APP_NOTIFICATION_ID, notification)
+            prefs.edit().putString(LAST_APP_NOTIFIED, release.tag).apply()
+        } catch (e: SecurityException) {
+            // The permission was revoked between the check and the call.
+        }
+    }
+
+    private fun openApp(context: Context): PendingIntent = PendingIntent.getActivity(
+        context,
+        0,
+        Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+    )
 
     private fun canNotify(context: Context): Boolean =
         Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
@@ -98,8 +124,10 @@ class UpdateCheckWorker(context: Context, params: WorkerParameters) : CoroutineW
         private const val WORK_NAME = "port-updates"
         private const val CHANNEL_ID = "port-updates"
         private const val NOTIFICATION_ID = 1
+        private const val APP_NOTIFICATION_ID = 2
         private const val PREFS = "update_check"
         private const val LAST_NOTIFIED = "last_notified"
+        private const val LAST_APP_NOTIFIED = "last_app_notified"
 
         fun schedule(context: Context) {
             val request = PeriodicWorkRequestBuilder<UpdateCheckWorker>(12, TimeUnit.HOURS)

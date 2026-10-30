@@ -23,23 +23,42 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import io.github.kalasyan.recompa.R
 import io.github.kalasyan.recompa.core.update.AppRelease
 import io.github.kalasyan.recompa.data.AppUpdater
 import io.github.kalasyan.recompa.install.InstallPhase
+import kotlinx.coroutines.delay
+import java.util.concurrent.TimeUnit
 
-/** Offers a newer stable version of Recompa and installs it in place. */
+/**
+ * Offers a newer version of Recompa and installs it in place. It checks whenever the app
+ * comes to the foreground, and again every few hours while it stays open (frontend mode).
+ */
 @Composable
 fun UpdateBanner(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val manager = rememberInstallManager()
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
     var release by remember { mutableStateOf<AppRelease?>(null) }
-    var dismissed by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { release = AppUpdater().check() }
+    var dismissedTag by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(lifecycle) {
+        lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            val updater = AppUpdater()
+            while (true) {
+                // A failed check keeps the release already found.
+                updater.check()?.let { release = it }
+                delay(TimeUnit.HOURS.toMillis(RECHECK_HOURS))
+            }
+        }
+    }
 
     val available = release ?: return
-    if (dismissed) return
+    // "Later" hides this version only; a newer one shows the banner again.
+    if (available.tag == dismissedTag) return
     val phases by manager.phases.collectAsStateWithLifecycle()
     val phase = phases[AppUpdater.UPDATE_ID] ?: InstallPhase.Idle
     val port = remember(available) { AppUpdater.asPort(available, context.packageName) }
@@ -66,8 +85,10 @@ fun UpdateBanner(modifier: Modifier = Modifier) {
                         enabled = phase == InstallPhase.Idle || phase is InstallPhase.Failed,
                     ) { Text(stringResource(R.string.update_install)) }
                 }
-                TextButton(onClick = { dismissed = true }) { Text(stringResource(R.string.update_later)) }
+                TextButton(onClick = { dismissedTag = available.tag }) { Text(stringResource(R.string.update_later)) }
             }
         }
     }
 }
+
+private const val RECHECK_HOURS = 6L
