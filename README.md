@@ -80,7 +80,7 @@ Website and download page: <https://recompa.app/>
 
 **About the Play Protect warning:** Play Protect distrusts new apps that are not on Google Play and can install other apps, as any store does. It has not found anything specific in Recompa: you can check by uploading the APK to [VirusTotal](https://www.virustotal.com/). Since 0.3.0 Recompa no longer asks to see every installed app (`QUERY_ALL_PACKAGES`), one of the things that made Play Protect suspicious. Its code is public, it is always signed with the same key, and the warning fades as more people install it.
 
-Recompa tells you when a new version is out and updates itself from inside the app. You can also track it with [Obtainium](https://github.com/ImranR98/Obtainium) by adding `https://github.com/kalasyan/recompa`.
+Recompa tells you when a new version is out and updates itself from inside the app.
 
 **Test builds:** every push to `main` publishes a `nightly-N` release. Nightlies use a different signing key from stable versions, so switching between them requires uninstalling first. See [RELEASING.md](RELEASING.md) for stable releases.
 
