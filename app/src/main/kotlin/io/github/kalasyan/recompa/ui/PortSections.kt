@@ -13,6 +13,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -24,6 +25,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.kalasyan.recompa.R
 import io.github.kalasyan.recompa.core.catalog.Port
 import io.github.kalasyan.recompa.core.catalog.Release
@@ -107,8 +109,18 @@ fun ReportsSection(port: Port) {
     val reports = port.reports.sortedByDescending { it.device.equals(device, ignoreCase = true) }
     val feedbackUrl = LocalFeedbackUrl.current
     var reporting by rememberSaveable { mutableStateOf(false) }
+    // The same view model as the catalog's, which keeps the reports the endpoint counts now.
+    val catalog: CatalogViewModel = viewModel()
+    LaunchedEffect(port.id) { catalog.refreshReports() }
     if (reporting && feedbackUrl != null) {
-        ReportDialog(port, device, manager.installedTag(port), feedbackUrl, onDismiss = { reporting = false })
+        ReportDialog(
+            port,
+            device,
+            manager.installedTag(port),
+            feedbackUrl,
+            onSent = { result, model, tag -> catalog.reportSent(port.id, model, result, tag) },
+            onDismiss = { reporting = false },
+        )
     }
 
     if (reports.isEmpty()) {

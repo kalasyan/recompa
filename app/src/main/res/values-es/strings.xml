@@ -157,7 +157,7 @@
     <string name="suggest_bad_url">Eso no parece un repositorio de GitHub. Usa un enlace como https://github.com/autor/repositorio.</string>
     <string name="suggest_already">Ya está en el catálogo: %1$s.</string>
     <string name="suggest_missing">¿No lo encuentras? Sugiérelo</string>
-    <string name="reports_help_direct">No hace falta cuenta de GitHub. Los informes aparecen aquí unas horas después de enviarlos.</string>
+    <string name="reports_help_direct">No hace falta cuenta de GitHub. Los informes aparecen aquí nada más enviarlos.</string>
     <string name="report_title">¿Cómo va %1$s?</string>
     <string name="report_result">Resultado</string>
     <string name="report_great">Funciona perfecto</string>
@@ -168,7 +168,7 @@
     <string name="report_version">Versión del port (opcional)</string>
     <string name="report_notes">Notas (opcional)</string>
     <string name="report_notes_hint">Rendimiento, fallos, ajustes que has tenido que cambiar…</string>
-    <string name="report_sent">¡Gracias! Tu informe aparecerá aquí en unas horas.</string>
+    <string name="report_sent">¡Gracias! Tu informe ya cuenta.</string>
     <string name="suggest_sent">¡Gracias! Revisaremos tu sugerencia pronto.</string>
     <string name="suggest_repo_not_found">GitHub no conoce ese repositorio. Revisa el enlace y que sea público.</string>
     <string name="feedback_send">Enviar</string>

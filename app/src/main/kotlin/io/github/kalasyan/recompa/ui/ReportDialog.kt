@@ -46,10 +46,20 @@ private val results = listOf(
     "broken" to R.string.report_broken,
 )
 
-/** Sends a compatibility report through [feedbackUrl], without a GitHub account. */
+/**
+ * Sends a compatibility report through [feedbackUrl], without a GitHub account. [onSent] gets
+ * the result, device and version that were sent, to show the report right away.
+ */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun ReportDialog(port: Port, device: String, installedTag: String?, feedbackUrl: String, onDismiss: () -> Unit) {
+fun ReportDialog(
+    port: Port,
+    device: String,
+    installedTag: String?,
+    feedbackUrl: String,
+    onSent: (result: String, device: String, tag: String?) -> Unit,
+    onDismiss: () -> Unit,
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var result by rememberSaveable { mutableStateOf<String?>(null) }
@@ -132,6 +142,7 @@ fun ReportDialog(port: Port, device: String, installedTag: String?, feedbackUrl:
                             .sendReport(port.id, model.trim(), version.trim().ifEmpty { null }, picked, notes.trim())
                         sending = false
                         if (sent == FeedbackResult.Sent) {
+                            onSent(picked, model.trim(), version.trim().ifEmpty { null })
                             Toast.makeText(context, sentText, Toast.LENGTH_LONG).show()
                             onDismiss()
                         } else {

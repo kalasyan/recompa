@@ -1,6 +1,7 @@
 package io.github.kalasyan.recompa.data
 
 import io.github.kalasyan.recompa.BuildConfig
+import io.github.kalasyan.recompa.core.catalog.LiveReports
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -21,7 +22,8 @@ sealed interface FeedbackResult {
 
 /**
  * Sends compatibility reports and port suggestions to the catalog's feedback endpoint
- * (`feedback_url` in `index.json`), which opens the GitHub issue on the player's behalf.
+ * (`feedback_url` in `index.json`), which opens the GitHub issue on the player's behalf,
+ * and reads the reports as they stand now.
  */
 class FeedbackClient(
     private val baseUrl: String,
@@ -44,6 +46,24 @@ class FeedbackClient(
 
     suspend fun sendSuggestion(repo: String, game: String, notes: String) =
         post("suggestion", JSONObject().put("repo", repo).put("game", game).put("notes", notes))
+
+    /** The reports as the endpoint counts them now, or null when it can't be reached. */
+    suspend fun reports(): LiveReports? = withContext(Dispatchers.IO) {
+        val request = Request.Builder()
+            .url("${baseUrl.trimEnd('/')}/reports")
+            .header("User-Agent", "Recompa/${BuildConfig.VERSION_NAME}")
+            .build()
+        try {
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return@withContext null
+                LiveReports.parse(response.body?.string() ?: return@withContext null)
+            }
+        } catch (e: IOException) {
+            null
+        } catch (e: IllegalArgumentException) {
+            null // malformed answer: kotlinx.serialization's errors extend it
+        }
+    }
 
     private suspend fun post(path: String, body: JSONObject): FeedbackResult = withContext(Dispatchers.IO) {
         body.put("app", BuildConfig.VERSION_NAME)

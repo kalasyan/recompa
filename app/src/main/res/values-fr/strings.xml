@@ -156,7 +156,7 @@
     <string name="suggest_bad_url">Cela ne ressemble pas à un dépôt GitHub. Utilisez un lien comme https://github.com/auteur/depot.</string>
     <string name="suggest_already">Déjà dans le catalogue : %1$s.</string>
     <string name="suggest_missing">Vous ne le trouvez pas ? Suggérez-le</string>
-    <string name="reports_help_direct">Pas besoin de compte GitHub. Les rapports apparaissent ici quelques heures après leur envoi.</string>
+    <string name="reports_help_direct">Pas besoin de compte GitHub. Les rapports apparaissent ici dès leur envoi.</string>
     <string name="report_title">Comment tourne %1$s ?</string>
     <string name="report_result">Résultat</string>
     <string name="report_great">Fonctionne parfaitement</string>
@@ -167,7 +167,7 @@
     <string name="report_version">Version du port (facultatif)</string>
     <string name="report_notes">Notes (facultatif)</string>
     <string name="report_notes_hint">Performances, bugs, réglages que vous avez dû changer…</string>
-    <string name="report_sent">Merci ! Votre rapport apparaîtra ici dans quelques heures.</string>
+    <string name="report_sent">Merci ! Votre rapport est déjà pris en compte.</string>
     <string name="suggest_sent">Merci ! Nous examinerons votre suggestion bientôt.</string>
     <string name="suggest_repo_not_found">GitHub ne connaît pas ce dépôt. Vérifiez le lien et qu\'il est public.</string>
     <string name="feedback_send">Envoyer</string>
