@@ -29,6 +29,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
 import java.io.IOException
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.cancellation.CancellationException
 
@@ -71,6 +72,7 @@ class InstallManager(private val context: Context) {
         .readTimeout(60, TimeUnit.SECONDS)
         .build()
     private val pending = mutableMapOf<String, InstallRecord>()
+    private val labels = ConcurrentHashMap<String, String>()
 
     private val _phases = MutableStateFlow<Map<String, InstallPhase>>(emptyMap())
     val phases: StateFlow<Map<String, InstallPhase>> = _phases.asStateFlow()
@@ -151,6 +153,9 @@ class InstallManager(private val context: Context) {
 
     fun dismiss(portId: String) = setPhase(portId, InstallPhase.Idle)
 
+    /** The port's name, for notifications about an install in progress. */
+    fun label(portId: String): String = labels[portId] ?: portId
+
     /**
      * Installs [release] of [fork], the fork's latest by default. Installing an earlier
      * release marks the port as held, so "update all" does not undo the user's choice.
@@ -166,6 +171,8 @@ class InstallManager(private val context: Context) {
         val held = release.tag != fork.release?.tag
         // Set before the download starts, so callers waiting on the phase see the install begin.
         setPhase(port.id, InstallPhase.Downloading(null))
+        labels[port.id] = port.name
+        DownloadService.start(context)
         scope.launch {
             try {
                 val entry = release.asset.entry
@@ -225,6 +232,7 @@ class InstallManager(private val context: Context) {
     internal fun onInstalled(portId: String) {
         synchronized(pending) { pending.remove(portId) }?.let { records.put(portId, it) }
         apkFile(portId).delete()
+        DownloadService.cancelConfirm(context, portId)
         setPhase(portId, InstallPhase.Idle)
         refresh()
     }
@@ -232,6 +240,7 @@ class InstallManager(private val context: Context) {
     internal fun onFailed(portId: String, status: Int, message: String?) {
         synchronized(pending) { pending.remove(portId) }
         apkFile(portId).delete()
+        DownloadService.cancelConfirm(context, portId)
         val error = when (status) {
             PackageInstaller.STATUS_FAILURE_ABORTED -> InstallError.Aborted
             PackageInstaller.STATUS_FAILURE_BLOCKED -> InstallError.Blocked(message)

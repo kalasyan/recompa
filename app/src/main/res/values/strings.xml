@@ -127,6 +127,11 @@
     <string name="reports_broken">No va · %1$d</string>
     <string name="reports_add">Contar cómo me va</string>
     <string name="reports_help">Se abre un formulario en GitHub con el port y tu dispositivo ya rellenos. Necesitas una cuenta de GitHub.</string>
+    <string name="downloads_channel">Descargas</string>
+    <string name="downloads_more">y %1$d más</string>
+    <string name="confirm_channel">Instalaciones pendientes</string>
+    <string name="confirm_notification_title">%1$s está listo para instalar</string>
+    <string name="confirm_notification_text">Toca para confirmar la instalación.</string>
     <plurals name="updates_notification_title">
         <item quantity="one">%1$d port tiene actualización</item>
         <item quantity="many">%1$d ports tienen actualización</item>

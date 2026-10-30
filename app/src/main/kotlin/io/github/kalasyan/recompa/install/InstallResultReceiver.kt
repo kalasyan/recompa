@@ -20,6 +20,7 @@ class InstallResultReceiver : BroadcastReceiver() {
                 if (confirm != null) {
                     confirm.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     context.startActivity(confirm)
+                    DownloadService.notifyConfirm(context, portId, manager.label(portId), confirm)
                 }
                 manager.onAwaitingUser(portId)
             }
