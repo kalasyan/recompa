@@ -58,6 +58,17 @@ Pick a game, install its port straight from the author's GitHub, set up your cop
   <img src="docs/screenshots/port.png" width="49%" alt="A port's page">
 </p>
 
+### Where to find things
+
+| | |
+|---|---|
+| <img width="480" src="docs/screenshots/toolbar.png" alt="The suggest and settings buttons at the top of the library"> | **Suggest a port** with the **+** button at the top of the library, and open **Settings** with the gear next to it. |
+| <img width="480" src="docs/screenshots/suggest.png" alt="The Suggest a port dialog"> | Paste the port's GitHub repository. No GitHub account needed. |
+| <img width="480" src="docs/screenshots/settings.png" alt="The language picker in Settings"> | **Change the language** at the top of Settings: English, Español, Français, Português or Deutsch. |
+| <img width="480" src="docs/screenshots/port-link.png" alt="The I already have it installed button on a port's page"> | **Link a port you installed elsewhere** with **I already have it installed**, under the Install button. |
+| <img width="480" src="docs/screenshots/report-button.png" alt="The Report how it runs button at the bottom of a port's page"> | **Report how a port runs** from **On other devices**, at the bottom of its page. |
+| <img width="480" src="docs/screenshots/report.png" alt="The compatibility report dialog"> | Pick how it runs and send it, also without a GitHub account. |
+
 ## 📥 Install
 
 Website and download page: <https://recompa.app/>

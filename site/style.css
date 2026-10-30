@@ -95,6 +95,9 @@ main > section { max-width: 1160px; margin: 0 auto; padding: 72px 20px; }
 .features article h3 { color: var(--accent); margin-bottom: 8px; }
 .features article p { color: var(--muted); }
 
+.howto .shots { margin-top: 32px; padding-top: 0; }
+.howto figure { margin: 0; }
+.howto figcaption { color: var(--muted); margin-top: 10px; }
 .shots { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding-top: 0 !important; }
 
 .filters { display: flex; flex-direction: column; gap: 14px; margin: 28px 0 22px; }
