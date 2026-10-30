@@ -38,6 +38,13 @@ class CatalogParserTest {
         assertNull(port.forks.first().release)
         assertEquals("https://cdn.example/c.png", port.art?.cover)
         assertNull(port.art?.hero)
+        assertNull(CatalogParser.parse(sample).feedbackUrl)
+    }
+
+    @Test
+    fun readsFeedbackUrl() {
+        val index = CatalogParser.parse(sample.replace("\"future_field\"", "\"feedback_url\": \"https://f.example\", \"x\""))
+        assertEquals("https://f.example", index.feedbackUrl)
     }
 
     @Test

@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -33,35 +34,37 @@ fun RecompaApp(viewModel: CatalogViewModel = viewModel()) {
     val language = LocalConfiguration.current.locales[0].language
     LaunchedEffect(language) { viewModel.setLanguage(language) }
 
-    // Surface sets the default text colour; without it, text outside a Scaffold is black.
-    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        Box(Modifier.fillMaxSize()) {
-            if (route == DIAGNOSTICS) {
-                BackHandler { route = null }
-                DiagnosticsScreen(onBack = { route = null })
-                return@Box
-            }
-            val selected = (state as? CatalogState.Ready)?.items?.firstOrNull { it.port.id == route }
-            if (selected != null) {
-                BackHandler { route = null }
-                PortDetailScreen(item = selected, onBack = { route = null })
-            } else {
-                // As the home app, Back on the library has nowhere to go.
-                if (frontendMode) BackHandler { }
-                screens.SaveableStateProvider("catalog") {
-                    CatalogScreen(
-                        state = state,
-                        onRetry = viewModel::refresh,
-                        onOpen = { route = it.port.id },
-                        onDiagnostics = { route = DIAGNOSTICS },
-                        onSettings = { settings = true },
-                    )
+    CompositionLocalProvider(LocalFeedbackUrl provides (state as? CatalogState.Ready)?.feedbackUrl) {
+        // Surface sets the default text colour; without it, text outside a Scaffold is black.
+        Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+            Box(Modifier.fillMaxSize()) {
+                if (route == DIAGNOSTICS) {
+                    BackHandler { route = null }
+                    DiagnosticsScreen(onBack = { route = null })
+                    return@Box
                 }
-                UpdateBanner(Modifier.align(Alignment.BottomCenter))
-                WelcomeDialog()
-                NotificationPermissionRequest()
+                val selected = (state as? CatalogState.Ready)?.items?.firstOrNull { it.port.id == route }
+                if (selected != null) {
+                    BackHandler { route = null }
+                    PortDetailScreen(item = selected, onBack = { route = null })
+                } else {
+                    // As the home app, Back on the library has nowhere to go.
+                    if (frontendMode) BackHandler { }
+                    screens.SaveableStateProvider("catalog") {
+                        CatalogScreen(
+                            state = state,
+                            onRetry = viewModel::refresh,
+                            onOpen = { route = it.port.id },
+                            onDiagnostics = { route = DIAGNOSTICS },
+                            onSettings = { settings = true },
+                        )
+                    }
+                    UpdateBanner(Modifier.align(Alignment.BottomCenter))
+                    WelcomeDialog()
+                    NotificationPermissionRequest()
+                }
+                if (settings) SettingsDialog(onDismiss = { settings = false })
             }
-            if (settings) SettingsDialog(onDismiss = { settings = false })
         }
     }
 }

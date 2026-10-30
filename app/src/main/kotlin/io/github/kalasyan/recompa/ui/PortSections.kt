@@ -14,7 +14,10 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -102,6 +105,11 @@ fun ReportsSection(port: Port) {
     val manager = rememberInstallManager()
     val device = remember { AndroidDevice.modelName() }
     val reports = port.reports.sortedByDescending { it.device.equals(device, ignoreCase = true) }
+    val feedbackUrl = LocalFeedbackUrl.current
+    var reporting by rememberSaveable { mutableStateOf(false) }
+    if (reporting && feedbackUrl != null) {
+        ReportDialog(port, device, manager.installedTag(port), feedbackUrl, onDismiss = { reporting = false })
+    }
 
     if (reports.isEmpty()) {
         Text(stringResource(R.string.reports_empty), color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -137,18 +145,24 @@ fun ReportsSection(port: Port) {
         }
     }
     OutlinedButton(
-        onClick = { context.startSafely(Intent(Intent.ACTION_VIEW, reportUrl(port, device, manager.installedTag(port)))) },
+        onClick = {
+            if (feedbackUrl != null) {
+                reporting = true
+            } else {
+                context.startSafely(Intent(Intent.ACTION_VIEW, reportUrl(port, device, manager.installedTag(port))))
+            }
+        },
         modifier = Modifier.padding(top = 8.dp).focusRing(),
     ) { Text(stringResource(R.string.reports_add)) }
     Text(
-        stringResource(R.string.reports_help),
+        stringResource(if (feedbackUrl != null) R.string.reports_help_direct else R.string.reports_help),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
 }
 
 /** The compatibility issue form (.github/ISSUE_TEMPLATE/compat.yml), filled in as far as possible. */
-private fun reportUrl(port: Port, device: String, tag: String?): Uri =
+internal fun reportUrl(port: Port, device: String, tag: String?): Uri =
     Uri.parse("https://github.com/kalasyan/recompa/issues/new").buildUpon()
         .appendQueryParameter("template", "compat.yml")
         .appendQueryParameter("title", "[compat] ${port.name} · $device")

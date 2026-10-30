@@ -9,6 +9,8 @@ data class CatalogIndex(
     @SerialName("schema_version") val schemaVersion: Int,
     @SerialName("generated_at") val generatedAt: String,
     val ports: List<Port>,
+    /** Where the app sends reports and suggestions without a GitHub account; null opens the GitHub forms. */
+    @SerialName("feedback_url") val feedbackUrl: String? = null,
 )
 
 @Serializable

@@ -27,7 +27,7 @@ data class PortItem(val port: Port, val issues: List<CompatibilityIssue>) {
 
 sealed interface CatalogState {
     data object Loading : CatalogState
-    data class Ready(val items: List<PortItem>, val fromCache: Boolean) : CatalogState
+    data class Ready(val items: List<PortItem>, val fromCache: Boolean, val feedbackUrl: String? = null) : CatalogState
     data class Failed(val reason: Reason) : CatalogState
 
     enum class Reason { NETWORK, NEWER_CATALOG }
@@ -77,6 +77,10 @@ class CatalogViewModel(application: Application) : AndroidViewModel(application)
             .map { it.localized(language) }
             .map { PortItem(it, Compatibility.check(it.requirements, device)) }
             .sortedWith(compareBy({ !it.compatible }, { it.port.name.lowercase() }))
-        return CatalogState.Ready(items, fromCache = loaded.source == CatalogSource.CACHE)
+        return CatalogState.Ready(
+            items,
+            fromCache = loaded.source == CatalogSource.CACHE,
+            feedbackUrl = loaded.index.feedbackUrl?.takeIf { it.startsWith("https://") },
+        )
     }
 }

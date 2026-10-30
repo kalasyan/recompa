@@ -156,4 +156,23 @@
     <string name="suggest_bad_url">Isso não parece um repositório do GitHub. Use um link como https://github.com/autor/repositorio.</string>
     <string name="suggest_already">Já está no catálogo: %1$s.</string>
     <string name="suggest_missing">Não encontrou? Sugira</string>
+    <string name="reports_help_direct">Não precisa de conta no GitHub. Os relatórios aparecem aqui algumas horas depois de enviados.</string>
+    <string name="report_title">Como roda %1$s?</string>
+    <string name="report_result">Resultado</string>
+    <string name="report_great">Funciona perfeitamente</string>
+    <string name="report_playable">Jogável com falhas</string>
+    <string name="report_broken">Não funciona</string>
+    <string name="report_pick_result">Escolha como roda.</string>
+    <string name="report_device">Dispositivo</string>
+    <string name="report_version">Versão do port (opcional)</string>
+    <string name="report_notes">Notas (opcional)</string>
+    <string name="report_notes_hint">Desempenho, falhas, ajustes que você teve que mudar…</string>
+    <string name="report_sent">Obrigado! Seu relatório vai aparecer aqui em algumas horas.</string>
+    <string name="suggest_sent">Obrigado! Vamos analisar sua sugestão em breve.</string>
+    <string name="suggest_repo_not_found">O GitHub não conhece esse repositório. Confira o link e se ele é público.</string>
+    <string name="feedback_send">Enviar</string>
+    <string name="feedback_sending">Enviando…</string>
+    <string name="feedback_failed">Não foi possível enviar. Verifique a conexão e tente de novo.</string>
+    <string name="feedback_too_many">Envios demais a partir desta conexão. Tente de novo em um minuto.</string>
+    <string name="feedback_on_github">Enviar pelo GitHub</string>
 </resources>

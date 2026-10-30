@@ -157,4 +157,23 @@
     <string name="suggest_bad_url">That doesn\'t look like a GitHub repository. Use a link like https://github.com/owner/repository.</string>
     <string name="suggest_already">Already in the catalog: %1$s.</string>
     <string name="suggest_missing">Can\'t find it? Suggest it</string>
+    <string name="reports_help_direct">No GitHub account needed. Reports show up here a few hours after they\'re sent.</string>
+    <string name="report_title">How does %1$s run?</string>
+    <string name="report_result">Result</string>
+    <string name="report_great">Works perfectly</string>
+    <string name="report_playable">Playable with issues</string>
+    <string name="report_broken">Doesn\'t work</string>
+    <string name="report_pick_result">Pick how it runs.</string>
+    <string name="report_device">Device</string>
+    <string name="report_version">Port version (optional)</string>
+    <string name="report_notes">Notes (optional)</string>
+    <string name="report_notes_hint">Performance, glitches, settings you had to change…</string>
+    <string name="report_sent">Thanks! Your report will show up here in a few hours.</string>
+    <string name="suggest_sent">Thanks! We\'ll review your suggestion soon.</string>
+    <string name="suggest_repo_not_found">GitHub doesn\'t know that repository. Check the link and that it\'s public.</string>
+    <string name="feedback_send">Send</string>
+    <string name="feedback_sending">Sending…</string>
+    <string name="feedback_failed">Couldn\'t send it. Check your connection and try again.</string>
+    <string name="feedback_too_many">Too many messages from this connection. Try again in a minute.</string>
+    <string name="feedback_on_github">Send it on GitHub instead</string>
 </resources>
