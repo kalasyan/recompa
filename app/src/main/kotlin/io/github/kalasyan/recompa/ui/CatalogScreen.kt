@@ -362,14 +362,22 @@ private fun TopBar(
             color = Accent,
         )
         Spacer(Modifier.width(20.dp))
-        // The chips scroll when the bar is too narrow; a focused chip scrolls itself into view.
+        // The chips scroll when the bar is too narrow; a focused chip scrolls itself into view, and
+        // so does the picked one when it was half hidden under an edge or the Update button.
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.weight(1f).horizontalScroll(rememberScrollState()),
         ) {
             filter?.let { current ->
                 Filter.entries.forEach { option ->
-                    Chip(stringResource(option.label), selected = option == current, onClick = { onFilter(option) })
+                    val reveal = remember { BringIntoViewRequester() }
+                    if (option == current) LaunchedEffect(current) { reveal.bringIntoView() }
+                    Chip(
+                        stringResource(option.label),
+                        selected = option == current,
+                        onClick = { onFilter(option) },
+                        modifier = Modifier.bringIntoViewRequester(reveal),
+                    )
                 }
             }
         }
@@ -490,7 +498,13 @@ private fun PlatformBar(platforms: List<Pair<String, Int>>, selected: String?, t
 }
 
 @Composable
-private fun Chip(label: String, selected: Boolean, onClick: () -> Unit, onFocused: () -> Unit = {}) {
+private fun Chip(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    onFocused: () -> Unit = {},
+    modifier: Modifier = Modifier,
+) {
     // The focus ring is the chip's own border, so it follows the chip's exact shape.
     val interaction = remember { MutableInteractionSource() }
     val focused by interaction.collectIsFocusedAsState()
@@ -508,6 +522,7 @@ private fun Chip(label: String, selected: Boolean, onClick: () -> Unit, onFocuse
             selectedLabelColor = Night,
         ),
         border = if (focused) BorderStroke(2.dp, Accent) else null,
+        modifier = modifier,
     )
 }
 
