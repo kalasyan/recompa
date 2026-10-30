@@ -37,6 +37,16 @@
     <string name="action_uninstall">Desinstalar</string>
     <string name="status_unknown_signer">Este port está instalado con una firma que no reconoce el catálogo; Recompa no lo actualizará.</string>
     <string name="status_other_fork">Instalado desde otra versión (%1$s). Para cambiar a la recomendada, desinstálalo primero; puedes perder partidas guardadas.</string>
+    <string name="action_link">Ya lo tengo instalado</string>
+    <string name="action_unlink">Desvincular</string>
+    <string name="cancel">Cancelar</string>
+    <string name="link_title">¿Qué app es?</string>
+    <string name="link_help">Elige la app de este port que instalaste fuera de Recompa. Si es la misma que la del repositorio, Recompa podrá actualizarla.</string>
+    <string name="link_empty">No hay apps que se puedan vincular.</string>
+    <string name="link_mismatch_title">No parece la misma app</string>
+    <string name="link_mismatch">«%1$s» no coincide con la app del repositorio de %2$s: tiene otro package u otra firma. Puede ser otra versión del juego o una app distinta, así que Recompa no podrá actualizarla.\n\nNo la desinstales pensando que Recompa te instalará la misma: si lo haces, quizá no lo sea y pierdas tus partidas.</string>
+    <string name="link_anyway">Vincular igualmente</string>
+    <string name="status_linked_mismatch">Vinculaste esta app a mano, pero no parece la misma que la del repositorio. Recompa no la actualizará.</string>
     <string name="error_download">No se pudo descargar el APK. Comprueba tu conexión.</string>
     <string name="error_invalid_apk">El archivo descargado no es un APK válido.</string>
     <string name="error_aborted">Instalación cancelada.</string>

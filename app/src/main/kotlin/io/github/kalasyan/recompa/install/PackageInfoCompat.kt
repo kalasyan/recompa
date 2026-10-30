@@ -1,7 +1,9 @@
 package io.github.kalasyan.recompa.install
 
+import android.content.Intent
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
+import android.content.pm.ResolveInfo
 import android.os.Build
 import io.github.kalasyan.recompa.core.install.InstalledPackage
 import io.github.kalasyan.recompa.core.install.Sha256
@@ -36,6 +38,14 @@ fun PackageManager.installedPackagesWithSigners(): List<PackageInfo> =
         getInstalledPackages(PackageManager.PackageInfoFlags.of(SIGNATURE_FLAGS.toLong()))
     } else {
         getInstalledPackages(SIGNATURE_FLAGS)
+    }
+
+@Suppress("DEPRECATION")
+fun PackageManager.launcherActivities(intent: Intent): List<ResolveInfo> =
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        queryIntentActivities(intent, PackageManager.ResolveInfoFlags.of(0))
+    } else {
+        queryIntentActivities(intent, 0)
     }
 
 /** SHA-256 of every certificate that signs the package, lowercase hex. */

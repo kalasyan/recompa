@@ -3,6 +3,7 @@ package io.github.kalasyan.recompa.install
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ApplicationInfo
 import android.content.pm.PackageInstaller
 import android.net.Uri
 import android.os.Build
@@ -58,6 +59,9 @@ sealed interface InstallError {
     data object Storage : InstallError
     data class Other(val message: String?) : InstallError
 }
+
+/** An installed app the user can pick as a port. */
+data class LinkCandidate(val label: String, val packageName: String)
 
 /**
  * Downloads, verifies and installs ports with PackageInstaller sessions, and reports
@@ -140,6 +144,52 @@ class InstallManager(private val context: Context) {
                 _updatingAll.value = false
             }
         }
+    }
+
+    /**
+     * Apps the user can link to a port by hand: those with a launcher icon, which are the ones
+     * Recompa can see, without system apps or Recompa itself.
+     */
+    fun linkCandidates(): List<LinkCandidate> {
+        val pm = context.packageManager
+        val launcher = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+        return pm.launcherActivities(launcher)
+            .mapNotNull { it.activityInfo?.applicationInfo }
+            .filter { it.flags and ApplicationInfo.FLAG_SYSTEM == 0 && it.packageName != context.packageName }
+            .distinctBy { it.packageName }
+            .map { LinkCandidate(it.loadLabel(pm).toString(), it.packageName) }
+            .sortedBy { it.label.lowercase() }
+    }
+
+    /**
+     * True when [packageName] looks like a build from one of the port's repositories: same
+     * package (when the catalog knows it) and signed with the same certificate. Only then can
+     * Recompa update it in place.
+     */
+    fun matchesCatalog(port: Port, packageName: String): Boolean {
+        val installed = context.packageManager.packageInfoOrNull(packageName)?.toInstalledPackage() ?: return false
+        return port.forks.any { fork ->
+            val signer = fork.signerSha256 ?: return@any false
+            (fork.packageName == null || fork.packageName == packageName) &&
+                installed.signerSha256.any { it.equals(signer, ignoreCase = true) }
+        }
+    }
+
+    /** Treats [packageName], installed outside Recompa, as this port from now on. */
+    fun link(port: Port, packageName: String) {
+        records.put(port.id, InstallRecord(packageName, tag = "", repo = "", linked = true))
+        refresh()
+    }
+
+    fun unlink(port: Port) {
+        records.remove(port.id)
+        refresh()
+    }
+
+    /** True when the user picked the installed app by hand, rather than Recompa installing it. */
+    fun isLinked(port: Port): Boolean {
+        val record = records.get(port.id) ?: return false
+        return record.linked && packageName(port) == record.packageName
     }
 
     fun launchIntent(port: Port): Intent? =
