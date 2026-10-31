@@ -17,11 +17,13 @@ data class LoadedCatalog(val index: CatalogIndex, val source: CatalogSource)
 
 /**
  * Downloads `index.json` and keeps the last good copy in [cacheFile], so the
- * catalog still opens without a connection.
+ * catalog still opens without a connection. When [catalogUrl] does not answer,
+ * the same file is fetched from [fallbackUrl].
  */
 class CatalogRepository(
     private val catalogUrl: String,
     private val cacheFile: File,
+    private val fallbackUrl: String? = null,
     private val client: OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
@@ -29,7 +31,11 @@ class CatalogRepository(
 ) {
     suspend fun load(): LoadedCatalog = withContext(Dispatchers.IO) {
         try {
-            val text = download()
+            val text = try {
+                download(catalogUrl)
+            } catch (e: IOException) {
+                fallbackUrl?.let(::download) ?: throw e
+            }
             val index = CatalogParser.parse(text)
             cacheFile.parentFile?.mkdirs()
             cacheFile.writeText(text)
@@ -39,10 +45,10 @@ class CatalogRepository(
         }
     }
 
-    private fun download(): String {
-        val request = Request.Builder().url(catalogUrl).build()
+    private fun download(url: String): String {
+        val request = Request.Builder().url(url).build()
         client.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) throw IOException("HTTP ${response.code} for $catalogUrl")
+            if (!response.isSuccessful) throw IOException("HTTP ${response.code} for $url")
             return response.body?.string() ?: throw IOException("Empty catalog response")
         }
     }

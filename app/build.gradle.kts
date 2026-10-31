@@ -24,6 +24,13 @@ android {
             "CATALOG_URL",
             "\"${providers.gradleProperty("recompa.catalogUrl").getOrElse("https://recompa.app/index.json")}\"",
         )
+        // The same file straight from the gh-pages branch, off Cloudflare: Spanish ISPs block
+        // Cloudflare IPs during football matches. github.io would just redirect to recompa.app.
+        buildConfigField(
+            "String",
+            "CATALOG_FALLBACK_URL",
+            "\"https://raw.githubusercontent.com/kalasyan/recompa/gh-pages/index.json\"",
+        )
     }
 
     signingConfigs {

@@ -45,6 +45,7 @@ class CatalogViewModel(application: Application) : AndroidViewModel(application)
     private val repository = CatalogRepository(
         catalogUrl = BuildConfig.CATALOG_URL,
         cacheFile = File(application.filesDir, "catalog/index.json"),
+        fallbackUrl = BuildConfig.CATALOG_FALLBACK_URL,
     )
     private val device: DeviceProfile = AndroidDevice.profile(application)
 

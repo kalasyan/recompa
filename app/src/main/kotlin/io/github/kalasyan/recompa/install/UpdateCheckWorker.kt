@@ -42,7 +42,11 @@ class UpdateCheckWorker(context: Context, params: WorkerParameters) : CoroutineW
         if (!app.prefs.updateNotifications.value) return Result.success()
         notifyAppUpdate(app)
         val index = try {
-            CatalogRepository(BuildConfig.CATALOG_URL, File(app.filesDir, "catalog/index.json")).load().index
+            CatalogRepository(
+                BuildConfig.CATALOG_URL,
+                File(app.filesDir, "catalog/index.json"),
+                fallbackUrl = BuildConfig.CATALOG_FALLBACK_URL,
+            ).load().index
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
