@@ -12,6 +12,9 @@
     <string name="section_requirements">Requisitos</string>
     <string name="section_forks">Versiones para Android</string>
     <string name="section_files">Archivos que necesitas</string>
+    <string name="section_gallery">Imágenes</string>
+    <string name="gallery_image">%1$s, imagen %2$d de %3$d</string>
+    <string name="gallery_close">Cerrar</string>
     <string name="req_abi">Arquitectura: %1$s</string>
     <string name="req_sdk">Android %1$s o superior</string>
     <string name="req_vulkan">GPU con Vulkan</string>

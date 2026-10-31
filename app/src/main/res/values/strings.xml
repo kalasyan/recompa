@@ -13,6 +13,9 @@
     <string name="section_requirements">Requirements</string>
     <string name="section_forks">Android builds</string>
     <string name="section_files">Files you need</string>
+    <string name="section_gallery">Images</string>
+    <string name="gallery_image">%1$s, image %2$d of %3$d</string>
+    <string name="gallery_close">Close</string>
     <string name="req_abi">Architecture: %1$s</string>
     <string name="req_sdk">Android %1$s or newer</string>
     <string name="req_vulkan">Vulkan-capable GPU</string>

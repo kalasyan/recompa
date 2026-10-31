@@ -143,6 +143,12 @@ fun PortDetailScreen(item: PortItem, onBack: () -> Unit) {
 
             Spacer(Modifier.height(24.dp))
             Column(Modifier.widthIn(max = 880.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                val screenshots = port.art?.screenshots.orEmpty()
+                if (screenshots.isNotEmpty()) {
+                    Section(stringResource(R.string.section_gallery)) {
+                        ScreenshotRow(screenshots, port.game, height = if (wide) 160.dp else 120.dp)
+                    }
+                }
                 if (port.assets.isNotEmpty()) {
                     Section(stringResource(R.string.section_files)) { AssetWizard(port) }
                 }

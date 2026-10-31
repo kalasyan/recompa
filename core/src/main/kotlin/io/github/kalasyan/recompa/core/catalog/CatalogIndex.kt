@@ -186,10 +186,11 @@ data class Media(
     val screenshots: List<String> = emptyList(),
 )
 
-/** Cover art resolved by the catalog build (usually from SteamGridDB). */
+/** Art resolved by the catalog build: SteamGridDB cover, hero and logo, and IGDB screenshots. */
 @Serializable
 data class Art(
     val cover: String? = null,
     val hero: String? = null,
     val logo: String? = null,
+    val screenshots: List<String> = emptyList(),
 )
