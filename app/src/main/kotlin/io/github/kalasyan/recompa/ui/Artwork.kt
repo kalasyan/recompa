@@ -69,21 +69,45 @@ fun Modifier.focusRing(shape: Shape = RoundedCornerShape(50)): Modifier = compos
         .then(if (focused) Modifier.border(3.dp, Color.White, shape) else Modifier)
 }
 
+/**
+ * The first of [urls] that loads: when one fails (a CDN down, a deleted image), the next is
+ * tried. Nothing is drawn while none has loaded.
+ */
+@Composable
+fun FallbackImage(
+    urls: List<String>,
+    modifier: Modifier = Modifier,
+    contentDescription: String? = null,
+    contentScale: ContentScale = ContentScale.Crop,
+    alignment: Alignment = Alignment.Center,
+    onLoaded: (Boolean) -> Unit = {},
+) {
+    var index by remember(urls) { mutableStateOf(0) }
+    val url = urls.getOrNull(index) ?: return
+    AsyncImage(
+        model = url,
+        contentDescription = contentDescription,
+        contentScale = contentScale,
+        alignment = alignment,
+        onSuccess = { onLoaded(true) },
+        onError = { onLoaded(false); index++ },
+        modifier = modifier,
+    )
+}
+
 /** Vertical 2:3 cover. Until the art loads, or when the catalog has none, a generated one. */
 @Composable
 fun PortCover(port: Port, modifier: Modifier = Modifier) {
-    var loaded by remember(port.art?.cover) { mutableStateOf(false) }
+    val covers = port.art?.covers.orEmpty()
+    var loaded by remember(covers) { mutableStateOf(false) }
     Box(modifier.aspectRatio(2f / 3f).clip(CoverShape).background(platformBrush(port.originalPlatform))) {
         if (!loaded) GeneratedCover(port)
-        port.art?.cover?.let { url ->
-            AsyncImage(
-                model = url,
-                contentDescription = port.game,
-                contentScale = ContentScale.Crop,
-                onSuccess = { loaded = true },
-                modifier = Modifier.matchParentSize(),
-            )
-        }
+        FallbackImage(
+            covers,
+            contentDescription = port.game,
+            onLoaded = { loaded = it },
+            modifier = Modifier.matchParentSize(),
+        )
     }
 }
 
@@ -123,25 +147,15 @@ fun PortBackdrop(port: Port?, modifier: Modifier = Modifier) {
             Box(Modifier.fillMaxSize()) {
                 if (shown != null) {
                     Box(Modifier.matchParentSize().alpha(0.35f).background(platformBrush(shown.originalPlatform)))
-                    val hero = shown.art?.hero
-                    val cover = shown.art?.cover
-                    if (cover != null) {
-                        AsyncImage(
-                            model = cover,
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.matchParentSize().blur(32.dp).alpha(0.45f),
-                        )
-                    }
-                    if (hero != null) {
-                        AsyncImage(
-                            model = hero,
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
-                            alignment = Alignment.TopCenter,
-                            modifier = Modifier.matchParentSize().alpha(0.75f),
-                        )
-                    }
+                    FallbackImage(
+                        shown.art?.covers.orEmpty(),
+                        modifier = Modifier.matchParentSize().blur(32.dp).alpha(0.45f),
+                    )
+                    FallbackImage(
+                        shown.art?.backdrops.orEmpty(),
+                        alignment = Alignment.TopCenter,
+                        modifier = Modifier.matchParentSize().alpha(0.75f),
+                    )
                 }
             }
         }

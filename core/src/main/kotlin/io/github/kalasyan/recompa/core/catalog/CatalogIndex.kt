@@ -193,4 +193,11 @@ data class Art(
     val hero: String? = null,
     val logo: String? = null,
     val screenshots: List<String> = emptyList(),
-)
+    @SerialName("igdb_cover") val igdbCover: String? = null,
+) {
+    /** Covers to try in order: SteamGridDB's, then IGDB's. */
+    val covers: List<String> get() = listOfNotNull(cover, igdbCover)
+
+    /** Wide backgrounds to try in order: the hero, then the first screenshot. */
+    val backdrops: List<String> get() = listOfNotNull(hero, screenshots.firstOrNull())
+}
