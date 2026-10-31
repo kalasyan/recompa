@@ -1,0 +1,141 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kalasyan.github.io/recompa/schema/port.schema.json",
+  "title": "Recompa port manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "name", "game", "original_platform", "type", "forks", "requirements"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+    "name": { "type": "string", "minLength": 1 },
+    "game": { "type": "string", "minLength": 1 },
+    "original_platform": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$",
+      "description": "One of the ids in catalog/platforms.yaml; the build checks it."
+    },
+    "type": { "type": "string", "enum": ["recomp", "decomp", "source-port"] },
+    "upstream": { "type": "string", "format": "uri" },
+    "license": { "type": "string" },
+    "description": { "type": "string" },
+    "hidden": { "type": "boolean", "default": false, "description": "Leave the port out of the published catalog without deleting its manifest." },
+    "hidden_reason": { "type": "string", "description": "Why the port is hidden, for the people managing the catalog." },
+    "forks": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Ordered list of Android builds. The first one is the recommended one.",
+      "items": { "$ref": "#/$defs/fork" }
+    },
+    "requirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["abi", "min_sdk"],
+      "properties": {
+        "abi": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "enum": ["arm64-v8a", "armeabi-v7a", "x86_64"] }
+        },
+        "min_sdk": { "type": "integer", "minimum": 21 },
+        "vulkan": { "type": "boolean", "default": false }
+      }
+    },
+    "assets": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/asset" }
+    },
+    "media": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "icon": { "type": "string" },
+        "screenshots": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "art": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Cover art. The catalog build fills it from SteamGridDB; URLs written here win.",
+      "properties": {
+        "steamgriddb_id": { "type": "integer", "minimum": 1, "description": "SteamGridDB game id. Without it the build searches for `search`, or for `game`." },
+        "search": { "type": "string", "minLength": 1, "description": "Name to search on SteamGridDB when `game` is not a good match." },
+        "cover": { "type": "string", "format": "uri", "description": "Vertical 2:3 cover, ideally 600x900." },
+        "hero": { "type": "string", "format": "uri", "description": "Wide background image." },
+        "logo": { "type": "string", "format": "uri", "description": "Logo with a transparent background." }
+      }
+    }
+  },
+  "$defs": {
+    "fork": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repo", "asset_pattern"],
+      "properties": {
+        "repo": { "type": "string", "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$" },
+        "official": { "type": "boolean", "default": false },
+        "channel": { "type": "string", "enum": ["stable", "beta"], "default": "stable" },
+        "asset_pattern": { "type": "string", "description": "Regular expression matched against release asset names." },
+        "zip_entry": { "type": "string", "description": "When the release asset is a ZIP, regular expression matched against the paths inside it to find the APK." },
+        "package": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z][A-Za-z0-9_]*)+$" },
+        "signer_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "verified": {
+          "type": "boolean",
+          "default": false,
+          "description": "True once someone has run the port on a real device."
+        },
+        "tested_on": { "type": "array", "items": { "type": "string" } },
+        "blocked": {
+          "type": "array",
+          "description": "Releases Recompa must not offer, for example because they break saves.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["tag"],
+            "properties": {
+              "tag": { "type": "string", "minLength": 1 },
+              "reason": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "asset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "accepted", "delivery"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9_-]+$" },
+        "label": { "type": "string" },
+        "accepted": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["sha1"],
+            "properties": {
+              "sha1": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+              "label": { "type": "string" },
+              "format": { "type": "string" }
+            }
+          }
+        },
+        "convert_from": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["v64", "n64"] }
+        },
+        "zip_ok": { "type": "boolean", "default": true },
+        "delivery": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["mode"],
+          "properties": {
+            "mode": { "type": "string", "enum": ["shared_folder", "in_app_picker", "intent"] },
+            "path": { "type": "string" },
+            "filename": { "type": "string" }
+          }
+        },
+        "instructions_md": { "type": "string" }
+      }
+    }
+  }
+}
