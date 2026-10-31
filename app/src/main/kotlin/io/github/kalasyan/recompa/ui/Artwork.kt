@@ -112,8 +112,9 @@ private fun BoxScope.GeneratedCover(port: Port) {
 }
 
 /**
- * Full-bleed background for [port]: its hero art, else its blurred cover, faded into the
- * screen colour so text on top stays readable.
+ * Full-bleed background for [port]: its hero art over its blurred cover, faded into the
+ * screen colour so text on top stays readable. The cover is already loaded for the grid, so
+ * it shows at once while the hero (a big image) downloads, and stays if the hero fails.
  */
 @Composable
 fun PortBackdrop(port: Port?, modifier: Modifier = Modifier) {
@@ -124,19 +125,21 @@ fun PortBackdrop(port: Port?, modifier: Modifier = Modifier) {
                     Box(Modifier.matchParentSize().alpha(0.35f).background(platformBrush(shown.originalPlatform)))
                     val hero = shown.art?.hero
                     val cover = shown.art?.cover
-                    when {
-                        hero != null -> AsyncImage(
+                    if (cover != null) {
+                        AsyncImage(
+                            model = cover,
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.matchParentSize().blur(32.dp).alpha(0.45f),
+                        )
+                    }
+                    if (hero != null) {
+                        AsyncImage(
                             model = hero,
                             contentDescription = null,
                             contentScale = ContentScale.Crop,
                             alignment = Alignment.TopCenter,
                             modifier = Modifier.matchParentSize().alpha(0.75f),
-                        )
-                        cover != null -> AsyncImage(
-                            model = cover,
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.matchParentSize().blur(32.dp).alpha(0.45f),
                         )
                     }
                 }
