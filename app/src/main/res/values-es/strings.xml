@@ -252,4 +252,9 @@
     <string name="settings_press_a">Pulsa A para aplicar</string>
     <string name="settings_hint_change">Cambiar</string>
     <string name="settings_hint_select">Elegir</string>
+    <string name="whats_new_title">Novedades</string>
+    <string name="whats_new_ok">Entendido</string>
+    <string name="whats_new_scroll">Desplazar</string>
+    <string name="settings_whats_new">Novedades de esta versión</string>
+    <string name="settings_whats_new_help">Los cambios de Recompa %1$s.</string>
 </resources>

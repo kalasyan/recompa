@@ -31,6 +31,13 @@ git push origin v0.2.0
 
 Antes de publicar, escribe las notas de la versión en inglés en `docs/release-notes/X.Y.Z.md` (por ejemplo `docs/release-notes/0.3.0.md`). Si no existe ese archivo, la release usa la lista de commits que genera GitHub.
 
+Las notas van también dentro del APK: la primera vez que la app se abre tras actualizarse muestra la ventana **Novedades** con ellas, en el idioma de la app (en una instalación nueva no sale). Para eso:
+
+- Añade las traducciones junto al inglés: `X.Y.Z.es.md`, `X.Y.Z.fr.md`, `X.Y.Z.pt.md` y `X.Y.Z.de.md`. Si falta alguna, ese idioma ve el texto en inglés. La release de GitHub solo usa `X.Y.Z.md`.
+- Lo que va después de un comentario `<!-- app-end -->` (por ejemplo, la sección *Installing*) solo sale en GitHub, no en la app. En las traducciones no hace falta.
+- Formato admitido en la app: párrafos, títulos `##`, listas con `-`, **negrita**, `código` y [enlaces](https://recompa.app).
+- Las notas tienen que estar en `main` antes de publicar, porque se meten en el APK al compilar. Las nightlies muestran las notas de la versión más alta que haya en la carpeta, así se pueden revisar antes de la release.
+
 El workflow `Release` compila, pasa los tests y lint, firma el APK, comprueba la firma y crea la release `v0.2.0` como la última, con `recompa.apk` adjunto.
 
 La versión instalada con una build nightly está firmada con otra clave, así que hay que desinstalarla una vez antes de instalar la primera versión estable.

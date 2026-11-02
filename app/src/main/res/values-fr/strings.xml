@@ -251,4 +251,9 @@
     <string name="settings_press_a">Appuyez sur A pour appliquer</string>
     <string name="settings_hint_change">Changer</string>
     <string name="settings_hint_select">Choisir</string>
+    <string name="whats_new_title">Nouveautés</string>
+    <string name="whats_new_ok">Compris</string>
+    <string name="whats_new_scroll">Défiler</string>
+    <string name="settings_whats_new">Nouveautés de cette version</string>
+    <string name="settings_whats_new_help">Les changements de Recompa %1$s.</string>
 </resources>

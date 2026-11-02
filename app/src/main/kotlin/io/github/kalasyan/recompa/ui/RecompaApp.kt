@@ -68,6 +68,7 @@ fun RecompaApp(viewModel: CatalogViewModel = viewModel()) {
                     }
                     UpdateBanner(Modifier.align(Alignment.BottomCenter))
                     WelcomeDialog()
+                    WhatsNewOnUpdate()
                     NotificationPermissionRequest()
                 }
                 if (settings) SettingsDialog(onDismiss = { settings = false })

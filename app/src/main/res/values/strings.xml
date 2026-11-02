@@ -252,4 +252,9 @@
     <string name="settings_press_a">Press A to apply</string>
     <string name="settings_hint_change">Change</string>
     <string name="settings_hint_select">Select</string>
+    <string name="whats_new_title">What\'s new</string>
+    <string name="whats_new_ok">Got it</string>
+    <string name="whats_new_scroll">Scroll</string>
+    <string name="settings_whats_new">What\'s new in this version</string>
+    <string name="settings_whats_new_help">The changes in Recompa %1$s.</string>
 </resources>

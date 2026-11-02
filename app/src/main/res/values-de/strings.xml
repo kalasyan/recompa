@@ -251,4 +251,9 @@
     <string name="settings_press_a">Drücke A zum Übernehmen</string>
     <string name="settings_hint_change">Ändern</string>
     <string name="settings_hint_select">Auswählen</string>
+    <string name="whats_new_title">Neuigkeiten</string>
+    <string name="whats_new_ok">Verstanden</string>
+    <string name="whats_new_scroll">Blättern</string>
+    <string name="settings_whats_new">Neuigkeiten dieser Version</string>
+    <string name="settings_whats_new_help">Die Änderungen in Recompa %1$s.</string>
 </resources>

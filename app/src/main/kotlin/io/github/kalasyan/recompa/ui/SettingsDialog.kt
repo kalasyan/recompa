@@ -38,6 +38,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -95,6 +96,7 @@ import io.github.kalasyan.recompa.R
 import io.github.kalasyan.recompa.data.AppLanguage
 import io.github.kalasyan.recompa.data.AppStyle
 import io.github.kalasyan.recompa.data.NightlyToken
+import io.github.kalasyan.recompa.data.WhatsNew
 import io.github.kalasyan.recompa.ui.theme.Accent
 import io.github.kalasyan.recompa.ui.theme.LocalAppStyle
 import io.github.kalasyan.recompa.ui.theme.Night
@@ -140,7 +142,7 @@ private sealed interface SettingItem {
  * How the settings look in one style. Rows and options take focus themselves and draw their
  * focus in their own shape, so the highlight always matches what it surrounds.
  */
-private class SettingsSkin(
+internal class SettingsSkin(
     val shape: Shape,
     val title: TextStyle,
     val label: TextStyle,
@@ -163,8 +165,8 @@ private class SettingsSkin(
 )
 
 /**
- * The settings screen: a Ko-fi link, language, style, frontend mode, the second screen and update
- * notifications, drawn in the current style's own way.
+ * The settings screen: a Ko-fi link, language, style, frontend mode, the second screen, update
+ * notifications and this version's release notes, drawn in the current style's own way.
  */
 @Composable
 fun SettingsDialog(onDismiss: () -> Unit) {
@@ -177,6 +179,8 @@ fun SettingsDialog(onDismiss: () -> Unit) {
     val style by prefs.style.collectAsStateWithLifecycle()
     val nightlyToken by remember(context) { NightlyToken.flow(context) }.collectAsStateWithLifecycle()
     var editingToken by remember { mutableStateOf(false) }
+    val whatsNew = remember(context) { WhatsNew(context) }
+    var showingNotes by remember { mutableStateOf(false) }
     val language = remember { AppLanguage.current(activity) }
     val languages = AppLanguage.supported.entries.toList()
     val styles = AppStyle.entries
@@ -216,6 +220,13 @@ fun SettingsDialog(onDismiss: () -> Unit) {
             val help = stringResource(if (nightlyToken != null) R.string.settings_nightly_token_set else R.string.settings_nightly_token_unset)
             add(SettingItem.Action("nightly", stringResource(R.string.settings_nightly_token), help) { editingToken = true })
         }
+        whatsNew.version?.let { version ->
+            add(
+                SettingItem.Action("whats_new", stringResource(R.string.settings_whats_new), stringResource(R.string.settings_whats_new_help, version)) {
+                    showingNotes = true
+                },
+            )
+        }
         add(SettingItem.Action("android", stringResource(R.string.settings_android), null) { context.startSafely(Intent(Settings.ACTION_SETTINGS)) })
     }
 
@@ -248,13 +259,14 @@ fun SettingsDialog(onDismiss: () -> Unit) {
         }
         val focusedHelp = items.firstOrNull { it.id == focusedId }?.help
         when (currentStyle) {
-            AppStyle.CLASSIC -> ClassicSettings(skin, onDismiss, rows)
-            AppStyle.SHELVES -> ShelvesSettings(skin, onDismiss, rows)
-            AppStyle.LIST -> ListSettings(skin, focusedHelp, rows)
-            AppStyle.ARCADE -> ArcadeSettings(skin, focusedHelp, rows)
-            AppStyle.MOSAIC -> MosaicSettings(skin, onDismiss, rows)
-            AppStyle.SHOWCASE -> ShowcaseSettings(skin, onDismiss, rows)
+            AppStyle.CLASSIC -> ClassicSettings(skin, onDismiss, rows = rows)
+            AppStyle.SHELVES -> ShelvesSettings(skin, onDismiss, rows = rows)
+            AppStyle.LIST -> ListSettings(skin, focusedHelp, rows = rows)
+            AppStyle.ARCADE -> ArcadeSettings(skin, focusedHelp, rows = rows)
+            AppStyle.MOSAIC -> MosaicSettings(skin, onDismiss, rows = rows)
+            AppStyle.SHOWCASE -> ShowcaseSettings(skin, onDismiss, rows = rows)
         }
+        if (showingNotes) WhatsNewDialog(whatsNew, onDismiss = { showingNotes = false })
         if (editingToken) {
             NightlyTokenDialog(
                 saved = nightlyToken != null,
@@ -305,7 +317,7 @@ private fun NightlyTokenDialog(saved: Boolean, onSave: (String?) -> Unit, onDism
 }
 
 @Composable
-private fun skinFor(style: AppStyle): SettingsSkin {
+internal fun skinFor(style: AppStyle): SettingsSkin {
     val type = MaterialTheme.typography
     val accent = Accent
     val night = Night
@@ -394,7 +406,7 @@ private fun SettingRow(item: SettingItem, skin: SettingsSkin, requester: FocusRe
     if (skin.inline) InlineRow(item, skin, requester, onFocused) else LaidOutRow(item, skin, requester, onFocused)
 }
 
-private fun SettingsSkin.text(s: String) = if (uppercase) s.uppercase() else s
+internal fun SettingsSkin.text(s: String) = if (uppercase) s.uppercase() else s
 
 /**
  * A row with its value on the right, as in a game's options menu: Left/Right change a choice,
@@ -607,10 +619,10 @@ private fun TextSwitch(checked: Boolean, on: Color, style: TextStyle, off: Color
 
 /** Close hint for the styles without a close button: B or Back. */
 @Composable
-private fun BackHint(color: Color = Color.White) = ButtonHint("B", stringResource(R.string.dismiss), color)
+internal fun BackHint(color: Color = Color.White) = ButtonHint("B", stringResource(R.string.dismiss), color)
 
 @Composable
-private fun CloseButton(skin: SettingsSkin, onDismiss: () -> Unit) {
+internal fun CloseButton(skin: SettingsSkin, onDismiss: () -> Unit) {
     val interaction = remember { MutableInteractionSource() }
     val focused by interaction.collectIsFocusedAsState()
     Text(
@@ -631,7 +643,13 @@ private fun Scrim(content: @Composable BoxScope.() -> Unit) {
 
 /** Classic: a rounded card in the middle of the screen. */
 @Composable
-private fun ClassicSettings(skin: SettingsSkin, onDismiss: () -> Unit, rows: @Composable ColumnScope.() -> Unit) {
+internal fun ClassicSettings(
+    skin: SettingsSkin,
+    onDismiss: () -> Unit,
+    title: String = stringResource(R.string.settings_title),
+    scroll: ScrollState = rememberScrollState(),
+    rows: @Composable ColumnScope.() -> Unit,
+) {
     Scrim {
         Column(
             Modifier
@@ -644,18 +662,24 @@ private fun ClassicSettings(skin: SettingsSkin, onDismiss: () -> Unit, rows: @Co
                 .padding(20.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(stringResource(R.string.settings_title), style = skin.title, modifier = Modifier.weight(1f))
+                Text(title, style = skin.title, modifier = Modifier.weight(1f))
                 CloseButton(skin, onDismiss)
             }
             Spacer(Modifier.height(12.dp))
-            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp), content = rows)
+            Column(Modifier.verticalScroll(scroll), verticalArrangement = Arrangement.spacedBy(8.dp), content = rows)
         }
     }
 }
 
 /** Shelves: a full-height sheet sliding in from the right, like a console's quick menu. */
 @Composable
-private fun ShelvesSettings(skin: SettingsSkin, onDismiss: () -> Unit, rows: @Composable ColumnScope.() -> Unit) {
+internal fun ShelvesSettings(
+    skin: SettingsSkin,
+    onDismiss: () -> Unit,
+    title: String = stringResource(R.string.settings_title),
+    scroll: ScrollState = rememberScrollState(),
+    rows: @Composable ColumnScope.() -> Unit,
+) {
     Box(
         Modifier
             .fillMaxSize()
@@ -671,26 +695,36 @@ private fun ShelvesSettings(skin: SettingsSkin, onDismiss: () -> Unit, rows: @Co
                 .padding(horizontal = 28.dp, vertical = 20.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(stringResource(R.string.settings_title), style = skin.title, modifier = Modifier.weight(1f))
+                Text(title, style = skin.title, modifier = Modifier.weight(1f))
                 CloseButton(skin, onDismiss)
             }
             Spacer(Modifier.height(12.dp))
-            Column(Modifier.verticalScroll(rememberScrollState()), content = rows)
+            Column(Modifier.verticalScroll(scroll), content = rows)
         }
     }
 }
 
 /** List: a frontend's options menu, full screen, with the focused line's help at the bottom. */
 @Composable
-private fun ListSettings(skin: SettingsSkin, help: String?, rows: @Composable ColumnScope.() -> Unit) {
+internal fun ListSettings(
+    skin: SettingsSkin,
+    help: String?,
+    title: String = stringResource(R.string.settings_title),
+    hints: List<Pair<String, String>> = listOf(
+        "◀ ▶" to stringResource(R.string.settings_hint_change),
+        "A" to stringResource(R.string.settings_hint_select),
+    ),
+    scroll: ScrollState = rememberScrollState(),
+    rows: @Composable ColumnScope.() -> Unit,
+) {
     val night = Night
     Column(Modifier.fillMaxSize().background(night).windowInsetsPadding(WindowInsets.safeDrawing)) {
         Text(
-            stringResource(R.string.settings_title).uppercase(),
+            title.uppercase(),
             style = skin.title,
             modifier = Modifier.padding(start = 24.dp, top = 18.dp, bottom = 10.dp),
         )
-        Column(Modifier.weight(1f).widthIn(max = 760.dp).verticalScroll(rememberScrollState()), content = rows)
+        Column(Modifier.weight(1f).widthIn(max = 760.dp).verticalScroll(scroll), content = rows)
         Column(
             Modifier
                 .fillMaxWidth()
@@ -700,8 +734,7 @@ private fun ListSettings(skin: SettingsSkin, help: String?, rows: @Composable Co
         ) {
             Text(help ?: " ", style = skin.help, maxLines = 3, minLines = 2)
             Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                ButtonHint("◀ ▶", stringResource(R.string.settings_hint_change))
-                ButtonHint("A", stringResource(R.string.settings_hint_select))
+                hints.forEach { (button, label) -> ButtonHint(button, label) }
                 BackHint()
             }
         }
@@ -710,7 +743,17 @@ private fun ListSettings(skin: SettingsSkin, help: String?, rows: @Composable Co
 
 /** Arcade: an "options" screen in a neon frame over the synthwave floor. */
 @Composable
-private fun ArcadeSettings(skin: SettingsSkin, help: String?, rows: @Composable ColumnScope.() -> Unit) {
+internal fun ArcadeSettings(
+    skin: SettingsSkin,
+    help: String?,
+    title: String = stringResource(R.string.settings_title),
+    hints: List<Pair<String, String>> = listOf(
+        "◀ ▶" to stringResource(R.string.settings_hint_change),
+        "A" to stringResource(R.string.settings_hint_select),
+    ),
+    scroll: ScrollState = rememberScrollState(),
+    rows: @Composable ColumnScope.() -> Unit,
+) {
     Box(Modifier.fillMaxSize().background(Color(0xFF07010F))) {
         SynthwaveBackground(Modifier.matchParentSize())
         Column(
@@ -727,18 +770,16 @@ private fun ArcadeSettings(skin: SettingsSkin, help: String?, rows: @Composable 
                 .padding(18.dp),
         ) {
             Text(
-                stringResource(R.string.settings_title).uppercase(),
+                title.uppercase(),
                 style = skin.title,
                 modifier = Modifier.align(Alignment.CenterHorizontally).padding(bottom = 14.dp),
             )
-            Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), content = rows)
+            Column(Modifier.weight(1f).verticalScroll(scroll), content = rows)
             Text(help ?: " ", style = skin.help, maxLines = 3, minLines = 2, modifier = Modifier.padding(top = 8.dp))
             Text(
-                listOf(
-                    "◀▶ " + stringResource(R.string.settings_hint_change),
-                    "A " + stringResource(R.string.settings_hint_select),
-                    "B " + stringResource(R.string.dismiss),
-                ).joinToString("   ").uppercase(),
+                (hints + ("B" to stringResource(R.string.dismiss)))
+                    .joinToString("   ") { (button, label) -> "${button.replace(" ", "")} $label" }
+                    .uppercase(),
                 style = skin.label.copy(fontSize = 8.sp),
                 modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 8.dp),
             )
@@ -748,7 +789,13 @@ private fun ArcadeSettings(skin: SettingsSkin, help: String?, rows: @Composable 
 
 /** Mosaic: the title in large type on the left, every setting a flat tile on the right. */
 @Composable
-private fun MosaicSettings(skin: SettingsSkin, onDismiss: () -> Unit, rows: @Composable ColumnScope.() -> Unit) {
+internal fun MosaicSettings(
+    skin: SettingsSkin,
+    onDismiss: () -> Unit,
+    title: String = stringResource(R.string.settings_title),
+    scroll: ScrollState = rememberScrollState(),
+    rows: @Composable ColumnScope.() -> Unit,
+) {
     Row(Modifier.fillMaxSize().background(Night).windowInsetsPadding(WindowInsets.safeDrawing)) {
         Column(Modifier.width(200.dp).fillMaxHeight().padding(start = 22.dp, top = 18.dp)) {
             Text(
@@ -756,12 +803,12 @@ private fun MosaicSettings(skin: SettingsSkin, onDismiss: () -> Unit, rows: @Com
                 style = skin.label.copy(fontSize = 12.sp, letterSpacing = 4.sp, color = skin.accent),
             )
             Spacer(Modifier.height(12.dp))
-            Text(stringResource(R.string.settings_title), style = skin.title)
+            Text(title, style = skin.title)
             Spacer(Modifier.weight(1f))
             Box(Modifier.padding(bottom = 18.dp)) { CloseButton(skin, onDismiss) }
         }
         Column(
-            Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()).padding(top = 18.dp, end = 20.dp, bottom = 18.dp),
+            Modifier.weight(1f).fillMaxHeight().verticalScroll(scroll).padding(top = 18.dp, end = 20.dp, bottom = 18.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
             content = rows,
         )
@@ -770,7 +817,13 @@ private fun MosaicSettings(skin: SettingsSkin, onDismiss: () -> Unit, rows: @Com
 
 /** Showcase: an elegant card with serif headings and hairlines between settings. */
 @Composable
-private fun ShowcaseSettings(skin: SettingsSkin, onDismiss: () -> Unit, rows: @Composable ColumnScope.() -> Unit) {
+internal fun ShowcaseSettings(
+    skin: SettingsSkin,
+    onDismiss: () -> Unit,
+    title: String = stringResource(R.string.settings_title),
+    scroll: ScrollState = rememberScrollState(),
+    rows: @Composable ColumnScope.() -> Unit,
+) {
     Box(
         Modifier
             .fillMaxSize()
@@ -779,11 +832,11 @@ private fun ShowcaseSettings(skin: SettingsSkin, onDismiss: () -> Unit, rows: @C
     ) {
         Column(Modifier.align(Alignment.TopCenter).widthIn(max = 640.dp).fillMaxHeight().padding(horizontal = 16.dp, vertical = 18.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(stringResource(R.string.settings_title), style = skin.title, modifier = Modifier.weight(1f))
+                Text(title, style = skin.title, modifier = Modifier.weight(1f))
                 CloseButton(skin, onDismiss)
             }
             HorizontalDivider(Modifier.padding(top = 10.dp), color = skin.accent.copy(alpha = 0.5f))
-            Column(Modifier.verticalScroll(rememberScrollState()), content = rows)
+            Column(Modifier.verticalScroll(scroll), content = rows)
         }
     }
 }

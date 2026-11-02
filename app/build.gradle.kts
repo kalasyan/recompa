@@ -71,6 +71,35 @@ android {
     }
 }
 
+// The release notes in docs/release-notes ride along in the APK, so the app can show what
+// changed the first time it opens after an update, in its own language.
+abstract class ReleaseNotesTask : DefaultTask() {
+    @get:InputDirectory
+    @get:PathSensitive(PathSensitivity.RELATIVE)
+    abstract val notes: DirectoryProperty
+
+    @get:OutputDirectory
+    abstract val output: DirectoryProperty
+
+    @TaskAction
+    fun copy() {
+        val target = output.get().asFile.resolve("release-notes")
+        target.deleteRecursively()
+        target.mkdirs()
+        notes.get().asFile.listFiles { file -> file.extension == "md" }.orEmpty().forEach { it.copyTo(target.resolve(it.name)) }
+    }
+}
+
+val releaseNotes = tasks.register<ReleaseNotesTask>("releaseNotesAssets") {
+    notes.set(rootProject.layout.projectDirectory.dir("docs/release-notes"))
+}
+
+androidComponents {
+    onVariants { variant ->
+        variant.sources.assets?.addGeneratedSourceDirectory(releaseNotes, ReleaseNotesTask::output)
+    }
+}
+
 kotlin {
     compilerOptions {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
