@@ -53,6 +53,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
@@ -402,7 +403,7 @@ private fun InlineRow(item: SettingItem, skin: SettingsSkin, requester: FocusReq
 }
 
 /** A row that shows its options laid out: chips for choices, a switch for toggles. */
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalComposeUiApi::class)
 @Composable
 private fun LaidOutRow(item: SettingItem, skin: SettingsSkin, requester: FocusRequester, onFocused: () -> Unit) {
     val interaction = remember { MutableInteractionSource() }
