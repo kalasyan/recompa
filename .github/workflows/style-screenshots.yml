@@ -1,14 +1,15 @@
 name: Style screenshots
 
 # Run by hand: builds the app and saves the library and a port page in every app style, on a
-# landscape emulator with the live catalog, as a downloadable artifact. Commits nothing.
+# landscape emulator with the live catalog, as a downloadable artifact and on the
+# feat/style-screenshots branch (force-pushed, images only).
 on:
   workflow_dispatch:
   push:
     branches: [feat/temas]  # TEMP: removed before merging
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   styles:
@@ -41,3 +42,12 @@ jobs:
         with:
           name: style-screenshots
           path: style-screenshots/*.png
+      - name: Push the screenshots to their branch
+        run: |
+          cd style-screenshots
+          git init -q -b feat/style-screenshots
+          git config user.name kalasyan
+          git config user.email 10440484+kalasyan@users.noreply.github.com
+          git add *.png
+          git commit -qm "Screenshots of every app style"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" feat/style-screenshots
