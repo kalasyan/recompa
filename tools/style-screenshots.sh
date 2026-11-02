@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Opens Recompa once per app style on a connected emulator and saves the library and a port
-# page of each to style-screenshots/. Used by .github/workflows/style-screenshots.yml.
+# page and Settings of each to style-screenshots/. Used by .github/workflows/style-screenshots.yml.
 set -euo pipefail
 
 PKG=io.github.kalasyan.recompa
@@ -22,6 +22,12 @@ put_pref() { # file, xml
   adb shell run-as "$PKG" cp "/data/local/tmp/$1" "shared_prefs/$1"
 }
 key() { adb shell input keyevent "$@"; sleep 2; }
+tap() { # label: taps the middle of the node with that text or content description
+  adb shell uiautomator dump /sdcard/ui.xml >/dev/null 2>&1
+  adb pull /sdcard/ui.xml /tmp/ui.xml >/dev/null
+  read -r x1 y1 x2 y2 < <(python3 tools/ui.py find /tmp/ui.xml "$1")
+  adb shell input tap $(( (x1 + x2) / 2 )) $(( (y1 + y2) / 2 ))
+}
 shot() { sleep "${2:-4}"; adb exec-out screencap -p > "$OUT/$1.png"; echo "saved $OUT/$1.png"; }
 
 put_pref welcome.xml '<map><boolean name="seen" value="true" /></map>'
@@ -37,5 +43,12 @@ for style in classic shelves list arcade mosaic showcase; do
   shot "$style-library" 8
   key KEYCODE_DPAD_CENTER
   shot "$style-port" 8
+  key KEYCODE_BACK
+  sleep 3
+  tap Settings || true
+  shot "$style-settings" 4
+  key KEYCODE_DPAD_DOWN
+  key KEYCODE_DPAD_DOWN
+  shot "$style-settings-2" 2
   key KEYCODE_BACK
 done
