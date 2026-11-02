@@ -109,6 +109,22 @@ class SecondScreen(private val context: Context, private val prefs: UserPrefs) {
         if (target != null && start(host, target)) companionDisplay = target.displayId
     }
 
+    /**
+     * Android gives input focus to the display that last started an activity, so after the second
+     * screen opens (or is touched) the gamepad would drive nothing until the main screen is tapped.
+     * Bringing the library to the front again hands the focus back to it.
+     */
+    fun refocusLibrary() {
+        val host = host ?: return
+        val intent = Intent(host, host.javaClass)
+            .addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+        try {
+            host.startActivity(intent)
+        } catch (e: RuntimeException) {
+            // The library is going away anyway.
+        }
+    }
+
     internal fun wanted(activity: SecondScreenActivity): Boolean = host != null && companionDisplay == activity.displayIdCompat()
 
     internal fun onCreated(activity: SecondScreenActivity) {

@@ -25,10 +25,13 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -90,7 +93,7 @@ fun SecondScreenContent(screen: SecondScreen) {
                     modifier = Modifier.align(Alignment.Center),
                 )
             }
-            Downloads(Modifier.align(Alignment.BottomCenter).windowInsetsPadding(WindowInsets.safeDrawing))
+            Downloads(screen, Modifier.align(Alignment.BottomCenter).windowInsetsPadding(WindowInsets.safeDrawing))
         }
     }
 }
@@ -294,9 +297,9 @@ private fun Slideshow(slides: List<PortItem>) {
     }
 }
 
-/** Every port that is downloading, installing or failed, with its progress. */
+/** Every port that is downloading, installing or failed, with its progress and touch buttons to pause or resume. */
 @Composable
-private fun Downloads(modifier: Modifier) {
+private fun Downloads(screen: SecondScreen, modifier: Modifier) {
     val manager = rememberInstallManager()
     val phases by manager.phases.collectAsStateWithLifecycle()
     val active = phases.entries.filter { it.value != InstallPhase.Idle }
@@ -336,6 +339,26 @@ private fun Downloads(modifier: Modifier) {
                     is InstallPhase.Paused -> phase.progress?.let { LinearProgressIndicator(progress = { it }, modifier = Modifier.fillMaxWidth()) }
                     InstallPhase.Verifying, InstallPhase.Installing -> LinearProgressIndicator(Modifier.fillMaxWidth())
                     else -> Unit
+                }
+                // A touch here may take the gamepad's focus with it; give it back to the library.
+                fun act(action: () -> Unit) {
+                    action()
+                    screen.refocusLibrary()
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    when (phase) {
+                        is InstallPhase.Downloading -> OutlinedButton(onClick = { act { manager.pause(portId) } }) {
+                            Text(stringResource(R.string.action_pause))
+                        }
+                        is InstallPhase.Paused -> {
+                            Button(onClick = { act { manager.resume(portId) } }) { Text(stringResource(R.string.action_resume)) }
+                            TextButton(onClick = { act { manager.cancelDownload(portId) } }) { Text(stringResource(R.string.cancel)) }
+                        }
+                        is InstallPhase.Failed -> TextButton(onClick = { act { manager.dismiss(portId) } }) {
+                            Text(stringResource(R.string.dismiss))
+                        }
+                        else -> Unit
+                    }
                 }
             }
         }

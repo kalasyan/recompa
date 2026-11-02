@@ -16,7 +16,7 @@ import io.github.kalasyan.recompa.data.AppLanguage
 import io.github.kalasyan.recompa.ui.SecondScreenContent
 import io.github.kalasyan.recompa.ui.theme.RecompaTheme
 
-/** What [SecondScreen] shows on the other display. It only shows things: the library keeps the controls. */
+/** What [SecondScreen] shows on the other display. Besides the download buttons, the library keeps the controls. */
 class SecondScreenActivity : ComponentActivity() {
     private val screen get() = (application as RecompaApplication).secondScreen
 
@@ -52,6 +52,11 @@ class SecondScreenActivity : ComponentActivity() {
     override fun onStart() {
         super.onStart()
         screen.onVisible(this, true)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        window.decorView.post { screen.refocusLibrary() }
     }
 
     override fun onStop() {
