@@ -65,6 +65,12 @@
     <string name="error_hash_mismatch">L\'APK téléchargé ne correspond pas au catalogue. Il n\'a pas été installé.</string>
     <string name="error_wrong_package">L\'APK téléchargé est une autre application (%1$s). Il n\'a pas été installé.</string>
     <string name="error_wrong_signer">L\'APK est signé par quelqu\'un d\'autre que prévu. Il n\'a pas été installé.</string>
+    <string name="action_install_anyway">Installer quand même</string>
+    <string name="install_anyway_title">Installer quand même ?</string>
+    <string name="install_anyway_text">Recompa n\'a pas pu confirmer que cet APK est celui du catalogue. Souvent, le développeur a simplement remplacé le fichier de la version, mais il pourrait aussi s\'agir d\'une autre application ou d\'une version modifiée. Installez-le seulement si vous faites confiance à sa source.</string>
+    <string name="action_reinstall">Désinstaller et installer</string>
+    <string name="reinstall_title">Désinstaller d\'abord ?</string>
+    <string name="reinstall_text">Android n\'installe cette version qu\'après avoir supprimé celle que vous avez, car elle est signée avec une autre clé ou plus ancienne. La désinstallation efface les données du port, y compris les sauvegardes gardées dans l\'application : sauvegardez d\'abord ce que vous voulez garder. Recompa installe la nouvelle version dès que l\'ancienne a disparu.</string>
     <string name="diagnostics_title">Diagnostic</string>
     <string name="loading_apps">Chargement des applications installées…</string>
     <string name="diagnostics_help">Applications installées avec leur package et le SHA-256 de leur certificat de signature. Touchez-en une pour copier les lignes du manifeste du port.</string>

@@ -65,6 +65,12 @@
     <string name="error_hash_mismatch">O APK baixado não corresponde ao catálogo. Ele não foi instalado.</string>
     <string name="error_wrong_package">O APK baixado é outro app (%1$s). Ele não foi instalado.</string>
     <string name="error_wrong_signer">O APK foi assinado por alguém diferente do esperado. Ele não foi instalado.</string>
+    <string name="action_install_anyway">Instalar mesmo assim</string>
+    <string name="install_anyway_title">Instalar mesmo assim?</string>
+    <string name="install_anyway_text">O Recompa não conseguiu confirmar que este APK é o do catálogo. Muitas vezes o desenvolvedor só trocou o arquivo da versão, mas também pode ser outro app ou um modificado. Instale apenas se você confia na origem.</string>
+    <string name="action_reinstall">Desinstalar e instalar</string>
+    <string name="reinstall_title">Desinstalar primeiro?</string>
+    <string name="reinstall_text">O Android só instala esta versão depois de remover a que você tem, porque ela foi assinada com outra chave ou é mais antiga. Desinstalar apaga os dados do port, incluindo os saves guardados dentro do app, então faça backup do que quiser manter. O Recompa instala a nova versão assim que a antiga sair.</string>
     <string name="diagnostics_title">Diagnóstico</string>
     <string name="loading_apps">Carregando apps instalados…</string>
     <string name="diagnostics_help">Apps instalados com seu pacote e o SHA-256 do certificado de assinatura. Toque em um para copiar as linhas do manifesto do port.</string>

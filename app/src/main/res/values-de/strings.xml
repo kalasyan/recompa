@@ -65,6 +65,12 @@
     <string name="error_hash_mismatch">Die heruntergeladene APK stimmt nicht mit dem Katalog überein. Sie wurde nicht installiert.</string>
     <string name="error_wrong_package">Die heruntergeladene APK ist eine andere App (%1$s). Sie wurde nicht installiert.</string>
     <string name="error_wrong_signer">Die APK ist von jemand anderem signiert als erwartet. Sie wurde nicht installiert.</string>
+    <string name="action_install_anyway">Trotzdem installieren</string>
+    <string name="install_anyway_title">Trotzdem installieren?</string>
+    <string name="install_anyway_text">Recompa konnte nicht bestätigen, dass diese APK die aus dem Katalog ist. Oft hat der Entwickler nur die Datei der Version ersetzt, es könnte aber auch eine andere oder veränderte App sein. Installiere sie nur, wenn du der Quelle vertraust.</string>
+    <string name="action_reinstall">Deinstallieren und installieren</string>
+    <string name="reinstall_title">Zuerst deinstallieren?</string>
+    <string name="reinstall_text">Android installiert diese Version erst, wenn die vorhandene entfernt wurde, weil sie mit einem anderen Schlüssel signiert oder älter ist. Beim Deinstallieren werden die Daten des Ports gelöscht, auch Spielstände in der App. Sichere vorher, was du behalten willst. Recompa installiert die neue Version, sobald die alte weg ist.</string>
     <string name="diagnostics_title">Diagnose</string>
     <string name="loading_apps">Installierte Apps werden geladen…</string>
     <string name="diagnostics_help">Installierte Apps mit ihrem Paket und dem SHA-256 ihres Signaturzertifikats. Tippe auf eine, um die Zeilen für das Port-Manifest zu kopieren.</string>

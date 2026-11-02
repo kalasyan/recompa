@@ -91,6 +91,12 @@ class InstallManager(private val context: Context) {
 
     /** What each port is installing, so a paused download can resume with the same release. */
     private val requests = ConcurrentHashMap<String, InstallRequest>()
+
+    /** The last install of each port, so a failed one can be retried with "install anyway" or after an uninstall. */
+    private val lastRequests = ConcurrentHashMap<String, InstallRequest>()
+
+    /** Installs that wait for the user to uninstall the port's current build. */
+    private val reinstalls = ConcurrentHashMap<String, InstallRequest>()
     private val jobs = ConcurrentHashMap<String, Job>()
     private val calls = ConcurrentHashMap<String, Call>()
 
@@ -265,7 +271,41 @@ class InstallManager(private val context: Context) {
     fun uninstallIntent(port: Port): Intent? =
         packageName(port)?.let { Intent(Intent.ACTION_DELETE, Uri.parse("package:$it")) }
 
-    fun dismiss(portId: String) = setPhase(portId, InstallPhase.Idle)
+    fun dismiss(portId: String) {
+        reinstalls.remove(portId)
+        setPhase(portId, InstallPhase.Idle)
+    }
+
+    /**
+     * Retries the failed install of [portId] without comparing the download with the catalog:
+     * the user chose to trust it, for example when the developer replaced the file of a release.
+     */
+    fun installAnyway(portId: String) {
+        val request = lastRequests[portId] ?: return
+        install(request.port, request.fork, request.release, trusted = true)
+    }
+
+    /**
+     * For a build Android only installs once the current one is gone (another signer, or an
+     * older version): returns the system uninstall screen and remembers the install, which
+     * [resumeReinstall] starts when the port is no longer on the device.
+     */
+    fun uninstallToReinstall(port: Port): Intent? {
+        val request = lastRequests[port.id] ?: return null
+        val intent = uninstallIntent(port) ?: return null
+        reinstalls[port.id] = request
+        return intent
+    }
+
+    /** Starts the install that waited for an uninstall, once [port] is not installed any more. */
+    fun resumeReinstall(port: Port) {
+        if (!reinstalls.containsKey(port.id) || status(port) != PortStatus.NotInstalled) return
+        val request = reinstalls.remove(port.id) ?: return
+        install(request.port, request.fork, request.release, request.trusted)
+    }
+
+    /** True while an install waits for the user to uninstall [portId]. */
+    fun awaitsUninstall(portId: String): Boolean = reinstalls.containsKey(portId)
 
     /** Stops [portId]'s download and keeps what it got so far, to carry on later with [resume]. */
     fun pause(portId: String) {
@@ -287,7 +327,7 @@ class InstallManager(private val context: Context) {
     fun resume(portId: String) {
         if (phaseOf(portId) !is InstallPhase.Paused) return
         val request = requests[portId] ?: return
-        install(request.port, request.fork, request.release)
+        install(request.port, request.fork, request.release, request.trusted)
     }
 
     /** Drops a paused download and the bytes it got. */
@@ -306,7 +346,7 @@ class InstallManager(private val context: Context) {
      * Installs [release] of [fork], the fork's latest by default. Installing an earlier
      * release marks the port as held, so "update all" does not undo the user's choice.
      */
-    fun install(port: Port, fork: Fork, release: Release? = fork.release) {
+    fun install(port: Port, fork: Fork, release: Release? = fork.release, trusted: Boolean = false) {
         release ?: return
         val current = phaseOf(port.id)
         if (current !is InstallPhase.Failed && current !is InstallPhase.Paused && current !in IDLE_PHASES) return
@@ -318,8 +358,10 @@ class InstallManager(private val context: Context) {
         // Set before the download starts, so callers waiting on the phase see the install begin.
         setPhase(port.id, InstallPhase.Downloading((current as? InstallPhase.Paused)?.progress))
         labels[port.id] = port.name
-        val request = InstallRequest(port, fork, release)
+        val request = InstallRequest(port, fork, release, trusted)
         requests[port.id] = request
+        lastRequests[port.id] = request
+        reinstalls.remove(port.id)
         DownloadService.cancelPaused(context, port.id)
         DownloadService.start(context)
         // A download paused a moment ago may still be closing its file.
@@ -339,7 +381,7 @@ class InstallManager(private val context: Context) {
                     if (entry != null) {
                         // Some ports only publish a ZIP; the catalog names the APK inside it.
                         apk.delete()
-                        val found = sha.equals(release.asset.sha256, ignoreCase = true) &&
+                        val found = (trusted || sha.equals(release.asset.sha256, ignoreCase = true)) &&
                             ZipEntries.extract(downloaded, entry.path, apk)
                         downloaded.delete()
                         if (found) entrySha = apk.inputStream().use { Sha256.hex(it) }
@@ -348,7 +390,7 @@ class InstallManager(private val context: Context) {
                     Triple(sha, entrySha, info)
                 }
                 val expected = release.asset.sha256
-                if (expected == null || !expected.equals(sha, ignoreCase = true)) {
+                if (!trusted && (expected == null || !expected.equals(sha, ignoreCase = true))) {
                     val result = if (expected == null) ApkCheckResult.HashUnavailable else ApkCheckResult.HashMismatch(expected, sha)
                     fail(port.id, InstallError.Check(result), apk)
                     return@launch
@@ -359,7 +401,7 @@ class InstallManager(private val context: Context) {
                 }
                 val installedInfo = context.packageManager.packageInfoOrNull(info.packageName)
                 val installed = installedInfo?.toInstalledPackage()
-                val check = ApkCheck.check(release.asset, sha, fork, info.packageName, info.signerSha256(), installed, entrySha)
+                val check = ApkCheck.check(release.asset, sha, fork, info.packageName, info.signerSha256(), installed, entrySha, trusted)
                 if (check != ApkCheckResult.Ok) {
                     fail(port.id, InstallError.Check(check), apk)
                     return@launch
@@ -391,6 +433,7 @@ class InstallManager(private val context: Context) {
 
     internal fun onInstalled(portId: String) {
         synchronized(pending) { pending.remove(portId) }?.let { records.put(portId, it) }
+        lastRequests.remove(portId)
         apkFile(portId).delete()
         DownloadService.cancelConfirm(context, portId)
         setPhase(portId, InstallPhase.Idle)
@@ -541,7 +584,7 @@ class InstallManager(private val context: Context) {
 
     private fun setPhase(portId: String, phase: InstallPhase) = _phases.update { it + (portId to phase) }
 
-    private data class InstallRequest(val port: Port, val fork: Fork, val release: Release)
+    private data class InstallRequest(val port: Port, val fork: Fork, val release: Release, val trusted: Boolean = false)
 
     private companion object {
         val IDLE_PHASES = setOf(InstallPhase.Idle, InstallPhase.NeedsPermission)

@@ -66,6 +66,12 @@
     <string name="error_hash_mismatch">The downloaded APK does not match the catalog. It was not installed.</string>
     <string name="error_wrong_package">The downloaded APK is a different app (%1$s). It was not installed.</string>
     <string name="error_wrong_signer">The APK is signed by someone other than expected. It was not installed.</string>
+    <string name="action_install_anyway">Install anyway</string>
+    <string name="install_anyway_title">Install anyway?</string>
+    <string name="install_anyway_text">Recompa could not confirm that this APK is the one in the catalog. Often the developer just replaced the file of the release, but it could also be another app or a tampered one. Install it only if you trust where it comes from.</string>
+    <string name="action_reinstall">Uninstall and install</string>
+    <string name="reinstall_title">Uninstall first?</string>
+    <string name="reinstall_text">Android only installs this build after removing the one you have, because it is signed with another key or is older. Uninstalling deletes the port\'s data, including any saves kept inside the app, so back up what you want to keep first. Recompa installs the new build once the old one is gone.</string>
     <string name="diagnostics_title">Diagnostics</string>
     <string name="loading_apps">Loading installed apps…</string>
     <string name="diagnostics_help">Installed apps with their package and signing certificate SHA-256. Tap one to copy the lines for the port manifest.</string>

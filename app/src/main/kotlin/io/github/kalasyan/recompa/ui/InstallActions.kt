@@ -14,7 +14,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.AlertDialog
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -27,6 +29,7 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.kalasyan.recompa.R
 import io.github.kalasyan.recompa.RecompaApplication
+import io.github.kalasyan.recompa.core.install.ApkCheck
 import io.github.kalasyan.recompa.core.install.ApkCheckResult
 import io.github.kalasyan.recompa.core.install.PortStatus
 import io.github.kalasyan.recompa.data.UserPrefs
@@ -71,6 +74,37 @@ fun InstallActions(item: PortItem, manager: InstallManager = rememberInstallMana
     val linked = remember(port, revision) { manager.isLinked(port) }
     var picking by remember { mutableStateOf(false) }
     var mismatch by remember { mutableStateOf<LinkCandidate?>(null) }
+    var confirmAnyway by remember { mutableStateOf(false) }
+    var confirmReinstall by remember { mutableStateOf(false) }
+
+    // The user came back from uninstalling a build Android would not update: install the new one.
+    LaunchedEffect(status) {
+        if (status == PortStatus.NotInstalled) manager.resumeReinstall(port)
+    }
+    if (confirmAnyway) {
+        ConfirmDialog(
+            title = stringResource(R.string.install_anyway_title),
+            text = stringResource(R.string.install_anyway_text),
+            confirm = stringResource(R.string.action_install_anyway),
+            onConfirm = {
+                confirmAnyway = false
+                manager.installAnyway(port.id)
+            },
+            onDismiss = { confirmAnyway = false },
+        )
+    }
+    if (confirmReinstall) {
+        ConfirmDialog(
+            title = stringResource(R.string.reinstall_title),
+            text = stringResource(R.string.reinstall_text),
+            confirm = stringResource(R.string.action_reinstall),
+            onConfirm = {
+                confirmReinstall = false
+                manager.uninstallToReinstall(port)?.let(context::startSafely)
+            },
+            onDismiss = { confirmReinstall = false },
+        )
+    }
 
     if (picking) {
         LinkPickerDialog(
@@ -132,7 +166,18 @@ fun InstallActions(item: PortItem, manager: InstallManager = rememberInstallMana
             }
             is InstallPhase.Failed -> {
                 Text(errorText(phase.error), color = MaterialTheme.colorScheme.error)
-                TextButton(onClick = { manager.dismiss(port.id) }, modifier = Modifier.focusRing()) { Text(stringResource(R.string.dismiss)) }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    when {
+                        phase.error.canInstallAnyway() -> TextButton(onClick = { confirmAnyway = true }, modifier = Modifier.focusRing()) {
+                            Text(stringResource(R.string.action_install_anyway))
+                        }
+                        phase.error.needsUninstall() && status != PortStatus.NotInstalled -> TextButton(
+                            onClick = { confirmReinstall = true },
+                            modifier = Modifier.focusRing(),
+                        ) { Text(stringResource(R.string.action_reinstall)) }
+                    }
+                    TextButton(onClick = { manager.dismiss(port.id) }, modifier = Modifier.focusRing()) { Text(stringResource(R.string.dismiss)) }
+                }
             }
             InstallPhase.Idle -> Unit
         }
@@ -194,6 +239,30 @@ fun InstallActions(item: PortItem, manager: InstallManager = rememberInstallMana
             }
         }
     }
+}
+
+private fun InstallError.canInstallAnyway() = this is InstallError.Check && ApkCheck.canOverride(result)
+
+/** Android only installs the new build after the current one is removed. */
+private fun InstallError.needsUninstall() = this == InstallError.Downgrade || this is InstallError.Conflict ||
+    this is InstallError.Check && result is ApkCheckResult.ConflictsWithInstalled
+
+@Composable
+private fun ConfirmDialog(title: String, text: String, confirm: String, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = { Text(text) },
+        // The safe choice is the confirm slot, so a stray press of A does not go ahead.
+        confirmButton = {
+            TextButton(onClick = onDismiss, modifier = Modifier.focusRing()) { Text(stringResource(R.string.cancel)) }
+        },
+        dismissButton = {
+            TextButton(onClick = onConfirm, modifier = Modifier.focusRing()) {
+                Text(confirm, color = MaterialTheme.colorScheme.error)
+            }
+        },
+    )
 }
 
 @Composable

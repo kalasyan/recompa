@@ -29,7 +29,8 @@ class ApkCheckTest {
         signers: List<String> = listOf("AA"),
         installed: InstalledPackage? = null,
         entrySha: String? = null,
-    ) = ApkCheck.check(asset, actual, fork, pkg, signers, installed, entrySha)
+        trusted: Boolean = false,
+    ) = ApkCheck.check(asset, actual, fork, pkg, signers, installed, entrySha, trusted)
 
     @Test
     fun acceptsMatchingApk() = assertEquals(ApkCheckResult.Ok, check())
@@ -48,6 +49,22 @@ class ApkCheckTest {
     fun rejectsWrongPackageOrSigner() {
         assertIs<ApkCheckResult.WrongPackage>(check(pkg = "com.other"))
         assertIs<ApkCheckResult.WrongSigner>(check(signers = listOf("bb")))
+    }
+
+    @Test
+    fun trustedDownloadSkipsTheCatalogButNotTheInstalledApp() {
+        assertEquals(ApkCheckResult.Ok, check(actual = "b".repeat(64), pkg = "com.other", signers = listOf("bb"), trusted = true))
+        assertEquals(ApkCheckResult.Ok, check(asset = asset.copy(sha256 = null), trusted = true))
+        val installed = InstalledPackage("com.example.port", "1.0", listOf("cc"))
+        assertIs<ApkCheckResult.ConflictsWithInstalled>(check(signers = listOf("bb"), installed = installed, trusted = true))
+    }
+
+    @Test
+    fun onlyCatalogMismatchesCanBeOverridden() {
+        assertEquals(true, ApkCheck.canOverride(check(actual = "b".repeat(64))))
+        assertEquals(true, ApkCheck.canOverride(check(signers = listOf("bb"))))
+        assertEquals(false, ApkCheck.canOverride(check(installed = InstalledPackage("com.example.port", "1.0", listOf("cc")))))
+        assertEquals(false, ApkCheck.canOverride(ApkCheckResult.Ok))
     }
 
     @Test

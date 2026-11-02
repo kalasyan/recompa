@@ -22,6 +22,11 @@ sealed interface ApkCheckResult {
 
 /** Everything a downloaded APK must pass before Recompa hands it to the system installer. */
 object ApkCheck {
+    /**
+     * With [trusted], the user chose to install the download even though it does not match
+     * the catalog: hash, package and signer are not compared, but a conflict with the
+     * installed app still is, since Android would refuse the update anyway.
+     */
     fun check(
         asset: ReleaseAsset,
         actualSha256: String,
@@ -30,7 +35,30 @@ object ApkCheck {
         apkSigners: List<String>,
         installed: InstalledPackage?,
         entrySha256: String? = null,
+        trusted: Boolean = false,
     ): ApkCheckResult {
+        if (!trusted) catalogMismatch(asset, actualSha256, fork, apkPackage, apkSigners, entrySha256)?.let { return it }
+        if (installed != null && installed.packageName == apkPackage && installed.signerSha256.isNotEmpty() &&
+            installed.signerSha256.none { s -> apkSigners.any { it.equals(s, ignoreCase = true) } }
+        ) {
+            return ApkCheckResult.ConflictsWithInstalled(installed.signerSha256)
+        }
+        return ApkCheckResult.Ok
+    }
+
+    /** True for the results the user may choose to ignore with "install anyway". */
+    fun canOverride(result: ApkCheckResult): Boolean = result is ApkCheckResult.HashUnavailable ||
+        result is ApkCheckResult.HashMismatch || result is ApkCheckResult.WrongPackage ||
+        result is ApkCheckResult.WrongSigner
+
+    private fun catalogMismatch(
+        asset: ReleaseAsset,
+        actualSha256: String,
+        fork: Fork,
+        apkPackage: String,
+        apkSigners: List<String>,
+        entrySha256: String?,
+    ): ApkCheckResult? {
         val expected = asset.sha256 ?: return ApkCheckResult.HashUnavailable
         if (!expected.equals(actualSha256, ignoreCase = true)) {
             return ApkCheckResult.HashMismatch(expected, actualSha256)
@@ -46,12 +74,7 @@ object ApkCheck {
                 return ApkCheckResult.WrongSigner(signer, apkSigners)
             }
         }
-        if (installed != null && installed.packageName == apkPackage && installed.signerSha256.isNotEmpty() &&
-            installed.signerSha256.none { s -> apkSigners.any { it.equals(s, ignoreCase = true) } }
-        ) {
-            return ApkCheckResult.ConflictsWithInstalled(installed.signerSha256)
-        }
-        return ApkCheckResult.Ok
+        return null
     }
 }
 
