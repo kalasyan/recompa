@@ -43,8 +43,9 @@ for style in classic shelves list arcade mosaic showcase; do
   shot "$style-library" 8
   key KEYCODE_DPAD_CENTER
   shot "$style-port" 8
-  key KEYCODE_BACK
-  sleep 3
+  adb shell am force-stop "$PKG"
+  adb shell am start -W -n "$PKG/.MainActivity" >/dev/null
+  sleep 12
   tap Settings || true
   shot "$style-settings" 4
   key KEYCODE_DPAD_DOWN
