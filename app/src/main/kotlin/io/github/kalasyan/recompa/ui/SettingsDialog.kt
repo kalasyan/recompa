@@ -45,13 +45,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.kalasyan.recompa.R
 import io.github.kalasyan.recompa.data.AppLanguage
 
-/** Language, frontend mode and update notifications. */
+/** Language, frontend mode, the second screen and update notifications. */
 @Composable
 fun SettingsDialog(onDismiss: () -> Unit) {
     val context = LocalContext.current
     val prefs = rememberUserPrefs()
     val frontend by prefs.frontendMode.collectAsStateWithLifecycle()
     val notify by prefs.updateNotifications.collectAsStateWithLifecycle()
+    val secondScreen by prefs.secondScreen.collectAsStateWithLifecycle()
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -75,6 +76,12 @@ fun SettingsDialog(onDismiss: () -> Unit) {
                     onClick = { context.startSafely(Intent(Settings.ACTION_SETTINGS)) },
                     modifier = Modifier.focusRing(),
                 ) { Text(stringResource(R.string.settings_android)) }
+                SettingSwitch(
+                    title = stringResource(R.string.settings_second_screen),
+                    summary = stringResource(R.string.settings_second_screen_help),
+                    checked = secondScreen,
+                    onChange = prefs::setSecondScreen,
+                )
                 SettingSwitch(
                     title = stringResource(R.string.settings_notify),
                     summary = stringResource(R.string.settings_notify_help),

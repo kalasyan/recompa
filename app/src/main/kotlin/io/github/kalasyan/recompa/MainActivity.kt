@@ -1,8 +1,11 @@
 package io.github.kalasyan.recompa
 
 import android.content.Context
+import android.content.res.Configuration
 import android.graphics.Color
 import android.os.Bundle
+import android.view.KeyEvent
+import android.view.MotionEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
@@ -18,6 +21,8 @@ import io.github.kalasyan.recompa.ui.RecompaApp
 import io.github.kalasyan.recompa.ui.theme.RecompaTheme
 
 class MainActivity : ComponentActivity() {
+    private val secondScreen get() = (application as RecompaApplication).secondScreen
+
     override fun attachBaseContext(newBase: Context) {
         super.attachBaseContext(AppLanguage.wrap(newBase))
     }
@@ -46,5 +51,38 @@ class MainActivity : ComponentActivity() {
                 RecompaApp()
             }
         }
+    }
+
+    // The second screen follows the library: up while it is on screen, closed when a port runs.
+    override fun onStart() {
+        super.onStart()
+        secondScreen.attach(this)
+    }
+
+    override fun onStop() {
+        super.onStop()
+        secondScreen.detach(this)
+    }
+
+    /** Recompa was moved to the other screen: the second screen swaps places. */
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        secondScreen.update()
+    }
+
+    // Any input wakes the second screen from its slideshow.
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        secondScreen.onInput()
+        return super.dispatchKeyEvent(event)
+    }
+
+    override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+        secondScreen.onInput()
+        return super.dispatchTouchEvent(event)
+    }
+
+    override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean {
+        secondScreen.onInput()
+        return super.dispatchGenericMotionEvent(event)
     }
 }

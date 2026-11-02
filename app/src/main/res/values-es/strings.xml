@@ -185,4 +185,7 @@
     <string name="feedback_failed">No se ha podido enviar. Revisa la conexión e inténtalo de nuevo.</string>
     <string name="feedback_too_many">Demasiados envíos desde esta conexión. Prueba de nuevo en un minuto.</string>
     <string name="feedback_on_github">Enviarlo por GitHub</string>
+    <string name="settings_second_screen">Usar la segunda pantalla</string>
+    <string name="settings_second_screen_help">En consolas con dos pantallas, como la AYN Thor, la otra pantalla muestra el port seleccionado, tus descargas y la ayuda con sus archivos, y el arte del catálogo cuando no la usas.</string>
+    <string name="second_screen_files_help">Elige tu copia en la pantalla principal. Recompa comprueba que sea una de estas versiones.</string>
 </resources>

@@ -184,4 +184,7 @@
     <string name="feedback_failed">Senden fehlgeschlagen. Prüfe deine Verbindung und versuche es erneut.</string>
     <string name="feedback_too_many">Zu viele Meldungen von dieser Verbindung. Versuche es in einer Minute erneut.</string>
     <string name="feedback_on_github">Stattdessen über GitHub senden</string>
+    <string name="settings_second_screen">Zweiten Bildschirm nutzen</string>
+    <string name="settings_second_screen_help">Auf Geräten mit zwei Bildschirmen wie dem AYN Thor zeigt der andere Bildschirm den gewählten Port, deine Downloads und Hilfe zu seinen Dateien, und im Leerlauf Bilder aus dem Katalog.</string>
+    <string name="second_screen_files_help">Wähle deine Kopie auf dem Hauptbildschirm. Recompa prüft, ob es eine dieser Versionen ist.</string>
 </resources>

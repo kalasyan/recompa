@@ -35,6 +35,8 @@ fun RecompaApp(viewModel: CatalogViewModel = viewModel()) {
     LaunchedEffect(language) { viewModel.setLanguage(language) }
 
     val ready = state as? CatalogState.Ready
+    val secondScreen = rememberSecondScreen()
+    LaunchedEffect(ready?.items) { secondScreen.setItems(ready?.items.orEmpty()) }
     CompositionLocalProvider(
         LocalFeedbackUrl provides ready?.feedbackUrl,
         LocalPlatformNames provides ready?.platformNames.orEmpty(),
@@ -48,6 +50,7 @@ fun RecompaApp(viewModel: CatalogViewModel = viewModel()) {
                     return@Box
                 }
                 val selected = (state as? CatalogState.Ready)?.items?.firstOrNull { it.port.id == route }
+                LaunchedEffect(selected) { secondScreen.open(selected) }
                 if (selected != null) {
                     BackHandler { route = null }
                     PortDetailScreen(item = selected, onBack = { route = null })

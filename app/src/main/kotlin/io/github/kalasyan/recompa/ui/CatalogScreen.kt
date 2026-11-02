@@ -212,6 +212,10 @@ private fun Library(
     val visible = inList.filter { activePlatform == null || it.port.originalPlatform == activePlatform }
     var selectedId by rememberSaveable { mutableStateOf<String?>(null) }
     val selected = visible.firstOrNull { it.port.id == selectedId } ?: visible.firstOrNull()
+    val secondScreen = rememberSecondScreen()
+    // With a second screen showing the selected port, this one is all covers.
+    val secondShowing by secondScreen.showing.collectAsStateWithLifecycle()
+    LaunchedEffect(selected) { secondScreen.select(selected) }
 
     Box(
         Modifier.fillMaxSize().onPreviewKeyEvent { event ->
@@ -315,7 +319,7 @@ private fun Library(
                 PlatformBar(platforms, activePlatform, total = inList.size, onPlatform = { platform = it })
                 if (side) {
                     Row(Modifier.weight(1f)) {
-                        if (selected != null) {
+                        if (selected != null && !secondShowing) {
                             Featured(
                                 selected,
                                 statuses[selected.port.id],
@@ -326,7 +330,7 @@ private fun Library(
                         grid(Modifier.weight(1f), 96.dp)
                     }
                 } else {
-                    if (selected != null) {
+                    if (selected != null && !secondShowing) {
                         Featured(
                             selected,
                             statuses[selected.port.id],

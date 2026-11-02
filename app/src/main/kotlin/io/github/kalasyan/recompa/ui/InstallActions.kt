@@ -30,6 +30,7 @@ import io.github.kalasyan.recompa.RecompaApplication
 import io.github.kalasyan.recompa.core.install.ApkCheckResult
 import io.github.kalasyan.recompa.core.install.PortStatus
 import io.github.kalasyan.recompa.data.UserPrefs
+import io.github.kalasyan.recompa.display.SecondScreen
 import io.github.kalasyan.recompa.install.InstallError
 import io.github.kalasyan.recompa.install.InstallManager
 import io.github.kalasyan.recompa.install.InstallPhase
@@ -45,6 +46,12 @@ fun rememberInstallManager(): InstallManager {
 fun rememberUserPrefs(): UserPrefs {
     val context = LocalContext.current
     return remember { (context.applicationContext as RecompaApplication).prefs }
+}
+
+@Composable
+fun rememberSecondScreen(): SecondScreen {
+    val context = LocalContext.current
+    return remember { (context.applicationContext as RecompaApplication).secondScreen }
 }
 
 /** Install, update, open and uninstall buttons for a port, with progress and errors. */

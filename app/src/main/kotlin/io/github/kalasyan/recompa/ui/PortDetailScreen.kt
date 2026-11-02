@@ -255,7 +255,7 @@ private fun ForkRow(fork: Fork, recommended: Boolean) {
 }
 
 @Composable
-private fun issueText(issue: CompatibilityIssue): String = when (issue) {
+internal fun issueText(issue: CompatibilityIssue): String = when (issue) {
     is CompatibilityIssue.UnsupportedAbi -> stringResource(R.string.issue_abi, issue.required.joinToString())
     is CompatibilityIssue.AndroidTooOld -> stringResource(R.string.issue_sdk, AndroidDevice.versionName(issue.requiredSdk))
     CompatibilityIssue.NoVulkan -> stringResource(R.string.issue_vulkan)

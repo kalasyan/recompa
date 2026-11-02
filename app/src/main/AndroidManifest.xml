@@ -43,6 +43,17 @@
             </intent-filter>
         </activity>
 
+        <!-- Shows the selected port on the other screen of dual-screen devices (display/SecondScreen.kt).
+             Its own task, so it can run on another display beside the library. -->
+        <activity
+            android:name=".display.SecondScreenActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:launchMode="singleInstance"
+            android:resizeableActivity="true"
+            android:taskAffinity="${applicationId}.second"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|density|keyboard|keyboardHidden|navigation" />
+
         <!-- Frontend mode enables this alias so Android can offer Recompa as the home app. -->
         <activity-alias
             android:name=".HomeActivity"
