@@ -4,7 +4,6 @@ import android.content.Context
 import android.content.res.Configuration
 import android.graphics.Color
 import android.os.Bundle
-import android.view.KeyEvent
 import android.view.MotionEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
@@ -70,15 +69,10 @@ class MainActivity : ComponentActivity() {
         secondScreen.update()
     }
 
-    // Any input wakes the second screen from its slideshow.
-    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+    // Any input wakes the second screen from its slideshow: buttons and touch here, sticks below.
+    override fun onUserInteraction() {
+        super.onUserInteraction()
         secondScreen.onInput()
-        return super.dispatchKeyEvent(event)
-    }
-
-    override fun dispatchTouchEvent(event: MotionEvent): Boolean {
-        secondScreen.onInput()
-        return super.dispatchTouchEvent(event)
     }
 
     override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean {
