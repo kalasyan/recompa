@@ -73,7 +73,7 @@ internal fun portStats(item: PortItem): List<PortStat> {
         }
         val tag = (if (status != PortStatus.NotInstalled) installedTag else null) ?: release?.tag
         tag?.let { add(PortStat(it.removePrefix("v").take(14), stringResource(R.string.stat_version))) }
-        release?.asset?.size?.let { add(PortStat("${(it + 524_288) / 1_048_576} MB", stringResource(R.string.stat_size))) }
+        release?.asset?.size?.let { add(PortStat(sizeText(it), stringResource(R.string.stat_size))) }
     }
 }
 
@@ -94,4 +94,9 @@ internal fun PortStats(
             }
         }
     }
+}
+
+private fun sizeText(bytes: Long): String = when {
+    bytes >= 1_048_576 -> "${(bytes + 524_288) / 1_048_576} MB"
+    else -> "${((bytes + 512) / 1024).coerceAtLeast(1)} KB"
 }

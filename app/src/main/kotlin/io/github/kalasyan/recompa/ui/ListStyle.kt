@@ -44,6 +44,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
@@ -171,6 +173,8 @@ private fun ListRow(ui: LibraryUi, item: PortItem, showPlatform: Boolean) {
             .fillMaxWidth()
             .then(if (item == ui.selected) Modifier.focusRequester(ui.focusTarget) else Modifier)
             .onFocusChanged { if (it.isFocused) ui.onSelect(item) }
+            // Right would jump to the preview's buttons; the list is navigated up and down.
+            .focusProperties { right = FocusRequester.Cancel }
             .background(
                 if (focused) Brush.horizontalGradient(listOf(Accent.copy(alpha = 0.32f), Accent.copy(alpha = 0.04f)))
                 else Brush.horizontalGradient(listOf(Color.Transparent, Color.Transparent)),

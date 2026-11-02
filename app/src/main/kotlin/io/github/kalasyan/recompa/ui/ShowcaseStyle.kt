@@ -169,14 +169,14 @@ private fun Segment(label: String, selected: Boolean, onClick: () -> Unit) {
     val focused by interaction.collectIsFocusedAsState()
     Text(
         label,
-        style = MaterialTheme.typography.labelLarge,
+        style = MaterialTheme.typography.labelMedium,
         color = if (selected) Color.Black else Color.White.copy(alpha = if (focused) 1f else 0.7f),
         maxLines = 1,
         modifier = Modifier
             .clip(RoundedCornerShape(50))
             .background(if (selected) Color.White else if (focused) Color.White.copy(alpha = 0.2f) else Color.Transparent)
             .clickable(interactionSource = interaction, indication = null, onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 5.dp),
+            .padding(horizontal = 10.dp, vertical = 5.dp),
     )
 }
 

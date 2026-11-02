@@ -76,7 +76,7 @@ internal fun MosaicLibrary(ui: LibraryUi) {
     val blocks = remember(ui.items) { ui.items.chunked(PerBlock) }
     val listState = rememberLazyListState()
     // Item 0 is the row of counters.
-    FocusSelectedOnChange(ui) { listState.scrollToItem(1 + it / PerBlock) }
+    FocusSelectedOnChange(ui) { listState.scrollToItem(if (it < PerBlock) 0 else 1 + it / PerBlock) }
 
     Row(Modifier.fillMaxSize().background(Night).windowInsetsPadding(WindowInsets.safeDrawing)) {
         Column(
