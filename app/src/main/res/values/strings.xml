@@ -238,4 +238,9 @@
     <string name="fork_rating">%1$d good · %2$d broken</string>
     <string name="action_uninstall_other">Uninstall %1$s</string>
     <string name="reports_for_fork">Reports for %1$s</string>
+    <string name="settings_on">On</string>
+    <string name="settings_off">Off</string>
+    <string name="settings_press_a">Press A to apply</string>
+    <string name="settings_hint_change">Change</string>
+    <string name="settings_hint_select">Select</string>
 </resources>

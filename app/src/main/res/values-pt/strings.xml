@@ -237,4 +237,9 @@
     <string name="fork_rating">%1$d bons · %2$d não rodam</string>
     <string name="action_uninstall_other">Desinstalar %1$s</string>
     <string name="reports_for_fork">Relatos de %1$s</string>
+    <string name="settings_on">Sim</string>
+    <string name="settings_off">Não</string>
+    <string name="settings_press_a">Aperte A para aplicar</string>
+    <string name="settings_hint_change">Mudar</string>
+    <string name="settings_hint_select">Escolher</string>
 </resources>

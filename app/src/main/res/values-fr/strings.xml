@@ -237,4 +237,9 @@
     <string name="fork_rating">%1$d bien · %2$d ne marchent pas</string>
     <string name="action_uninstall_other">Désinstaller %1$s</string>
     <string name="reports_for_fork">Rapports pour %1$s</string>
+    <string name="settings_on">Oui</string>
+    <string name="settings_off">Non</string>
+    <string name="settings_press_a">Appuyez sur A pour appliquer</string>
+    <string name="settings_hint_change">Changer</string>
+    <string name="settings_hint_select">Choisir</string>
 </resources>
