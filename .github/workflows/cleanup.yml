@@ -1,0 +1,25 @@
+name: Cleanup
+
+# One-off: deletes the runs of every workflow other than Release (old nightlies, site,
+# screenshots, Pages deployments), so the public Actions tab only shows release builds.
+on:
+  push:
+    branches: [main]
+    paths: [".github/workflows/cleanup.yml"]
+  workflow_dispatch:
+
+permissions:
+  actions: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete the runs of other workflows
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh api --paginate "repos/$GH_REPO/actions/runs?per_page=100" \
+            --jq ".workflow_runs[] | select(.name != \"Release\" and .id != $GITHUB_RUN_ID) | .id" \
+            | xargs -r -I{} gh api -X DELETE "repos/$GH_REPO/actions/runs/{}"

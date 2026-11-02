@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Opens Recompa on a connected emulator and saves the README screenshots to docs/screenshots/.
-# Used by .github/workflows/screenshots.yml.
+# Used by the private Screenshots workflow.
 set -euo pipefail
 
 PKG=io.github.kalasyan.recompa

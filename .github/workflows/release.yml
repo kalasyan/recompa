@@ -14,6 +14,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
   group: release
@@ -74,3 +75,14 @@ jobs:
       - name: Remove the key
         if: always()
         run: rm -f "$RUNNER_TEMP/release.jks"
+      # Only release builds stay in the public Actions tab: Pages deployments and anything
+      # else that ran since the last release are removed.
+      - name: Delete the runs of other workflows
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh api --paginate "repos/$GH_REPO/actions/runs?per_page=100" \
+            --jq '.workflow_runs[] | select(.name != "Release") | .id' \
+            | xargs -r -I{} gh api -X DELETE "repos/$GH_REPO/actions/runs/{}"

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Opens Recompa once per app style on a connected emulator and saves the library and a port
-# page and Settings of each to style-screenshots/. Used by .github/workflows/style-screenshots.yml.
+# page and Settings of each to style-screenshots/. Used by the private Style screenshots workflow.
 set -euo pipefail
 
 PKG=io.github.kalasyan.recompa
