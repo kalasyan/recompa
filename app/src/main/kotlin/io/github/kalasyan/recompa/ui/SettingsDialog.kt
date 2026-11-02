@@ -44,8 +44,9 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.kalasyan.recompa.R
 import io.github.kalasyan.recompa.data.AppLanguage
+import io.github.kalasyan.recompa.data.AppStyle
 
-/** Language, frontend mode, the second screen and update notifications. */
+/** Language, style, frontend mode, the second screen and update notifications. */
 @Composable
 fun SettingsDialog(onDismiss: () -> Unit) {
     val context = LocalContext.current
@@ -53,6 +54,7 @@ fun SettingsDialog(onDismiss: () -> Unit) {
     val frontend by prefs.frontendMode.collectAsStateWithLifecycle()
     val notify by prefs.updateNotifications.collectAsStateWithLifecycle()
     val secondScreen by prefs.secondScreen.collectAsStateWithLifecycle()
+    val style by prefs.style.collectAsStateWithLifecycle()
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -60,6 +62,7 @@ fun SettingsDialog(onDismiss: () -> Unit) {
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 LanguagePicker()
+                StylePicker(style, prefs::setStyle)
                 SettingSwitch(
                     title = stringResource(R.string.settings_frontend),
                     summary = stringResource(R.string.settings_frontend_help),
@@ -115,6 +118,51 @@ private fun LanguagePicker() {
         }
     }
 }
+
+/** The app's style: how the library and the port pages are laid out, with their own colours and type. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun StylePicker(current: AppStyle, onPick: (AppStyle) -> Unit) {
+    Column(Modifier.padding(horizontal = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(stringResource(R.string.settings_style), style = MaterialTheme.typography.titleSmall)
+        Text(
+            stringResource(R.string.settings_style_help),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            AppStyle.entries.forEach { option ->
+                FilterChip(
+                    selected = option == current,
+                    onClick = { onPick(option) },
+                    label = { Text(stringResource(option.label)) },
+                    modifier = Modifier.focusRing(),
+                )
+            }
+        }
+        Text(stringResource(current.help), style = MaterialTheme.typography.bodySmall)
+    }
+}
+
+private val AppStyle.label: Int
+    get() = when (this) {
+        AppStyle.CLASSIC -> R.string.style_classic
+        AppStyle.SHELVES -> R.string.style_shelves
+        AppStyle.LIST -> R.string.style_list
+        AppStyle.ARCADE -> R.string.style_arcade
+        AppStyle.MOSAIC -> R.string.style_mosaic
+        AppStyle.SHOWCASE -> R.string.style_showcase
+    }
+
+private val AppStyle.help: Int
+    get() = when (this) {
+        AppStyle.CLASSIC -> R.string.style_classic_help
+        AppStyle.SHELVES -> R.string.style_shelves_help
+        AppStyle.LIST -> R.string.style_list_help
+        AppStyle.ARCADE -> R.string.style_arcade_help
+        AppStyle.MOSAIC -> R.string.style_mosaic_help
+        AppStyle.SHOWCASE -> R.string.style_showcase_help
+    }
 
 private tailrec fun Context.findActivity(): Activity = when (this) {
     is Activity -> this

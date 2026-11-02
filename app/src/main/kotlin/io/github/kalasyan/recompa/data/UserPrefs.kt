@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-/** The user's choices: favourite ports, frontend mode, the second screen and update notifications. */
+/** The user's choices: favourite ports, the app's style, frontend mode, the second screen and update notifications. */
 class UserPrefs(private val context: Context) {
     private val prefs = context.getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
 
@@ -19,6 +19,9 @@ class UserPrefs(private val context: Context) {
 
     private val _secondScreen = MutableStateFlow(prefs.getBoolean(SECOND_SCREEN, true))
     val secondScreen: StateFlow<Boolean> = _secondScreen.asStateFlow()
+
+    private val _style = MutableStateFlow(AppStyle.fromId(prefs.getString(STYLE, null)))
+    val style: StateFlow<AppStyle> = _style.asStateFlow()
 
     private val _updateNotifications = MutableStateFlow(prefs.getBoolean(NOTIFY, true))
     val updateNotifications: StateFlow<Boolean> = _updateNotifications.asStateFlow()
@@ -48,6 +51,11 @@ class UserPrefs(private val context: Context) {
         _secondScreen.value = enabled
     }
 
+    fun setStyle(style: AppStyle) {
+        prefs.edit().putString(STYLE, style.id).apply()
+        _style.value = style
+    }
+
     fun setUpdateNotifications(enabled: Boolean) {
         prefs.edit().putBoolean(NOTIFY, enabled).apply()
         _updateNotifications.value = enabled
@@ -63,6 +71,7 @@ class UserPrefs(private val context: Context) {
         const val FRONTEND = "frontend_mode"
         const val NOTIFY = "update_notifications"
         const val SECOND_SCREEN = "second_screen"
+        const val STYLE = "style"
         const val ASKED_NOTIFY = "asked_notification_permission"
     }
 }

@@ -53,17 +53,59 @@ import io.github.kalasyan.recompa.core.device.CompatibilityIssue
 import io.github.kalasyan.recompa.data.AndroidDevice
 import io.github.kalasyan.recompa.ui.theme.Accent
 import io.github.kalasyan.recompa.ui.theme.Night
+import io.github.kalasyan.recompa.ui.theme.LocalAppStyle
+import io.github.kalasyan.recompa.data.AppStyle
 
-@OptIn(ExperimentalLayoutApi::class)
+/**
+ * A port's page. Each style lays it out its own way; all of them show the same actions and
+ * sections, and the same Back and Favourite buttons on top.
+ */
 @Composable
 fun PortDetailScreen(item: PortItem, onBack: () -> Unit) {
+    val port = item.port
+    val prefs = rememberUserPrefs()
+    val favorites by prefs.favorites.collectAsStateWithLifecycle()
+    val favorite = port.id in favorites
+    val header: @Composable () -> Unit = {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            IconButton(
+                onClick = onBack,
+                colors = IconButtonDefaults.iconButtonColors(containerColor = Panel),
+                modifier = Modifier.focusRing(CircleShape),
+            ) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+            }
+            IconButton(
+                onClick = { prefs.toggleFavorite(port.id) },
+                colors = IconButtonDefaults.iconButtonColors(containerColor = Panel),
+                modifier = Modifier.focusRing(CircleShape),
+            ) {
+                Icon(
+                    if (favorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                    contentDescription = stringResource(if (favorite) R.string.favorite_remove else R.string.favorite_add),
+                    tint = if (favorite) Accent else Color.White,
+                )
+            }
+        }
+    }
+    when (LocalAppStyle.current) {
+        AppStyle.CLASSIC -> ClassicPortPage(item, header)
+        AppStyle.SHELVES -> ShelvesPortPage(item, header)
+        AppStyle.LIST -> ListPortPage(item, header)
+        AppStyle.ARCADE -> ArcadePortPage(item, header)
+        AppStyle.MOSAIC -> MosaicPortPage(item, header)
+        AppStyle.SHOWCASE -> ShowcasePortPage(item, header)
+    }
+}
+
+/** The original page: art on top, cover and details side by side, then the sections. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ClassicPortPage(item: PortItem, header: @Composable () -> Unit) {
     val port = item.port
     val manager = rememberInstallManager()
     val revision by manager.revision.collectAsStateWithLifecycle()
     val status = remember(port, revision) { manager.status(port) }
-    val prefs = rememberUserPrefs()
-    val favorites by prefs.favorites.collectAsStateWithLifecycle()
-    val favorite = port.id in favorites
 
     val scroll = rememberScrollState()
     BoxWithConstraints(Modifier.fillMaxSize()) {
@@ -77,26 +119,7 @@ fun PortDetailScreen(item: PortItem, onBack: () -> Unit) {
                 .windowInsetsPadding(WindowInsets.safeDrawing)
                 .padding(horizontal = 24.dp),
         ) {
-            Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                IconButton(
-                    onClick = onBack,
-                    colors = IconButtonDefaults.iconButtonColors(containerColor = Panel),
-                    modifier = Modifier.focusRing(CircleShape),
-                ) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
-                }
-                IconButton(
-                    onClick = { prefs.toggleFavorite(port.id) },
-                    colors = IconButtonDefaults.iconButtonColors(containerColor = Panel),
-                    modifier = Modifier.focusRing(CircleShape),
-                ) {
-                    Icon(
-                        if (favorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                        contentDescription = stringResource(if (favorite) R.string.favorite_remove else R.string.favorite_add),
-                        tint = if (favorite) Accent else Color.White,
-                    )
-                }
-            }
+            Row(Modifier.padding(top = 8.dp)) { header() }
             Spacer(Modifier.height(if (wide) 16.dp else 96.dp))
 
             Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
@@ -125,7 +148,7 @@ fun PortDetailScreen(item: PortItem, onBack: () -> Unit) {
                         Pill(typeName(port.type))
                         StatusPill(item, status)
                     }
-                    if (wide) Actions(item)
+                    if (wide) PortActions(item)
                     if (wide) port.description?.let { Description(it) }
                 }
             }
@@ -136,33 +159,15 @@ fun PortDetailScreen(item: PortItem, onBack: () -> Unit) {
                     Modifier.fillMaxWidth().background(Panel, RoundedCornerShape(16.dp)).padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
-                    Actions(item)
+                    PortActions(item)
                     port.description?.let { Description(it) }
                 }
             }
 
             Spacer(Modifier.height(24.dp))
             Column(Modifier.widthIn(max = 880.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                val screenshots = port.art?.screenshots.orEmpty()
-                if (screenshots.isNotEmpty()) {
-                    Section(stringResource(R.string.section_gallery)) {
-                        ScreenshotRow(screenshots, port.game, height = if (wide) 160.dp else 120.dp)
-                    }
-                }
-                if (port.assets.isNotEmpty()) {
-                    Section(stringResource(R.string.section_files)) { AssetWizard(port) }
-                }
-                Section(stringResource(R.string.section_requirements)) {
-                    Text(stringResource(R.string.req_abi, port.requirements.abi.joinToString()))
-                    Text(stringResource(R.string.req_sdk, AndroidDevice.versionName(port.requirements.minSdk)))
-                    if (port.requirements.vulkan) Text(stringResource(R.string.req_vulkan))
-                }
-                if (port.recommendedFork?.release != null) {
-                    Section(stringResource(R.string.section_versions)) { VersionsSection(item) }
-                }
-                Section(stringResource(R.string.section_reports)) { ReportsSection(port) }
-                Section(stringResource(R.string.section_forks)) {
-                    port.forks.forEach { fork -> ForkRow(fork, recommended = fork == port.recommendedFork) }
+                portTabs(item, galleryHeight = if (wide) 160.dp else 120.dp).forEach { tab ->
+                    Section(tab.title) { tab.content() }
                 }
             }
             Spacer(Modifier.height(32.dp))
@@ -171,7 +176,7 @@ fun PortDetailScreen(item: PortItem, onBack: () -> Unit) {
 }
 
 @Composable
-private fun Actions(item: PortItem) {
+internal fun PortActions(item: PortItem) {
     Column(Modifier.padding(top = 6.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         item.issues.forEach { issue ->
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -214,7 +219,7 @@ private fun Section(title: String, content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun ForkRow(fork: Fork, recommended: Boolean) {
+internal fun ForkRow(fork: Fork, recommended: Boolean) {
     val context = LocalContext.current
     val shape = RoundedCornerShape(12.dp)
     // The whole row opens the fork's repo, so players can check where the APK comes from.

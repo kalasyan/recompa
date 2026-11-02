@@ -46,7 +46,8 @@ class MainActivity : ComponentActivity() {
                     controller.show(WindowInsetsCompat.Type.systemBars())
                 }
             }
-            RecompaTheme {
+            val style by prefs.style.collectAsStateWithLifecycle()
+            RecompaTheme(style) {
                 RecompaApp()
             }
         }

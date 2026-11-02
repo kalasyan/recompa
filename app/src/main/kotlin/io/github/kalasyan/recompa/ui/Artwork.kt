@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -52,12 +53,16 @@ import kotlinx.coroutines.launch
 import coil3.compose.AsyncImage
 import io.github.kalasyan.recompa.R
 import io.github.kalasyan.recompa.core.catalog.Port
+import io.github.kalasyan.recompa.ui.theme.LocalPalette
 import io.github.kalasyan.recompa.ui.theme.Night
 
-val CoverShape = RoundedCornerShape(12.dp)
+/** Corners of covers, which follow the style: rounded, or square in the flat ones. */
+val CoverShape: Shape
+    @Composable @ReadOnlyComposable get() = RoundedCornerShape(LocalPalette.current.corner)
 
 /** Translucent background for text that sits on top of art. */
-val Panel = Night.copy(alpha = 0.72f)
+val Panel: Color
+    @Composable @ReadOnlyComposable get() = Night.copy(alpha = 0.72f)
 
 /**
  * A thick white ring while this element, or the control inside it, has focus, so the gamepad

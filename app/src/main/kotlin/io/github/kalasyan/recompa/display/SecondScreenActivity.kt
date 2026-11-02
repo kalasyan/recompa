@@ -8,9 +8,11 @@ import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.getValue
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.kalasyan.recompa.RecompaApplication
 import io.github.kalasyan.recompa.data.AppLanguage
 import io.github.kalasyan.recompa.ui.SecondScreenContent
@@ -43,7 +45,8 @@ class SecondScreenActivity : ComponentActivity() {
             hide(WindowInsetsCompat.Type.systemBars())
         }
         setContent {
-            RecompaTheme {
+            val style by (application as RecompaApplication).prefs.style.collectAsStateWithLifecycle()
+            RecompaTheme(style) {
                 SecondScreenContent(screen)
             }
         }

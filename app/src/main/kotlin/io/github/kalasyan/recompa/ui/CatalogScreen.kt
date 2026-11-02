@@ -103,12 +103,14 @@ import io.github.kalasyan.recompa.core.catalog.PortSearch
 import io.github.kalasyan.recompa.core.install.PortStatus
 import io.github.kalasyan.recompa.ui.theme.Accent
 import io.github.kalasyan.recompa.ui.theme.Night
+import io.github.kalasyan.recompa.ui.theme.LocalAppStyle
+import io.github.kalasyan.recompa.data.AppStyle
 import kotlinx.coroutines.launch
 
 private val TopBarHeight = 56.dp
 private const val FocusScale = 1.12f
 
-private enum class Filter(val label: Int) {
+internal enum class Filter(val label: Int) {
     ALL(R.string.filter_all),
     NEW(R.string.filter_new),
     COMPATIBLE(R.string.filter_compatible),
@@ -192,16 +194,16 @@ private fun Library(
             searching = false
         }
     }
-    val inList = state.items.filter {
-        val inFilter = when (filter) {
+    val inFilter: (PortItem, Filter) -> Boolean = { item, f ->
+        when (f) {
             Filter.ALL -> true
-            Filter.NEW -> it.port.id in newIds
-            Filter.COMPATIBLE -> it.compatible && it.port.recommendedFork != null
-            Filter.INSTALLED -> statuses[it.port.id] != PortStatus.NotInstalled
-            Filter.FAVORITES -> it.port.id in favorites
+            Filter.NEW -> item.port.id in newIds
+            Filter.COMPATIBLE -> item.compatible && item.port.recommendedFork != null
+            Filter.INSTALLED -> statuses[item.port.id] != PortStatus.NotInstalled
+            Filter.FAVORITES -> item.port.id in favorites
         }
-        inFilter && PortSearch.matches(it.port, query)
     }
+    val inList = state.items.filter { inFilter(it, filter) && PortSearch.matches(it.port, query) }
     // Platforms of the current list, the most common first and "other" last.
     val platforms = inList.groupingBy { it.port.originalPlatform }.eachCount().entries
         .sortedWith(compareBy({ it.key == "other" }, { -it.value }))
@@ -213,9 +215,78 @@ private fun Library(
     var selectedId by rememberSaveable { mutableStateOf<String?>(null) }
     val selected = visible.firstOrNull { it.port.id == selectedId } ?: visible.firstOrNull()
     val secondScreen = rememberSecondScreen()
-    // With a second screen showing the selected port, this one is all covers.
+    // With a second screen showing the selected port, the layouts leave out their own details.
     val secondShowing by secondScreen.showing.collectAsStateWithLifecycle()
     LaunchedEffect(selected) { secondScreen.select(selected) }
+    val focusTarget = remember { FocusRequester() }
+    val filters = Filter.entries.filter { newIds.isNotEmpty() || it != Filter.NEW }
+
+    val ui = LibraryUi(
+        items = visible,
+        listCount = inList.size,
+        catalogEmpty = state.items.isEmpty(),
+        selected = selected,
+        statuses = statuses,
+        favorites = favorites,
+        newIds = newIds,
+        filter = filter,
+        filters = filters,
+        filterCounts = remember(state.items, statuses, favorites, newIds) {
+            filters.associateWith { f -> state.items.count { inFilter(it, f) } }
+        },
+        onFilter = { filter = it },
+        platforms = platforms,
+        platform = activePlatform,
+        onPlatform = { platform = it },
+        offline = state.fromCache,
+        updates = updates.size,
+        updatingAll = updatingAll,
+        onUpdateAll = { manager.updateAll(state.items.map { it.port }) },
+        searching = searching,
+        query = query,
+        onSearch = { searching = true },
+        onSuggest = { suggesting = true },
+        onSettings = onSettings,
+        onDiagnostics = onDiagnostics,
+        onOpen = {
+            selectedId = it.port.id
+            onOpen(it)
+        },
+        onSelect = { selectedId = it.port.id },
+        focusTarget = focusTarget,
+        secondShowing = secondShowing,
+        searchBar = { modifier ->
+            if (searching) {
+                SearchField(
+                    query,
+                    onQuery = { query = it },
+                    onClose = {
+                        query = ""
+                        searching = false
+                    },
+                    onDone = { runCatching { focusTarget.requestFocus() } },
+                    modifier = modifier,
+                )
+            }
+        },
+        emptyState = { modifier ->
+            Column(
+                modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    stringResource(if (state.items.isEmpty()) R.string.empty_catalog else R.string.empty_filter),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (query.isNotBlank()) {
+                    TextButton(onClick = { suggesting = true }, modifier = Modifier.focusRing()) {
+                        Text(stringResource(R.string.suggest_missing))
+                    }
+                }
+            }
+        },
+    )
 
     Box(
         Modifier.fillMaxSize().onPreviewKeyEvent { event ->
@@ -235,118 +306,112 @@ private fun Library(
             true
         },
     ) {
-        PortBackdrop(selected?.port, Modifier.fillMaxSize())
-        BoxWithConstraints(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
-            // Landscape handhelds have little height: details on the left, covers on the right.
-            val side = maxWidth > maxHeight && maxHeight < 600.dp
-            val gridState = rememberLazyGridState()
-            val focusTarget = remember { FocusRequester() }
-            // Keep the selected cover in view and focused, also when coming back from a port's page.
-            LaunchedEffect(filter, activePlatform, side) {
-                val index = visible.indexOfFirst { it.port.id == selected?.port?.id }.coerceAtLeast(0)
-                gridState.scrollToItem(index)
-                withFrameNanos { }
-                runCatching { focusTarget.requestFocus() }
-            }
-            val grid: @Composable (Modifier, Dp) -> Unit = { modifier, minCover ->
-                if (visible.isEmpty()) {
-                    Column(
-                        modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Text(
-                            stringResource(if (state.items.isEmpty()) R.string.empty_catalog else R.string.empty_filter),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        when (LocalAppStyle.current) {
+            AppStyle.CLASSIC -> ClassicLibrary(ui)
+            AppStyle.SHELVES -> ShelvesLibrary(ui)
+            AppStyle.LIST -> ListLibrary(ui)
+            AppStyle.ARCADE -> ArcadeLibrary(ui)
+            AppStyle.MOSAIC -> MosaicLibrary(ui)
+            AppStyle.SHOWCASE -> ShowcaseLibrary(ui)
+        }
+    }
+}
+
+/**
+ * Moves the gamepad focus to the selected port once the layout is drawn: on entering the
+ * library, coming back from a port's page and after changing filter or platform.
+ */
+@Composable
+internal fun FocusSelectedOnChange(ui: LibraryUi, vararg keys: Any?, scrollTo: suspend (index: Int) -> Unit) {
+    LaunchedEffect(ui.filter, ui.platform, *keys) {
+        scrollTo(ui.selectedIndex.coerceAtLeast(0))
+        withFrameNanos { }
+        runCatching { ui.focusTarget.requestFocus() }
+    }
+}
+
+/** The original look: the selected port's details beside or above a grid of covers. */
+@Composable
+private fun ClassicLibrary(ui: LibraryUi) {
+    val selected = ui.selected
+    PortBackdrop(selected?.port, Modifier.fillMaxSize())
+    BoxWithConstraints(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
+        // Landscape handhelds have little height: details on the left, covers on the right.
+        val side = maxWidth > maxHeight && maxHeight < 600.dp
+        val gridState = rememberLazyGridState()
+        // Keep the selected cover in view and focused, also when coming back from a port's page.
+        FocusSelectedOnChange(ui, side) { gridState.scrollToItem(it) }
+        val grid: @Composable (Modifier, Dp) -> Unit = { modifier, minCover ->
+            if (ui.items.isEmpty()) {
+                ui.emptyState(modifier)
+            } else {
+                LazyVerticalGrid(
+                    state = gridState,
+                    columns = GridCells.Adaptive(minSize = minCover),
+                    contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 24.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(20.dp),
+                    modifier = modifier,
+                ) {
+                    items(ui.items, key = { it.port.id }) { item ->
+                        Poster(
+                            item = item,
+                            status = ui.statuses[item.port.id],
+                            favorite = item.port.id in ui.favorites,
+                            new = item.port.id in ui.newIds,
+                            onClick = { ui.onOpen(item) },
+                            onFocused = { ui.onSelect(item) },
+                            focusRequester = ui.focusTarget.takeIf { item == selected },
                         )
-                        if (query.isNotBlank()) {
-                            TextButton(onClick = { suggesting = true }, modifier = Modifier.focusRing()) {
-                                Text(stringResource(R.string.suggest_missing))
-                            }
-                        }
-                    }
-                } else {
-                    LazyVerticalGrid(
-                        state = gridState,
-                        columns = GridCells.Adaptive(minSize = minCover),
-                        contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 24.dp),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(20.dp),
-                        modifier = modifier,
-                    ) {
-                        items(visible, key = { it.port.id }) { item ->
-                            Poster(
-                                item = item,
-                                status = statuses[item.port.id],
-                                favorite = item.port.id in favorites,
-                                new = item.port.id in newIds,
-                                onClick = {
-                                    selectedId = item.port.id
-                                    onOpen(item)
-                                },
-                                onFocused = { selectedId = item.port.id },
-                                focusRequester = focusTarget.takeIf { item == selected },
-                            )
-                        }
                     }
                 }
             }
-            Column(Modifier.fillMaxSize()) {
-                TopBar(
-                    filter,
-                    hasNew = newIds.isNotEmpty(),
-                    onFilter = { filter = it },
-                    offline = state.fromCache,
-                    onDiagnostics = onDiagnostics,
-                    onSettings = onSettings,
-                    onSearch = { searching = true },
-                    onSuggest = { suggesting = true },
-                    updates = updates.size,
-                    updatingAll = updatingAll,
-                    onUpdateAll = { manager.updateAll(state.items.map { it.port }) },
-                )
-                if (searching) {
-                    SearchField(
-                        query,
-                        onQuery = { query = it },
-                        onClose = {
-                            query = ""
-                            searching = false
-                        },
-                        onDone = { runCatching { focusTarget.requestFocus() } },
-                    )
-                }
-                PlatformBar(platforms, activePlatform, total = inList.size, onPlatform = { platform = it })
-                if (side) {
-                    Row(Modifier.weight(1f)) {
-                        if (selected != null && !secondShowing) {
-                            Featured(
-                                selected,
-                                statuses[selected.port.id],
-                                compact = true,
-                                modifier = Modifier.fillMaxWidth(0.38f).padding(start = 24.dp, top = 12.dp),
-                            )
-                        }
-                        grid(Modifier.weight(1f), 96.dp)
-                    }
-                } else {
-                    if (selected != null && !secondShowing) {
+        }
+        Column(Modifier.fillMaxSize()) {
+            TopBar(
+                ui.filter,
+                hasNew = ui.newIds.isNotEmpty(),
+                onFilter = ui.onFilter,
+                offline = ui.offline,
+                onDiagnostics = ui.onDiagnostics,
+                onSettings = ui.onSettings,
+                onSearch = ui.onSearch,
+                onSuggest = ui.onSuggest,
+                updates = ui.updates,
+                updatingAll = ui.updatingAll,
+                onUpdateAll = ui.onUpdateAll,
+            )
+            ui.searchBar(Modifier.padding(horizontal = 24.dp, vertical = 4.dp).fillMaxWidth(0.6f))
+            PlatformBar(ui.platforms, ui.platform, total = ui.listCount, onPlatform = ui.onPlatform)
+            if (side) {
+                Row(Modifier.weight(1f)) {
+                    if (selected != null && !ui.secondShowing) {
                         Featured(
                             selected,
-                            statuses[selected.port.id],
-                            compact = false,
-                            modifier = Modifier.height(232.dp).padding(horizontal = 24.dp).fillMaxWidth(0.7f),
+                            ui.statuses[selected.port.id],
+                            compact = true,
+                            modifier = Modifier.fillMaxWidth(0.38f).padding(start = 24.dp, top = 12.dp),
                         )
                     }
-                    grid(Modifier.weight(1f), 128.dp)
+                    grid(Modifier.weight(1f), 96.dp)
                 }
+            } else {
+                if (selected != null && !ui.secondShowing) {
+                    Featured(
+                        selected,
+                        ui.statuses[selected.port.id],
+                        compact = false,
+                        modifier = Modifier.height(232.dp).padding(horizontal = 24.dp).fillMaxWidth(0.7f),
+                    )
+                }
+                grid(Modifier.weight(1f), 128.dp)
             }
         }
     }
 }
 
 /** The next filter in [step]'s direction; New is left out when the catalog has no dates. */
-private fun Filter.cycle(step: Int, hasNew: Boolean): Filter {
+internal fun Filter.cycle(step: Int, hasNew: Boolean): Filter {
     val options = Filter.entries.filter { hasNew || it != Filter.NEW }
     return options[(options.indexOf(this) + step).mod(options.size)]
 }
@@ -436,7 +501,7 @@ private fun TopBar(
 
 /** Search by name or game; opens with the keyboard focused, closes with Back or the X. */
 @Composable
-private fun SearchField(query: String, onQuery: (String) -> Unit, onClose: () -> Unit, onDone: () -> Unit) {
+private fun SearchField(query: String, onQuery: (String) -> Unit, onClose: () -> Unit, onDone: () -> Unit, modifier: Modifier = Modifier) {
     val focus = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
     LaunchedEffect(Unit) {
@@ -465,10 +530,7 @@ private fun SearchField(query: String, onQuery: (String) -> Unit, onClose: () ->
             unfocusedContainerColor = Panel,
             focusedBorderColor = Accent,
         ),
-        modifier = Modifier
-            .padding(horizontal = 24.dp, vertical = 4.dp)
-            .fillMaxWidth(0.6f)
-            .focusRequester(focus),
+        modifier = modifier.focusRequester(focus),
     )
 }
 
