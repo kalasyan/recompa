@@ -12,6 +12,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -55,6 +56,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
@@ -198,17 +200,18 @@ fun SettingsDialog(onDismiss: () -> Unit) {
     // Focus stays on the same line when the style (and so the whole screen) changes.
     val requesters = remember { mutableMapOf<String, FocusRequester>() }
     var focusedId by remember { mutableStateOf("language") }
-    LaunchedEffect(style) {
-        withFrameNanos { }
-        runCatching { requesters[focusedId]?.requestFocus() }
-    }
-
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
     ) {
         val currentStyle = LocalAppStyle.current
         val skin = skinFor(currentStyle)
+        LaunchedEffect(currentStyle) {
+            // Wait for the rows to be laid out, then focus the line that was focused before.
+            withFrameNanos { }
+            withFrameNanos { }
+            runCatching { requesters[focusedId]?.requestFocus() }
+        }
         val rows: @Composable ColumnScope.() -> Unit = {
             items.forEach { item ->
                 SettingRow(
@@ -443,7 +446,11 @@ private fun LaidOutRow(item: SettingItem, skin: SettingsSkin, requester: FocusRe
             }
         }
         if (item is SettingItem.Choice) {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            @Suppress("DEPRECATION")
+            FlowRow(
+                // Moving into the options lands on the chosen one, not the nearest.
+                Modifier.focusProperties { enter = { requester } }.focusGroup(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 item.options.forEachIndexed { index, label ->
                     OptionChip(
                         label,
