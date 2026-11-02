@@ -97,6 +97,21 @@ fun InstallActions(item: PortItem, manager: InstallManager = rememberInstallMana
                 } else {
                     LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                 }
+                TextButton(onClick = { manager.pause(port.id) }, modifier = Modifier.focusRing()) {
+                    Text(stringResource(R.string.action_pause))
+                }
+            }
+            is InstallPhase.Paused -> {
+                Text(stringResource(R.string.phase_paused))
+                LinearProgressIndicator(progress = { phase.progress ?: 0f }, modifier = Modifier.fillMaxWidth())
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = { manager.resume(port.id) }, modifier = Modifier.focusRing()) {
+                        Text(stringResource(R.string.action_resume))
+                    }
+                    TextButton(onClick = { manager.cancelDownload(port.id) }, modifier = Modifier.focusRing()) {
+                        Text(stringResource(R.string.cancel))
+                    }
+                }
             }
             InstallPhase.Verifying -> Busy(stringResource(R.string.phase_verifying))
             InstallPhase.Installing -> Busy(stringResource(R.string.phase_installing))

@@ -119,6 +119,11 @@ class DownloadService : Service() {
                 val progress = phase.progress
                 builder.setContentText(getString(R.string.phase_downloading))
                 if (progress != null) builder.setProgress(100, (progress * 100).toInt(), false) else builder.setProgress(0, 0, true)
+                builder.addAction(
+                    0,
+                    getString(R.string.action_pause),
+                    DownloadActionReceiver.pendingIntent(this, DownloadActionReceiver.ACTION_PAUSE, portId),
+                )
             }
             InstallPhase.Verifying -> builder.setContentText(getString(R.string.phase_verifying)).setProgress(0, 0, true)
             else -> builder.setContentText(getString(R.string.phase_installing)).setProgress(0, 0, true)
@@ -173,6 +178,44 @@ class DownloadService : Service() {
                 // The permission was revoked between the check and the call.
             }
         }
+
+        /**
+         * A paused download leaves the ongoing notification, so it gets its own, with buttons
+         * to resume it or drop it without opening Recompa.
+         */
+        @SuppressLint("MissingPermission") // canNotify() checks it; lint can't see through the helper.
+        fun notifyPaused(context: Context, portId: String, label: String) {
+            if (!canNotify(context)) return
+            val texts = AppLanguage.wrap(context)
+            createChannel(texts, CHANNEL_ID, R.string.downloads_channel, NotificationManager.IMPORTANCE_LOW)
+            val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+                .setSmallIcon(R.drawable.ic_notification)
+                .setContentTitle(label)
+                .setContentText(texts.getString(R.string.phase_paused))
+                .setContentIntent(openApp(context))
+                .setOnlyAlertOnce(true)
+                .addAction(
+                    0,
+                    texts.getString(R.string.action_resume),
+                    DownloadActionReceiver.pendingIntent(context, DownloadActionReceiver.ACTION_RESUME, portId),
+                )
+                .addAction(
+                    0,
+                    texts.getString(R.string.cancel),
+                    DownloadActionReceiver.pendingIntent(context, DownloadActionReceiver.ACTION_CANCEL, portId),
+                )
+                .build()
+            try {
+                NotificationManagerCompat.from(context).notify(pausedTag(portId), NOTIFICATION_ID, notification)
+            } catch (e: SecurityException) {
+                // The permission was revoked between the check and the call.
+            }
+        }
+
+        fun cancelPaused(context: Context, portId: String) =
+            NotificationManagerCompat.from(context).cancel(pausedTag(portId), NOTIFICATION_ID)
+
+        private fun pausedTag(portId: String) = "paused:$portId"
 
         fun cancelConfirm(context: Context, portId: String) =
             NotificationManagerCompat.from(context).cancel(confirmTag(portId), NOTIFICATION_ID)

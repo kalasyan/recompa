@@ -60,6 +60,10 @@
             android:name=".install.InstallResultReceiver"
             android:exported="false" />
 
+        <receiver
+            android:name=".install.DownloadActionReceiver"
+            android:exported="false" />
+
         <service
             android:name=".install.DownloadService"
             android:exported="false"

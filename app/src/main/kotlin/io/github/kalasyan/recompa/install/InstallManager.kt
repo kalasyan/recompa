@@ -12,13 +12,18 @@ import io.github.kalasyan.recompa.core.catalog.Port
 import io.github.kalasyan.recompa.core.catalog.Release
 import io.github.kalasyan.recompa.core.install.ApkCheck
 import io.github.kalasyan.recompa.core.install.ApkCheckResult
+import io.github.kalasyan.recompa.core.install.DownloadResume
 import io.github.kalasyan.recompa.core.install.PortStatus
 import io.github.kalasyan.recompa.core.install.PortStatusResolver
 import io.github.kalasyan.recompa.core.install.Sha256
 import io.github.kalasyan.recompa.core.install.ZipEntries
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -26,9 +31,11 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import okhttp3.Call
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
+import java.io.FileOutputStream
 import java.io.IOException
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
@@ -37,6 +44,9 @@ import kotlin.coroutines.cancellation.CancellationException
 sealed interface InstallPhase {
     data object Idle : InstallPhase
     data class Downloading(val progress: Float?) : InstallPhase
+
+    /** The user paused the download; the bytes so far stay on disk until it resumes or is cancelled. */
+    data class Paused(val progress: Float?) : InstallPhase
     data object Verifying : InstallPhase
     data object Installing : InstallPhase
     data object AwaitingUser : InstallPhase
@@ -77,6 +87,11 @@ class InstallManager(private val context: Context) {
         .build()
     private val pending = mutableMapOf<String, InstallRecord>()
     private val labels = ConcurrentHashMap<String, String>()
+
+    /** What each port is installing, so a paused download can resume with the same release. */
+    private val requests = ConcurrentHashMap<String, InstallRequest>()
+    private val jobs = ConcurrentHashMap<String, Job>()
+    private val calls = ConcurrentHashMap<String, Call>()
 
     private val _phases = MutableStateFlow<Map<String, InstallPhase>>(emptyMap())
     val phases: StateFlow<Map<String, InstallPhase>> = _phases.asStateFlow()
@@ -140,7 +155,10 @@ class InstallManager(private val context: Context) {
                 for (port in queue) {
                     val fork = port.recommendedFork ?: continue
                     install(port, fork)
-                    phases.first { phase -> phase[port.id].let { it == null || it in IDLE_PHASES || it is InstallPhase.Failed } }
+                    // A paused port waits for the user; the others go on.
+                    phases.first { phase ->
+                        phase[port.id].let { it == null || it in IDLE_PHASES || it is InstallPhase.Failed || it is InstallPhase.Paused }
+                    }
                 }
             } finally {
                 _updatingAll.value = false
@@ -203,6 +221,38 @@ class InstallManager(private val context: Context) {
 
     fun dismiss(portId: String) = setPhase(portId, InstallPhase.Idle)
 
+    /** Stops [portId]'s download and keeps what it got so far, to carry on later with [resume]. */
+    fun pause(portId: String) {
+        // Set before cancelling, so the download that stops does not report a network error.
+        // Only while downloading: once the file is complete, the install goes on.
+        var paused = false
+        _phases.update { phases ->
+            val phase = phases[portId]
+            paused = phase is InstallPhase.Downloading
+            if (phase is InstallPhase.Downloading) phases + (portId to InstallPhase.Paused(phase.progress)) else phases
+        }
+        if (!paused) return
+        calls.remove(portId)?.cancel()
+        jobs[portId]?.cancel()
+        DownloadService.notifyPaused(context, portId, label(portId))
+    }
+
+    /** Carries on a paused download from where it stopped. */
+    fun resume(portId: String) {
+        if (phaseOf(portId) !is InstallPhase.Paused) return
+        val request = requests[portId] ?: return
+        install(request.port, request.fork, request.release)
+    }
+
+    /** Drops a paused download and the bytes it got. */
+    fun cancelDownload(portId: String) {
+        if (phaseOf(portId) !is InstallPhase.Paused) return
+        DownloadService.cancelPaused(context, portId)
+        requests.remove(portId)
+        listOf(apkFile(portId), zipFile(portId)).forEach { discard(it) }
+        setPhase(portId, InstallPhase.Idle)
+    }
+
     /** The port's name, for notifications about an install in progress. */
     fun label(portId: String): String = labels[portId] ?: portId
 
@@ -213,22 +263,30 @@ class InstallManager(private val context: Context) {
     fun install(port: Port, fork: Fork, release: Release? = fork.release) {
         release ?: return
         val current = phaseOf(port.id)
-        if (current !is InstallPhase.Failed && current !in IDLE_PHASES) return
+        if (current !is InstallPhase.Failed && current !is InstallPhase.Paused && current !in IDLE_PHASES) return
         if (!canInstall()) {
             setPhase(port.id, InstallPhase.NeedsPermission)
             return
         }
         val held = release.tag != fork.release?.tag
         // Set before the download starts, so callers waiting on the phase see the install begin.
-        setPhase(port.id, InstallPhase.Downloading(null))
+        setPhase(port.id, InstallPhase.Downloading((current as? InstallPhase.Paused)?.progress))
         labels[port.id] = port.name
+        val request = InstallRequest(port, fork, release)
+        requests[port.id] = request
+        DownloadService.cancelPaused(context, port.id)
         DownloadService.start(context)
-        scope.launch {
+        // A download paused a moment ago may still be closing its file.
+        val previous = jobs[port.id]
+        lateinit var job: Job
+        job = scope.launch(start = CoroutineStart.LAZY) {
             try {
+                previous?.join()
                 val entry = release.asset.entry
                 val apk = apkFile(port.id)
                 val downloaded = download(port.id, release.asset.url, if (entry != null) zipFile(port.id) else apk)
-                setPhase(port.id, InstallPhase.Verifying)
+                // A pause that came as the last bytes arrived wins: the file stays for resume.
+                if (!startVerifying(port.id)) return@launch
                 val (sha, entrySha, info) = withContext(Dispatchers.IO) {
                     val sha = downloaded.inputStream().use { Sha256.hex(it) }
                     var entrySha: String? = null
@@ -270,11 +328,17 @@ class InstallManager(private val context: Context) {
             } catch (e: CancellationException) {
                 throw e
             } catch (e: IOException) {
-                setPhase(port.id, InstallPhase.Failed(InstallError.Network))
+                // Cancelling the request on pause ends the download with an IOException too.
+                if (phaseOf(port.id) !is InstallPhase.Paused) setPhase(port.id, InstallPhase.Failed(InstallError.Network))
             } catch (e: Exception) {
                 setPhase(port.id, InstallPhase.Failed(InstallError.Other(e.message)))
+            } finally {
+                jobs.remove(port.id, job)
+                if (phaseOf(port.id) !is InstallPhase.Paused) requests.remove(port.id, request)
             }
         }
+        jobs[port.id] = job
+        job.start()
     }
 
     internal fun onAwaitingUser(portId: String) = setPhase(portId, InstallPhase.AwaitingUser)
@@ -304,36 +368,90 @@ class InstallManager(private val context: Context) {
         refresh()
     }
 
+    /**
+     * Downloads [url] into [target]. When [target] holds part of the same URL, from a pause or
+     * a dropped connection, it asks only for the rest; the SHA-256 check covers the whole file.
+     */
     private suspend fun download(portId: String, url: String, target: File): File = withContext(Dispatchers.IO) {
         target.parentFile?.mkdirs()
-        setPhase(portId, InstallPhase.Downloading(null))
-        val request = Request.Builder().url(url).build()
-        client.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) throw IOException("HTTP ${response.code}")
-            val body = response.body ?: throw IOException("Empty body")
-            val total = body.contentLength().takeIf { it > 0 }
-            body.byteStream().use { input ->
-                target.outputStream().use { output ->
-                    val buffer = ByteArray(64 * 1024)
-                    var copied = 0L
-                    var lastReported = -1
-                    while (true) {
-                        val read = input.read(buffer)
-                        if (read < 0) break
-                        output.write(buffer, 0, read)
-                        copied += read
-                        if (total != null) {
-                            val percent = (copied * 100 / total).toInt()
-                            if (percent != lastReported) {
-                                lastReported = percent
-                                setPhase(portId, InstallPhase.Downloading(percent / 100f))
+        val source = sourceFile(target)
+        val savedUrl = if (source.exists()) source.readText() else null
+        val offset = DownloadResume.offset(if (target.exists()) target.length() else 0, savedUrl, url)
+        if (offset == 0L) source.writeText(url)
+        // When the server does not take the range, start over.
+        val done = fetch(portId, url, target, offset) || offset > 0 && fetch(portId, url, target, 0)
+        if (!done) throw IOException("Unexpected answer to the download")
+        source.delete()
+        target
+    }
+
+    /**
+     * Writes [url] into [target] from byte [offset]. Returns false when the server's answer
+     * does not continue from there, so the caller can download from the start.
+     */
+    private suspend fun fetch(portId: String, url: String, target: File, offset: Long): Boolean {
+        val request = Request.Builder().url(url)
+            .apply { DownloadResume.rangeHeader(offset)?.let { header("Range", it) } }
+            .build()
+        val call = client.newCall(request)
+        // pause() cancels the call, so a blocked read stops at once.
+        calls[portId] = call
+        try {
+            // A pause that came while the request was being set up.
+            currentCoroutineContext().ensureActive()
+            call.execute().use { response ->
+                val start = DownloadResume.bodyStart(response.code, response.header("Content-Range"), offset)
+                    ?: if (offset > 0) return false else throw IOException("HTTP ${response.code}")
+                val body = response.body ?: throw IOException("Empty body")
+                val total = body.contentLength().takeIf { it > 0 }?.plus(start)
+                body.byteStream().use { input ->
+                    FileOutputStream(target, start > 0).use { output ->
+                        val buffer = ByteArray(64 * 1024)
+                        var copied = start
+                        var lastReported = -1
+                        while (true) {
+                            currentCoroutineContext().ensureActive()
+                            val read = input.read(buffer)
+                            if (read < 0) break
+                            output.write(buffer, 0, read)
+                            copied += read
+                            if (total != null) {
+                                val percent = (copied * 100 / total).toInt()
+                                if (percent != lastReported) {
+                                    lastReported = percent
+                                    reportProgress(portId, percent / 100f)
+                                }
                             }
                         }
                     }
                 }
             }
+        } finally {
+            calls.remove(portId, call)
         }
-        target
+        return true
+    }
+
+    private fun startVerifying(portId: String): Boolean {
+        var started = false
+        _phases.update { phases ->
+            started = phases[portId] is InstallPhase.Downloading
+            if (started) phases + (portId to InstallPhase.Verifying) else phases
+        }
+        return started
+    }
+
+    /** Leaves a paused port alone: a last chunk read after the pause must not undo it. */
+    private fun reportProgress(portId: String, progress: Float) = _phases.update {
+        if (it[portId] is InstallPhase.Paused) it else it + (portId to InstallPhase.Downloading(progress))
+    }
+
+    /** Next to a partial download, the URL it came from. */
+    private fun sourceFile(target: File) = File(target.path + ".src")
+
+    private fun discard(file: File) {
+        file.delete()
+        sourceFile(file).delete()
     }
 
     private fun commitSession(portId: String, packageName: String, apk: File) {
@@ -363,7 +481,7 @@ class InstallManager(private val context: Context) {
     }
 
     private fun fail(portId: String, error: InstallError, apk: File) {
-        apk.delete()
+        discard(apk)
         setPhase(portId, InstallPhase.Failed(error))
     }
 
@@ -376,6 +494,8 @@ class InstallManager(private val context: Context) {
     private fun phaseOf(portId: String) = _phases.value[portId] ?: InstallPhase.Idle
 
     private fun setPhase(portId: String, phase: InstallPhase) = _phases.update { it + (portId to phase) }
+
+    private data class InstallRequest(val port: Port, val fork: Fork, val release: Release)
 
     private companion object {
         val IDLE_PHASES = setOf(InstallPhase.Idle, InstallPhase.NeedsPermission)

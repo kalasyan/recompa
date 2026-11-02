@@ -28,6 +28,9 @@
     <string name="fork_open_repo">Abrir o repositório no navegador</string>
     <string name="files_disclaimer">O Recompa não inclui nem baixa jogos. Você precisa da sua própria cópia legítima.</string>
     <string name="phase_downloading">Baixando…</string>
+    <string name="phase_paused">Pausado</string>
+    <string name="action_pause">Pausar</string>
+    <string name="action_resume">Retomar</string>
     <string name="phase_verifying">Verificando o APK…</string>
     <string name="phase_installing">Instalando…</string>
     <string name="phase_awaiting_user">Confirme a instalação na janela do sistema.</string>

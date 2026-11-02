@@ -28,6 +28,9 @@
     <string name="fork_open_repo">Abrir el repositorio en el navegador</string>
     <string name="files_disclaimer">Recompa no incluye ni descarga juegos. Necesitas tu propia copia legítima.</string>
     <string name="phase_downloading">Descargando…</string>
+    <string name="phase_paused">En pausa</string>
+    <string name="action_pause">Pausar</string>
+    <string name="action_resume">Reanudar</string>
     <string name="phase_verifying">Comprobando el APK…</string>
     <string name="phase_installing">Instalando…</string>
     <string name="phase_awaiting_user">Confirma la instalación en la ventana del sistema.</string>

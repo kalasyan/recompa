@@ -29,6 +29,9 @@
     <string name="fork_open_repo">Open the repository in the browser</string>
     <string name="files_disclaimer">Recompa does not include or download games. You need your own legitimate copy.</string>
     <string name="phase_downloading">Downloading…</string>
+    <string name="phase_paused">Paused</string>
+    <string name="action_pause">Pause</string>
+    <string name="action_resume">Resume</string>
     <string name="phase_verifying">Checking the APK…</string>
     <string name="phase_installing">Installing…</string>
     <string name="phase_awaiting_user">Confirm the installation in the system dialog.</string>

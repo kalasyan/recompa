@@ -28,6 +28,9 @@
     <string name="fork_open_repo">Repository im Browser öffnen</string>
     <string name="files_disclaimer">Recompa enthält keine Spiele und lädt auch keine herunter. Du brauchst deine eigene legale Kopie.</string>
     <string name="phase_downloading">Wird heruntergeladen…</string>
+    <string name="phase_paused">Pausiert</string>
+    <string name="action_pause">Pausieren</string>
+    <string name="action_resume">Fortsetzen</string>
     <string name="phase_verifying">APK wird geprüft…</string>
     <string name="phase_installing">Wird installiert…</string>
     <string name="phase_awaiting_user">Bestätige die Installation im Systemdialog.</string>

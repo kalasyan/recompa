@@ -69,6 +69,7 @@ fun UpdateBanner(modifier: Modifier = Modifier) {
             when (phase) {
                 is InstallPhase.Downloading, InstallPhase.Verifying, InstallPhase.Installing, InstallPhase.AwaitingUser ->
                     LinearProgressIndicator(Modifier.fillMaxWidth())
+                is InstallPhase.Paused -> Text(stringResource(R.string.phase_paused))
                 InstallPhase.NeedsPermission -> Text(stringResource(R.string.needs_permission))
                 is InstallPhase.Failed -> Text(errorText(phase.error), color = MaterialTheme.colorScheme.error)
                 InstallPhase.Idle -> Unit
@@ -82,7 +83,8 @@ fun UpdateBanner(modifier: Modifier = Modifier) {
                 } else {
                     Button(
                         onClick = { manager.install(port, port.forks.first()) },
-                        enabled = phase == InstallPhase.Idle || phase is InstallPhase.Failed,
+                        // Installing again from a pause carries on with the bytes already downloaded.
+                        enabled = phase == InstallPhase.Idle || phase is InstallPhase.Failed || phase is InstallPhase.Paused,
                     ) { Text(stringResource(R.string.update_install)) }
                 }
                 TextButton(onClick = { dismissedTag = available.tag }) { Text(stringResource(R.string.update_later)) }

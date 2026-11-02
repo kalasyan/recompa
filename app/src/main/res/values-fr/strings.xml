@@ -28,6 +28,9 @@
     <string name="fork_open_repo">Ouvrir le dépôt dans le navigateur</string>
     <string name="files_disclaimer">Recompa n\'inclut ni ne télécharge aucun jeu. Vous avez besoin de votre propre copie légitime.</string>
     <string name="phase_downloading">Téléchargement…</string>
+    <string name="phase_paused">En pause</string>
+    <string name="action_pause">Mettre en pause</string>
+    <string name="action_resume">Reprendre</string>
     <string name="phase_verifying">Vérification de l\'APK…</string>
     <string name="phase_installing">Installation…</string>
     <string name="phase_awaiting_user">Confirmez l\'installation dans la fenêtre du système.</string>
