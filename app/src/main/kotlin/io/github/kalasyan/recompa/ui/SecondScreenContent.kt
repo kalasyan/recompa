@@ -6,6 +6,7 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -15,10 +16,12 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.widthIn
@@ -29,7 +32,11 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -40,6 +47,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -88,17 +96,23 @@ fun SecondScreenContent(screen: SecondScreen) {
 
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         BoxWithConstraints(Modifier.fillMaxSize()) {
-            val item = opened ?: selected
-            when {
-                idle && slides.isNotEmpty() -> Slideshow(slides)
-                item != null -> Showcase(item, open = opened != null)
-                else -> Text(
-                    stringResource(R.string.app_name),
-                    style = MaterialTheme.typography.displayMedium,
-                    modifier = Modifier.align(Alignment.Center),
-                )
+            val queueHeight = maxHeight / 3
+            // The downloads sit below the rest and take their room from it, so they never cover the port.
+            Column(Modifier.fillMaxSize()) {
+                Box(Modifier.weight(1f).fillMaxWidth()) {
+                    val item = opened ?: selected
+                    when {
+                        idle && slides.isNotEmpty() -> Slideshow(slides)
+                        item != null -> Showcase(item, open = opened != null)
+                        else -> Text(
+                            stringResource(R.string.app_name),
+                            style = MaterialTheme.typography.displayMedium,
+                            modifier = Modifier.align(Alignment.Center),
+                        )
+                    }
+                }
+                Downloads(screen, maxHeight = queueHeight)
             }
-            Downloads(screen, maxHeight = maxHeight / 3, modifier = Modifier.align(Alignment.BottomCenter).windowInsetsPadding(WindowInsets.safeDrawing))
         }
     }
 }
@@ -302,13 +316,17 @@ private fun Slideshow(slides: List<PortItem>) {
     }
 }
 
+/** How long the download list stays open after the last touch on it. */
+private const val QUEUE_OPEN_MS = 10_000L
+
 /**
- * Every port that is downloading, installing or failed, in the order they started, with touch
- * buttons to pause or resume. It takes at most a third of the screen and scrolls, following the
- * last one to start.
+ * Every port that is downloading, installing or failed. Folded, it is one line with the count
+ * and the overall progress; a touch unfolds the list, in the order the downloads started, with
+ * buttons to pause or resume. Unfolded it takes at most [maxHeight], scrolls to the newest
+ * download, and folds again after a few seconds untouched.
  */
 @Composable
-private fun Downloads(screen: SecondScreen, maxHeight: Dp, modifier: Modifier) {
+private fun Downloads(screen: SecondScreen, maxHeight: Dp) {
     val manager = rememberInstallManager()
     val phases by manager.phases.collectAsStateWithLifecycle()
     val activeIds = phases.filterValues { it != InstallPhase.Idle }.keys
@@ -316,29 +334,61 @@ private fun Downloads(screen: SecondScreen, maxHeight: Dp, modifier: Modifier) {
     val order = remember { mutableListOf<String>() }
     order.retainAll(activeIds)
     activeIds.filterNot { it in order }.let { order.addAll(it) }
+    var open by remember { mutableStateOf(false) }
+    var touchedAt by remember { mutableLongStateOf(0L) }
+    LaunchedEffect(open, touchedAt) {
+        if (open) {
+            delay(QUEUE_OPEN_MS)
+            open = false
+        }
+    }
     if (order.isEmpty()) return
     val list = rememberLazyListState()
-    LaunchedEffect(order.size) { list.animateScrollToItem(order.size - 1) }
+    LaunchedEffect(order.size, open) { if (open) list.animateScrollToItem(order.size - 1) }
     // A touch here may take the gamepad's focus with it; give it back to the library.
     fun act(action: () -> Unit) {
         action()
+        touchedAt = SystemClock.uptimeMillis()
         screen.refocusLibrary()
     }
+    val progresses = order.mapNotNull {
+        when (val phase = phases[it]) {
+            is InstallPhase.Downloading -> phase.progress
+            is InstallPhase.Paused -> phase.progress
+            else -> null
+        }
+    }
+    val failed = order.count { phases[it] is InstallPhase.Failed }
     Column(
-        modifier
-            .padding(12.dp)
-            .widthIn(max = 720.dp)
+        Modifier
             .fillMaxWidth()
             .heightIn(max = maxHeight)
-            .background(Night.copy(alpha = 0.9f), RoundedCornerShape(16.dp))
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+            .background(Night)
+            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
+            .padding(horizontal = 16.dp, vertical = 8.dp),
     ) {
-        Text(
-            "${stringResource(R.string.downloads_channel)} · ${order.size}",
-            style = MaterialTheme.typography.titleSmall,
-            modifier = Modifier.padding(bottom = 4.dp),
-        )
-        LazyColumn(state = list, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            Modifier.fillMaxWidth().clickable { act { open = !open } }.padding(vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            val summary = buildList {
+                add("${stringResource(R.string.downloads_channel)} · ${order.size}")
+                if (progresses.isNotEmpty()) add("${(progresses.average() * 100).toInt()} %")
+                if (failed > 0) add(stringResource(R.string.second_screen_failed, failed))
+            }.joinToString(" · ")
+            Text(summary, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+            Icon(
+                if (open) Icons.Filled.KeyboardArrowDown else Icons.Filled.KeyboardArrowUp,
+                contentDescription = stringResource(if (open) R.string.second_screen_fold else R.string.second_screen_unfold),
+            )
+        }
+        if (!open) {
+            if (progresses.isNotEmpty()) {
+                LinearProgressIndicator(progress = { progresses.average().toFloat() }, modifier = Modifier.fillMaxWidth().padding(top = 2.dp))
+            }
+            return@Column
+        }
+        LazyColumn(state = list, verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 4.dp)) {
             items(order.toList(), key = { it }) { portId ->
                 val phase = phases[portId] ?: InstallPhase.Idle
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {

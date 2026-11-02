@@ -193,4 +193,7 @@
     <string name="settings_second_screen">Usar a segunda tela</string>
     <string name="settings_second_screen_help">Em aparelhos com duas telas, como o AYN Thor, a outra tela mostra o port selecionado, seus downloads e a ajuda com os arquivos dele, e a arte do catálogo quando parado.</string>
     <string name="second_screen_files_help">Escolha sua cópia na tela principal. O Recompa verifica se é uma destas versões.</string>
+    <string name="second_screen_failed">%1$d com erro</string>
+    <string name="second_screen_unfold">Mostrar downloads</string>
+    <string name="second_screen_fold">Ocultar downloads</string>
 </resources>

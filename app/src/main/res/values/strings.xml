@@ -194,4 +194,7 @@
     <string name="settings_second_screen">Use the second screen</string>
     <string name="settings_second_screen_help">On devices with two screens, like the AYN Thor, the other screen shows the selected port, your downloads and help with its files, and the catalog\'s art when idle.</string>
     <string name="second_screen_files_help">Pick your copy on the main screen. Recompa checks that it is one of these versions.</string>
+    <string name="second_screen_failed">%1$d failed</string>
+    <string name="second_screen_unfold">Show downloads</string>
+    <string name="second_screen_fold">Hide downloads</string>
 </resources>

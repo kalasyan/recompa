@@ -193,4 +193,7 @@
     <string name="settings_second_screen">Utiliser le second écran</string>
     <string name="settings_second_screen_help">Sur les appareils à deux écrans comme l\'AYN Thor, l\'autre écran affiche le port sélectionné, vos téléchargements et l\'aide sur ses fichiers, et les images du catalogue au repos.</string>
     <string name="second_screen_files_help">Choisissez votre copie sur l\'écran principal. Recompa vérifie qu\'il s\'agit de l\'une de ces versions.</string>
+    <string name="second_screen_failed">%1$d en échec</string>
+    <string name="second_screen_unfold">Afficher les téléchargements</string>
+    <string name="second_screen_fold">Masquer les téléchargements</string>
 </resources>
