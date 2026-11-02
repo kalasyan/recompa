@@ -18,10 +18,14 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -47,6 +51,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.kalasyan.recompa.R
@@ -82,7 +87,7 @@ fun SecondScreenContent(screen: SecondScreen) {
     val slides = remember(items) { items.filter { it.port.art?.backdrops.orEmpty().isNotEmpty() }.shuffled() }
 
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        Box(Modifier.fillMaxSize()) {
+        BoxWithConstraints(Modifier.fillMaxSize()) {
             val item = opened ?: selected
             when {
                 idle && slides.isNotEmpty() -> Slideshow(slides)
@@ -93,7 +98,7 @@ fun SecondScreenContent(screen: SecondScreen) {
                     modifier = Modifier.align(Alignment.Center),
                 )
             }
-            Downloads(screen, Modifier.align(Alignment.BottomCenter).windowInsetsPadding(WindowInsets.safeDrawing))
+            Downloads(screen, maxHeight = maxHeight / 3, modifier = Modifier.align(Alignment.BottomCenter).windowInsetsPadding(WindowInsets.safeDrawing))
         }
     }
 }
@@ -297,73 +302,85 @@ private fun Slideshow(slides: List<PortItem>) {
     }
 }
 
-/** Every port that is downloading, installing or failed, with its progress and touch buttons to pause or resume. */
+/**
+ * Every port that is downloading, installing or failed, in the order they started, with touch
+ * buttons to pause or resume. It takes at most a third of the screen and scrolls, following the
+ * last one to start.
+ */
 @Composable
-private fun Downloads(screen: SecondScreen, modifier: Modifier) {
+private fun Downloads(screen: SecondScreen, maxHeight: Dp, modifier: Modifier) {
     val manager = rememberInstallManager()
     val phases by manager.phases.collectAsStateWithLifecycle()
-    val active = phases.entries.filter { it.value != InstallPhase.Idle }
-    if (active.isEmpty()) return
+    val activeIds = phases.filterValues { it != InstallPhase.Idle }.keys
+    // The phases map keeps the order a port first downloaded in this session; this keeps the order of this download.
+    val order = remember { mutableListOf<String>() }
+    order.retainAll(activeIds)
+    activeIds.filterNot { it in order }.let { order.addAll(it) }
+    if (order.isEmpty()) return
+    val list = rememberLazyListState()
+    LaunchedEffect(order.size) { list.animateScrollToItem(order.size - 1) }
+    // A touch here may take the gamepad's focus with it; give it back to the library.
+    fun act(action: () -> Unit) {
+        action()
+        screen.refocusLibrary()
+    }
     Column(
         modifier
-            .padding(16.dp)
+            .padding(12.dp)
             .widthIn(max = 720.dp)
             .fillMaxWidth()
+            .heightIn(max = maxHeight)
             .background(Night.copy(alpha = 0.9f), RoundedCornerShape(16.dp))
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+            .padding(horizontal = 16.dp, vertical = 10.dp),
     ) {
-        Text(stringResource(R.string.downloads_channel), style = MaterialTheme.typography.titleSmall)
-        active.take(4).forEach { (portId, phase) ->
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        manager.label(portId),
-                        style = MaterialTheme.typography.bodyLarge,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f),
-                    )
-                    Text(
-                        phaseText(phase),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = if (phase is InstallPhase.Failed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(start = 12.dp).widthIn(max = 360.dp),
-                    )
-                }
-                when (phase) {
-                    is InstallPhase.Downloading -> phase.progress?.let { LinearProgressIndicator(progress = { it }, modifier = Modifier.fillMaxWidth()) }
-                        ?: LinearProgressIndicator(Modifier.fillMaxWidth())
-                    is InstallPhase.Paused -> phase.progress?.let { LinearProgressIndicator(progress = { it }, modifier = Modifier.fillMaxWidth()) }
-                    InstallPhase.Verifying, InstallPhase.Installing -> LinearProgressIndicator(Modifier.fillMaxWidth())
-                    else -> Unit
-                }
-                // A touch here may take the gamepad's focus with it; give it back to the library.
-                fun act(action: () -> Unit) {
-                    action()
-                    screen.refocusLibrary()
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            "${stringResource(R.string.downloads_channel)} · ${order.size}",
+            style = MaterialTheme.typography.titleSmall,
+            modifier = Modifier.padding(bottom = 4.dp),
+        )
+        LazyColumn(state = list, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            items(order.toList(), key = { it }) { portId ->
+                val phase = phases[portId] ?: InstallPhase.Idle
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                manager.label(portId),
+                                style = MaterialTheme.typography.bodyLarge,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            Text(
+                                phaseText(phase),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (phase is InstallPhase.Failed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                        when (phase) {
+                            is InstallPhase.Downloading -> OutlinedButton(onClick = { act { manager.pause(portId) } }) {
+                                Text(stringResource(R.string.action_pause))
+                            }
+                            is InstallPhase.Paused -> {
+                                TextButton(onClick = { act { manager.cancelDownload(portId) } }) { Text(stringResource(R.string.cancel)) }
+                                Button(onClick = { act { manager.resume(portId) } }) { Text(stringResource(R.string.action_resume)) }
+                            }
+                            is InstallPhase.Failed -> TextButton(onClick = { act { manager.dismiss(portId) } }) {
+                                Text(stringResource(R.string.dismiss))
+                            }
+                            else -> Unit
+                        }
+                    }
                     when (phase) {
-                        is InstallPhase.Downloading -> OutlinedButton(onClick = { act { manager.pause(portId) } }) {
-                            Text(stringResource(R.string.action_pause))
-                        }
-                        is InstallPhase.Paused -> {
-                            Button(onClick = { act { manager.resume(portId) } }) { Text(stringResource(R.string.action_resume)) }
-                            TextButton(onClick = { act { manager.cancelDownload(portId) } }) { Text(stringResource(R.string.cancel)) }
-                        }
-                        is InstallPhase.Failed -> TextButton(onClick = { act { manager.dismiss(portId) } }) {
-                            Text(stringResource(R.string.dismiss))
-                        }
+                        is InstallPhase.Downloading -> phase.progress?.let { LinearProgressIndicator(progress = { it }, modifier = Modifier.fillMaxWidth()) }
+                            ?: LinearProgressIndicator(Modifier.fillMaxWidth())
+                        is InstallPhase.Paused -> phase.progress?.let { LinearProgressIndicator(progress = { it }, modifier = Modifier.fillMaxWidth()) }
+                        InstallPhase.Verifying, InstallPhase.Installing -> LinearProgressIndicator(Modifier.fillMaxWidth())
                         else -> Unit
                     }
                 }
             }
-        }
-        if (active.size > 4) {
-            Text(stringResource(R.string.downloads_more, active.size - 4), style = MaterialTheme.typography.bodySmall)
         }
     }
 }
