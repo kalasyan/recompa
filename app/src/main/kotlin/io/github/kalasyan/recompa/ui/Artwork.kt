@@ -241,6 +241,7 @@ fun platformName(code: String): String = when (code) {
 fun typeName(type: String): String = when (type) {
     "recomp" -> stringResource(R.string.type_recomp)
     "decomp" -> stringResource(R.string.type_decomp)
+    "emulator" -> stringResource(R.string.type_emulator)
     else -> stringResource(R.string.type_source_port)
 }
 

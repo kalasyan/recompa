@@ -93,6 +93,7 @@
     <string name="type_recomp">Recompilation</string>
     <string name="type_decomp">Décompilation</string>
     <string name="type_source_port">Source port</string>
+    <string name="type_emulator">Émulateur intégré</string>
     <string name="platform_other">Autre plateforme</string>
     <string name="platform_all">Toutes les plateformes · %1$d</string>
     <string name="update_available">Une nouvelle version de Recompa est disponible : %1$s</string>
