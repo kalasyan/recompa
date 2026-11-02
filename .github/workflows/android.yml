@@ -35,9 +35,9 @@ jobs:
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
 
-  # Every build of main becomes a "nightly-N" release, signed with the public debug key.
-  # Until the first stable release (release.yml) it is marked as latest; after that it is a
-  # prerelease. Only the last few nightlies are kept.
+  # Every build of main becomes a private "nightly-N" draft release, signed with the public
+  # debug key. Drafts are only visible to the repository's collaborators, so the public only
+  # sees stable releases (release.yml). Only the last few nightlies are kept.
   nightly:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: build
@@ -52,28 +52,23 @@ jobs:
         with:
           name: recompa-debug-apk
           path: apk
-      - name: Publish nightly release
+      - name: Publish nightly draft
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
           cp apk/*.apk recompa.apk
-          # Once a stable vX.Y.Z release exists it is "latest"; nightlies become prereleases.
-          if gh release list --limit 100 --json tagName --jq '.[].tagName' | grep -q '^v'; then
-            channel="--prerelease --latest=false"
-          else
-            channel="--latest"
-          fi
           gh release create "nightly-${GITHUB_RUN_NUMBER}" recompa.apk \
-            $channel \
+            --draft \
             --target "$GITHUB_SHA" \
             --title "Nightly ${GITHUB_RUN_NUMBER}" \
             --notes "Build automática de main (${GITHUB_SHA::7})."
+      # Drafts have no tag; older nightlies published before they became drafts do.
       - name: Prune old nightlies
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          gh release list --limit 100 --json tagName --jq '.[].tagName' \
+          gh release list --limit 100 --json tagName,isDraft --jq '.[] | select(.isDraft) | .tagName' \
             | grep '^nightly-' | sort -t- -k2 -n -r | tail -n +6 \
-            | xargs -r -n1 gh release delete --cleanup-tag --yes
+            | xargs -r -n1 gh release delete --yes

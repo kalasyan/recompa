@@ -15,9 +15,9 @@ import okhttp3.Request
 import java.util.concurrent.TimeUnit
 
 /**
- * Looks for a newer version of Recompa on GitHub. Stable builds look for stable releases;
- * debug builds (the nightlies) are signed with another key and can only update to a newer
- * nightly, so they look for those.
+ * Looks for a newer stable version of Recompa on GitHub. Debug builds (the nightlies) are
+ * signed with another key, so they could only update to a newer nightly, and nightlies are
+ * private draft releases the app cannot see: they don't look for updates.
  */
 class AppUpdater(
     private val client: OkHttpClient = OkHttpClient.Builder()
@@ -28,13 +28,9 @@ class AppUpdater(
     /** The newer release, or null when there is none or it cannot be checked. */
     suspend fun check(): AppRelease? = withContext(Dispatchers.IO) {
         runCatching {
-            if (BuildConfig.DEBUG) {
-                fetch(AppReleases.RELEASES_URL)?.let(AppReleases::parseNewestNightly)
-                    ?.takeIf { (AppReleases.nightlyNumber(it.tag) ?: 0) > BuildConfig.VERSION_CODE }
-            } else {
-                fetch(AppReleases.LATEST_URL)?.let(AppReleases::parse)
-                    ?.takeIf { AppReleases.isNewer(it.version, BuildConfig.VERSION_NAME) }
-            }
+            if (BuildConfig.DEBUG) return@runCatching null
+            fetch(AppReleases.LATEST_URL)?.let(AppReleases::parse)
+                ?.takeIf { AppReleases.isNewer(it.version, BuildConfig.VERSION_NAME) }
         }.getOrNull()
     }
 

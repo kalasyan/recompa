@@ -1,6 +1,10 @@
 # Publicar una versión de Recompa
 
-Las versiones estables se firman con la clave privada de Recompa, que solo vive en los secretos del repositorio. Las builds `nightly-N` de cada push a `main` siguen usando la clave de debug pública y se publican como prerelease.
+Las versiones estables se firman con la clave privada de Recompa, que solo vive en los secretos del repositorio. Las builds `nightly-N` de cada push a `main` usan la clave de debug pública y se guardan como borradores (draft) de release: solo las ven los colaboradores del repositorio, así que el público solo puede descargar las versiones estables.
+
+## Nightlies
+
+En <https://github.com/kalasyan/recompa/releases>, con la sesión de GitHub iniciada, las nightlies aparecen arriba como **Draft**; se guardan las 5 últimas. El APK se descarga desde ahí (en el móvil, desde el navegador con la sesión iniciada). Como no son públicas, la app instalada desde una nightly no busca actualizaciones: hay que instalar la siguiente nightly a mano encima.
 
 ## Configuración (una sola vez)
 

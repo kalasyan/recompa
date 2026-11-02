@@ -82,7 +82,7 @@ Website and download page: <https://recompa.app/>
 
 Recompa tells you when a new version is out and updates itself from inside the app.
 
-**Test builds:** every push to `main` publishes a `nightly-N` release. Nightlies use a different signing key from stable versions, so switching between them requires uninstalling first. See [RELEASING.md](RELEASING.md) for stable releases.
+Only stable versions are published. See [RELEASING.md](RELEASING.md) for how they are made.
 
 ## 💬 Feedback
 

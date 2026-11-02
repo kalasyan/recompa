@@ -15,10 +15,7 @@ data class AppRelease(
 
 object AppReleases {
     const val LATEST_URL = "https://api.github.com/repos/kalasyan/recompa/releases/latest"
-    const val RELEASES_URL = "https://api.github.com/repos/kalasyan/recompa/releases?per_page=30"
     const val APK_NAME = "recompa.apk"
-
-    private val nightlyTag = Regex("""nightly-(\d+)""")
 
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -44,21 +41,6 @@ object AppReleases {
         if (release.draft || release.prerelease) return null
         return release.toAppRelease(release.tagName.removePrefix("v"))
     }
-
-    /**
-     * The newest nightly build in a releases list, or null when there is none with the APK.
-     * Nightlies are signed with another key than stable releases, so a nightly install can
-     * only update to another nightly.
-     */
-    fun parseNewestNightly(body: String): AppRelease? =
-        json.decodeFromString<List<GitHubRelease>>(body)
-            .filter { !it.draft }
-            .mapNotNull { release -> nightlyNumber(release.tagName)?.let { it to release } }
-            .sortedByDescending { it.first }
-            .firstNotNullOfOrNull { (number, release) -> release.toAppRelease("nightly $number") }
-
-    /** The build number of a `nightly-N` tag, or null for any other tag. */
-    fun nightlyNumber(tag: String): Int? = nightlyTag.matchEntire(tag)?.groupValues?.get(1)?.toIntOrNull()
 
     private fun GitHubRelease.toAppRelease(version: String): AppRelease? {
         val apk = assets.firstOrNull { it.name == APK_NAME } ?: return null

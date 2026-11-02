@@ -75,8 +75,6 @@ const EN = {
   "qpp.d": "Google Play Protect distrusts new apps that aren't on Google Play and can install other apps, as any store does. It hasn't found anything specific: you can check by uploading the APK to <a href=\"https://www.virustotal.com/\">VirusTotal</a>. To install it, tap “More details” and then “Install anyway”. The warning will fade as more people install it.",
   "q3.t": "Which devices does it run on?",
   "q3.d": "Android 8.0 or later. It's designed for handhelds with controllers like the AYN Thor, but it works on phones and tablets too. Each port has its own requirements, and Recompa tells you which ones work on your device.",
-  "q4.t": "Are there test builds?",
-  "q4.d": "Yes: every change publishes a <a href=\"https://github.com/kalasyan/recompa/releases\">nightly build</a>. They use a different signing key, so switching between a nightly and the stable version (either way) requires uninstalling first.",
   "q5.t": "How do I report a problem?",
   "q5.d": "Open an <a href=\"https://github.com/kalasyan/recompa/issues\">issue on GitHub</a>. Problems with a specific port belong to its author; from Recompa you can send a compatibility report or suggest a port, no GitHub account needed.",
   "foot.legal": "Recompa does not include, host or download games, ROMs, ISOs or other copyrighted files. Ports belong to their authors and are downloaded from their own repositories.",
