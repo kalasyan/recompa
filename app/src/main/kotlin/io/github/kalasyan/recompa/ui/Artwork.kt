@@ -38,6 +38,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.runtime.rememberCoroutineScope
@@ -72,6 +78,25 @@ fun Modifier.focusRing(shape: Shape = RoundedCornerShape(50)): Modifier = compos
     var focused by remember { mutableStateOf(false) }
     onFocusChanged { focused = it.hasFocus }
         .then(if (focused) Modifier.border(3.dp, Color.White, shape) else Modifier)
+}
+
+/**
+ * For tabs and chips in a row that scrolls: scrolls the row so this one shows, with a little
+ * room on each side, when the gamepad focuses it or when it becomes the [picked] one (the
+ * shoulder buttons change the section without moving focus).
+ */
+fun Modifier.keepInView(picked: Boolean): Modifier = composed {
+    val reveal = remember { BringIntoViewRequester() }
+    val scope = rememberCoroutineScope()
+    val margin = with(LocalDensity.current) { 24.dp.toPx() }
+    var size by remember { mutableStateOf(IntSize.Zero) }
+    suspend fun show() =
+        if (size == IntSize.Zero) reveal.bringIntoView()
+        else reveal.bringIntoView(Rect(-margin, 0f, size.width + margin, size.height.toFloat()))
+    if (picked) LaunchedEffect(Unit) { show() }
+    bringIntoViewRequester(reveal)
+        .onSizeChanged { size = it }
+        .onFocusChanged { if (it.isFocused) scope.launch { show() } }
 }
 
 /**

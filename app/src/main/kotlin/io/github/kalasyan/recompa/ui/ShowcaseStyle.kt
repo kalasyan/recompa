@@ -173,6 +173,7 @@ private fun Segment(label: String, selected: Boolean, onClick: () -> Unit) {
         color = if (selected) Color.Black else Color.White.copy(alpha = if (focused) 1f else 0.7f),
         maxLines = 1,
         modifier = Modifier
+            .keepInView(selected)
             .clip(RoundedCornerShape(50))
             .background(if (selected) Color.White else if (focused) Color.White.copy(alpha = 0.2f) else Color.Transparent)
             .clickable(interactionSource = interaction, indication = null, onClick = onClick)

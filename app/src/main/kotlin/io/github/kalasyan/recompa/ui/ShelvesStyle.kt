@@ -240,6 +240,7 @@ internal fun UnderlineTab(label: String, selected: Boolean, color: Color = Color
     val focused by interaction.collectIsFocusedAsState()
     Column(
         Modifier
+            .keepInView(selected)
             .clip(RoundedCornerShape(6.dp))
             .background(if (focused) Color.White.copy(alpha = 0.16f) else Color.Transparent)
             .clickable(interactionSource = interaction, indication = null, onClick = onClick)

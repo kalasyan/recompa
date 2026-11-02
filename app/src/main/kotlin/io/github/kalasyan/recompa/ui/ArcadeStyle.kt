@@ -194,6 +194,7 @@ private fun PixelTab(label: String, selected: Boolean, onClick: () -> Unit) {
         (if (selected) "▶ " else "") + label,
         style = pixel(9, if (selected) Cyan else Violet),
         modifier = Modifier
+            .keepInView(selected)
             .focusRing(RectangleShape)
             .clickable(interactionSource = interaction, indication = null, onClick = onClick)
             .padding(6.dp),
