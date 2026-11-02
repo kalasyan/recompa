@@ -37,13 +37,10 @@ data class Port(
     val reports: List<DeviceReport> = emptyList(),
     /** The texts in other languages, by language code. The fields above are in English. */
     val i18n: Map<String, PortTexts> = emptyMap(),
-<<<<<<< HEAD
     /** When the catalog first published this port (UTC, ISO 8601); null in catalogs older than the field. */
     @SerialName("added_at") val addedAt: String? = null,
-=======
     /** Ids of ports merged into this one: what Recompa installed under them belongs here now. */
     val aliases: List<String> = emptyList(),
->>>>>>> da02acf (Let players pick which port of a game to install)
 ) {
     /**
      * The versions of the game a player can install: each fork (or separate port of the same
