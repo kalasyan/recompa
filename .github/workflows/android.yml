@@ -34,6 +34,10 @@ jobs:
           name: recompa-debug-apk
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
+          # Artifacts of a public repo can be downloaded by anyone signed in to GitHub, so
+          # nightlies would leak through them: the nightly job deletes it, and any other
+          # run's copy expires the next day.
+          retention-days: 1
 
   # Every build of main becomes a "nightly-N" release of the private repo
   # kalasyan/recompa-nightlies, signed with the public debug key, so the public only sees
@@ -47,6 +51,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      actions: write
     concurrency:
       group: nightly-release
       cancel-in-progress: false
@@ -105,3 +110,11 @@ jobs:
           gh release list --limit 100 --json tagName,isDraft --jq '.[] | select(.isDraft | not) | .tagName' \
             | grep '^nightly-' \
             | xargs -r -n1 gh release delete --cleanup-tag --yes
+      - name: Delete the APK artifact
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh api "repos/$GH_REPO/actions/runs/$GITHUB_RUN_ID/artifacts" --jq '.artifacts[] | select(.name == "recompa-debug-apk") | .id' \
+            | xargs -r -I{} gh api -X DELETE "repos/$GH_REPO/actions/artifacts/{}"
