@@ -83,6 +83,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.delay
 import io.github.kalasyan.recompa.R
 import io.github.kalasyan.recompa.data.AppLanguage
 import io.github.kalasyan.recompa.data.AppStyle
@@ -209,8 +210,9 @@ fun SettingsDialog(onDismiss: () -> Unit) {
         val skin = skinFor(currentStyle)
         LaunchedEffect(currentStyle) {
             // Wait for the rows to be laid out, then focus the line that was focused before.
+            // The dialog's window takes a moment to get focus after it opens.
             withFrameNanos { }
-            withFrameNanos { }
+            delay(250)
             runCatching { requesters[focusedId]?.requestFocus() }
         }
         val rows: @Composable ColumnScope.() -> Unit = {
