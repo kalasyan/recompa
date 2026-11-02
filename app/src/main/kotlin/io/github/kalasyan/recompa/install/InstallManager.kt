@@ -75,6 +75,9 @@ sealed interface InstallError {
 /** An installed app the user can pick as a port. */
 data class LinkCandidate(val label: String, val packageName: String)
 
+/** An installed version of a port with a newer release. */
+data class PendingUpdate(val port: Port, val fork: Fork)
+
 /**
  * Downloads, verifies and installs ports with PackageInstaller sessions, and reports
  * what is installed. One install runs per port at a time.
@@ -114,25 +117,22 @@ class InstallManager(private val context: Context) {
     fun unknownSourcesSettingsIntent(): Intent =
         Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:${context.packageName}"))
 
-    /** The package this port is installed as, from the catalog or from what Recompa installed. */
-    fun packageName(port: Port): String? =
-        port.forks.firstNotNullOfOrNull { it.packageName?.takeIf { pkg -> isInstalled(pkg) } }
-            ?: records.get(port.id)?.packageName
-            ?: port.recommendedFork?.packageName
+    /**
+     * What Recompa recorded installing as [fork] of [port], under the port's id or one it had
+     * before a merge. A link made before players could pick a version names no fork: it is
+     * the one the app recommended then, the catalog's first with a release.
+     */
+    private fun record(port: Port, fork: Fork): InstallRecord? {
+        for (id in listOf(port.id) + port.aliases) records.get(id, fork.repo)?.let { return it }
+        return records.legacy(port.id)?.takeIf { it.repo.isEmpty() && fork == port.versions.firstOrNull() }
+    }
 
-    fun status(port: Port): PortStatus {
-        val fork = port.recommendedFork ?: return PortStatus.NotInstalled
-        val pkg = packageName(port) ?: return PortStatus.NotInstalled
-        val installed = context.packageManager.packageInfoOrNull(pkg)?.toInstalledPackage()
-        if (installed == null) {
-            records.get(port.id)?.takeIf { it.packageName == pkg }?.let { records.remove(port.id) }
-            return PortStatus.NotInstalled
-        }
-        return PortStatusResolver.resolve(fork, port.forks, installed, records.get(port.id)?.tag)
+    private fun forget(port: Port, fork: Fork) {
+        for (id in listOf(port.id) + port.aliases) records.remove(id, fork.repo)
     }
 
     /**
-     * Rebuilds the install records that are missing for ports already on the device, for
+     * Rebuilds the install records that are missing for versions already on the device, for
      * example after Recompa was uninstalled to switch between stable and nightly builds.
      * Without a record every such port looks out of date. The release is found by the hash of
      * the installed APK, or by its version name. Each package is only looked at once per
@@ -143,69 +143,116 @@ class InstallManager(private val context: Context) {
         val checked = context.getSharedPreferences(RECOVERY_PREFS, Context.MODE_PRIVATE)
         var recovered = false
         for (port in ports) {
-            if (port.id == SELF_ID || records.get(port.id) != null || phaseOf(port.id) !in IDLE_PHASES) continue
-            val pkg = packageName(port) ?: continue
-            val info = pm.packageInfoOrNull(pkg) ?: continue
-            val stamp = "${info.versionCodeCompat}:${info.lastUpdateTime}:${port.recommendedFork?.release?.tag}"
-            if (checked.getString("${port.id}.$pkg", null) == stamp) continue
-            val signers = info.signerSha256()
-            val candidates = port.forks.filter { fork ->
-                (fork.packageName == null || fork.packageName == pkg) &&
-                    (fork.signerSha256?.let { signer -> signers.any { it.equals(signer, ignoreCase = true) } }
-                        ?: (fork.packageName == pkg))
-            }
-            if (candidates.isNotEmpty()) {
-                val apkSha = info.applicationInfo?.sourceDir?.let { path ->
-                    try {
-                        File(path).inputStream().use { Sha256.hex(it) }
-                    } catch (e: IOException) {
-                        null
+            if (port.id == SELF_ID || phaseOf(port.id) !in IDLE_PHASES) continue
+            // A package already recorded for one version is not another version's.
+            val known = port.forks.mapNotNull { record(port, it)?.packageName }.toMutableSet()
+            val hashes = mutableMapOf<String, String?>()
+            for (fork in port.forks) {
+                if (record(port, fork) != null) continue
+                val pkg = fork.packageName?.takeIf { it !in known } ?: continue
+                val info = pm.packageInfoOrNull(pkg) ?: continue
+                val stamp = "${info.versionCodeCompat}:${info.lastUpdateTime}:${fork.release?.tag}"
+                val key = "${port.id}@${fork.repo}.$pkg"
+                if (checked.getString(key, null) == stamp) continue
+                val signers = info.signerSha256()
+                val signed = fork.signerSha256?.let { signer -> signers.any { it.equals(signer, ignoreCase = true) } } ?: true
+                if (signed) {
+                    val apkSha = hashes.getOrPut(pkg) {
+                        info.applicationInfo?.sourceDir?.let { path ->
+                            try {
+                                File(path).inputStream().use { Sha256.hex(it) }
+                            } catch (e: IOException) {
+                                null
+                            }
+                        }
+                    }
+                    val release = InstalledRelease.find(fork, apkSha, info.versionName)
+                    if (release != null) {
+                        records.put(port.id, InstallRecord(pkg, release.tag, fork.repo))
+                        known += pkg
+                        recovered = true
                     }
                 }
-                val match = candidates.firstNotNullOfOrNull { fork ->
-                    InstalledRelease.find(fork, apkSha, info.versionName)?.let { fork to it }
-                }
-                if (match != null && records.get(port.id) == null) {
-                    val (fork, release) = match
-                    records.put(port.id, InstallRecord(pkg, release.tag, fork.repo))
-                    recovered = true
-                }
+                checked.edit().putString(key, stamp).apply()
             }
-            checked.edit().putString("${port.id}.$pkg", stamp).apply()
         }
         if (recovered) refresh()
     }
 
-    /** The release tag Recompa installed, or null when it did not install this port. */
-    fun installedTag(port: Port): String? = records.get(port.id)?.tag?.takeIf { it.isNotEmpty() }
+    /** The package [fork] is installed as, from what Recompa installed or from the catalog. */
+    fun packageName(port: Port, fork: Fork): String? {
+        val record = record(port, fork)?.packageName
+        return listOfNotNull(record, fork.packageName).firstOrNull(::isInstalled) ?: record ?: fork.packageName
+    }
 
-    /** True when the user chose to stay on an earlier release of [port]. */
-    fun isHeld(port: Port): Boolean = records.get(port.id)?.held == true
+    /** The package of the version of [port] that is installed, else of the recommended one. */
+    fun packageName(port: Port): String? =
+        (installedFork(port) ?: port.recommendedFork)?.let { packageName(port, it) }
 
-    /** Ports with an update that "update all" would install: not held on an earlier release. */
-    fun pendingUpdates(ports: List<Port>): List<Port> =
-        ports.filter { it.id != SELF_ID && status(it) is PortStatus.UpdateAvailable && !isHeld(it) }
+    /** Whether [fork], one version of [port], is installed and up to date. */
+    fun status(port: Port, fork: Fork): PortStatus {
+        val record = record(port, fork)
+        val pkg = listOfNotNull(record?.packageName, fork.packageName).firstOrNull(::isInstalled)
+        if (record != null && !isInstalled(record.packageName)) forget(port, fork)
+        val installed = pkg?.let { context.packageManager.packageInfoOrNull(it)?.toInstalledPackage() }
+            ?: return PortStatus.NotInstalled
+        val claimedBy = port.forks.firstOrNull { it.repo != fork.repo && record(port, it)?.packageName == pkg }
+        val tag = record?.takeIf { it.packageName == pkg }?.tag?.takeIf { it.isNotEmpty() }
+        return PortStatusResolver.resolve(fork, port.forks, installed, tag, claimedBy)
+    }
+
+    /**
+     * The port as a whole, for the library: an update when an installed version has one, else
+     * installed when any version is.
+     */
+    fun status(port: Port): PortStatus {
+        val statuses = port.forks.map { status(port, it) }
+        return statuses.firstOrNull { it is PortStatus.UpdateAvailable }
+            ?: statuses.firstOrNull { it == PortStatus.UpToDate }
+            ?: statuses.firstOrNull { it == PortStatus.UnknownSigner }
+            ?: PortStatus.NotInstalled
+    }
+
+    /** The versions of [port] on the device. */
+    fun installedForks(port: Port): List<Fork> = port.forks.filter { status(port, it).installed }
+
+    /** The version of [port] on the device (the first one, if several are). */
+    fun installedFork(port: Port): Fork? = port.forks.firstOrNull { status(port, it).installed }
+
+    /** The release tag Recompa installed as [fork], or null when it did not install it. */
+    fun installedTag(port: Port, fork: Fork): String? = record(port, fork)?.tag?.takeIf { it.isNotEmpty() }
+
+    /** True when the user chose to stay on an earlier release of [fork]. */
+    fun isHeld(port: Port, fork: Fork): Boolean = record(port, fork)?.held == true
+
+    /** Installed versions with an update that "update all" would install: not held on an earlier release. */
+    fun pendingUpdates(ports: List<Port>): List<PendingUpdate> = ports
+        .filter { it.id != SELF_ID }
+        .flatMap { port ->
+            port.forks
+                .filter { status(port, it) is PortStatus.UpdateAvailable && !isHeld(port, it) }
+                .map { PendingUpdate(port, it) }
+        }
 
     private val _updatingAll = MutableStateFlow(false)
     val updatingAll: StateFlow<Boolean> = _updatingAll.asStateFlow()
 
     /**
-     * Updates [ports] one after another, so at most one confirmation shows at a time.
-     * A port that fails is skipped; its error stays on its page.
+     * Updates the installed versions of [ports] one after another, so at most one confirmation
+     * shows at a time. A port that fails is skipped; its error stays on its page.
      */
     fun updateAll(ports: List<Port>) {
         if (_updatingAll.value) return
         val queue = pendingUpdates(ports)
         if (queue.isEmpty()) return
         if (!canInstall()) {
-            setPhase(queue.first().id, InstallPhase.NeedsPermission)
+            setPhase(queue.first().port.id, InstallPhase.NeedsPermission)
             return
         }
         _updatingAll.value = true
         scope.launch {
             try {
-                for (port in queue) {
-                    val fork = port.recommendedFork ?: continue
+                for ((port, fork) in queue) {
                     install(port, fork)
                     // A paused port waits for the user; the others go on.
                     phases.first { phase ->
@@ -234,42 +281,42 @@ class InstallManager(private val context: Context) {
     }
 
     /**
-     * True when [packageName] looks like a build from one of the port's repositories: same
-     * package (when the catalog knows it) and signed with the same certificate. Only then can
-     * Recompa update it in place.
+     * The version of [port] that [packageName] looks like a build of: same package (when the
+     * catalog knows it) and signed with the same certificate. Only then can Recompa update it
+     * in place. Null when it matches none.
      */
-    fun matchesCatalog(port: Port, packageName: String): Boolean {
-        val installed = context.packageManager.packageInfoOrNull(packageName)?.toInstalledPackage() ?: return false
-        return port.forks.any { fork ->
-            val signer = fork.signerSha256 ?: return@any false
+    fun matchingFork(port: Port, packageName: String): Fork? {
+        val installed = context.packageManager.packageInfoOrNull(packageName)?.toInstalledPackage() ?: return null
+        return port.forks.firstOrNull { fork ->
+            val signer = fork.signerSha256 ?: return@firstOrNull false
             (fork.packageName == null || fork.packageName == packageName) &&
                 installed.signerSha256.any { it.equals(signer, ignoreCase = true) }
         }
     }
 
-    /** Treats [packageName], installed outside Recompa, as this port from now on. */
-    fun link(port: Port, packageName: String) {
-        records.put(port.id, InstallRecord(packageName, tag = "", repo = "", linked = true))
+    /** Treats [packageName], installed outside Recompa, as version [fork] of this port from now on. */
+    fun link(port: Port, fork: Fork, packageName: String) {
+        records.put(port.id, InstallRecord(packageName, tag = "", repo = fork.repo, linked = true))
         refresh()
     }
 
-    fun unlink(port: Port) {
-        records.remove(port.id)
+    fun unlink(port: Port, fork: Fork) {
+        forget(port, fork)
         refresh()
     }
 
     /** True when the user picked the installed app by hand, rather than Recompa installing it. */
-    fun isLinked(port: Port): Boolean {
-        val record = records.get(port.id) ?: return false
-        return record.linked && packageName(port) == record.packageName
+    fun isLinked(port: Port, fork: Fork): Boolean {
+        val record = record(port, fork) ?: return false
+        return record.linked && isInstalled(record.packageName)
     }
 
-    fun launchIntent(port: Port): Intent? =
-        packageName(port)?.let { context.packageManager.getLaunchIntentForPackage(it) }
+    fun launchIntent(port: Port, fork: Fork): Intent? =
+        packageName(port, fork)?.let { context.packageManager.getLaunchIntentForPackage(it) }
             ?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 
-    fun uninstallIntent(port: Port): Intent? =
-        packageName(port)?.let { Intent(Intent.ACTION_DELETE, Uri.parse("package:$it")) }
+    fun uninstallIntent(port: Port, fork: Fork): Intent? =
+        packageName(port, fork)?.let { Intent(Intent.ACTION_DELETE, Uri.parse("package:$it")) }
 
     fun dismiss(portId: String) {
         reinstalls.remove(portId)
@@ -292,14 +339,16 @@ class InstallManager(private val context: Context) {
      */
     fun uninstallToReinstall(port: Port): Intent? {
         val request = lastRequests[port.id] ?: return null
-        val intent = uninstallIntent(port) ?: return null
+        // The build in the way is in the package the picked version installs as.
+        val intent = uninstallIntent(port, request.fork) ?: return null
         reinstalls[port.id] = request
         return intent
     }
 
     /** Starts the install that waited for an uninstall, once [port] is not installed any more. */
     fun resumeReinstall(port: Port) {
-        if (!reinstalls.containsKey(port.id) || status(port) != PortStatus.NotInstalled) return
+        val waiting = reinstalls[port.id] ?: return
+        if (status(port, waiting.fork) != PortStatus.NotInstalled) return
         val request = reinstalls.remove(port.id) ?: return
         install(request.port, request.fork, request.release, request.trusted)
     }

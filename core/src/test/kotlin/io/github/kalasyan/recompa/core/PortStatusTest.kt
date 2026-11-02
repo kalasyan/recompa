@@ -38,4 +38,22 @@ class PortStatusTest {
         assertEquals(PortStatus.OtherFork(alt), PortStatusResolver.resolve(main, listOf(main, alt), installed("bb"), null))
         assertEquals(PortStatus.UnknownSigner, PortStatusResolver.resolve(main, listOf(main, alt), installed("cc"), null))
     }
+
+    @Test
+    fun eachVersionHasItsOwnStatus() {
+        // The other version installed in the same package: up to date there, taken here.
+        assertEquals(PortStatus.UpToDate, PortStatusResolver.resolve(alt, listOf(main, alt), installed("bb"), "v2"))
+        assertEquals(PortStatus.OtherFork(alt), PortStatusResolver.resolve(main, listOf(main, alt), installed("bb"), null))
+    }
+
+    @Test
+    fun aVersionWithoutAPinnedSignerTrustsWhatRecompaInstalled() {
+        val unpinned = fork("new/port", null)
+        assertEquals(PortStatus.UpToDate, PortStatusResolver.resolve(unpinned, listOf(main, unpinned), installed("dd"), "v2"))
+        assertEquals(PortStatus.UnknownSigner, PortStatusResolver.resolve(unpinned, listOf(main, unpinned), installed("dd"), null))
+        assertEquals(
+            PortStatus.OtherFork(main),
+            PortStatusResolver.resolve(unpinned, listOf(main, unpinned), installed("dd"), null, claimedBy = main),
+        )
+    }
 }

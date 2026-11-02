@@ -33,15 +33,28 @@ data class Port(
     val assets: List<Asset> = emptyList(),
     val media: Media? = null,
     val art: Art? = null,
-    /** How the port runs on each device, from players' reports. */
+    /** How the port runs on each device, from players' reports of all its versions. */
     val reports: List<DeviceReport> = emptyList(),
     /** The texts in other languages, by language code. The fields above are in English. */
     val i18n: Map<String, PortTexts> = emptyMap(),
+<<<<<<< HEAD
     /** When the catalog first published this port (UTC, ISO 8601); null in catalogs older than the field. */
     @SerialName("added_at") val addedAt: String? = null,
+=======
+    /** Ids of ports merged into this one: what Recompa installed under them belongs here now. */
+    val aliases: List<String> = emptyList(),
+>>>>>>> da02acf (Let players pick which port of a game to install)
 ) {
-    /** The first fork with a published release; forks are listed in order of preference. */
-    val recommendedFork: Fork? get() = forks.firstOrNull { it.release != null }
+    /**
+     * The versions of the game a player can install: each fork (or separate port of the same
+     * game) with a published release.
+     */
+    val versions: List<Fork> get() = forks.filter { it.release != null }
+
+    /** The version to suggest: the best rated by players, else the first one (see [ForkRanking]). */
+    val recommendedFork: Fork? get() = ForkRanking.best(forks)
+
+    fun fork(repo: String?): Fork? = forks.firstOrNull { it.repo == repo }
 
     /** This port with its texts in [language] when the catalog has them, in English otherwise. */
     fun localized(language: String): Port {
@@ -67,9 +80,20 @@ data class AssetTexts(
     val accepted: List<String> = emptyList(),
 )
 
+/**
+ * One version of a port's game: a build from one repository. Several forks of the same project,
+ * and separate ports of the same game, are all versions of one port; they share everything but
+ * their releases and their players' reports.
+ */
 @Serializable
 data class Fork(
     val repo: String,
+    /** This version's own name, when it is not the port's. */
+    val name: String? = null,
+    /** This version's type (recomp, decomp...), when it is not the port's. */
+    val type: String? = null,
+    /** The id of the port this version was in before it was merged into this one. */
+    val formerly: String? = null,
     val official: Boolean = false,
     val channel: String = "stable",
     @SerialName("asset_pattern") val assetPattern: String,
@@ -82,8 +106,31 @@ data class Fork(
     val history: List<Release> = emptyList(),
     /** Releases the catalog warns against, for example because they break saves. */
     val blocked: List<BlockedRelease> = emptyList(),
+    /** How this version runs on each device, from players' reports. */
+    val reports: List<DeviceReport> = emptyList(),
 ) {
     fun blockedReason(tag: String?): BlockedRelease? = blocked.firstOrNull { it.tag == tag }
+
+    /** The repository's name without its owner, to tell versions apart when they have no name. */
+    val repoName: String get() = repo.substringAfter('/')
+}
+
+/** How players rate the versions of a port, to recommend one. */
+object ForkRanking {
+    /** Positive reports (perfect or playable) minus broken ones, on every device. */
+    fun score(reports: List<DeviceReport>): Int = reports.sumOf { it.great + it.playable - it.broken }
+
+    /**
+     * The best rated fork with a release. Ties (and forks nobody reported on yet) go to the
+     * most "perfect" reports, then to the catalog's order, which already puts the best rated
+     * first when it was built and otherwise follows the order the curator chose.
+     */
+    fun best(forks: List<Fork>): Fork? = forks.withIndex()
+        .filter { it.value.release != null }
+        .maxWithOrNull(
+            compareBy<IndexedValue<Fork>>({ score(it.value.reports) }, { r -> r.value.reports.sumOf { it.great } })
+                .thenByDescending { it.index },
+        )?.value
 }
 
 @Serializable

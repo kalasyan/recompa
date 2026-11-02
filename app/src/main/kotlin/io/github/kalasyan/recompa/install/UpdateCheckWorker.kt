@@ -62,12 +62,12 @@ class UpdateCheckWorker(context: Context, params: WorkerParameters) : CoroutineW
             return Result.success()
         }
         // Don't repeat the same notification every check: only when the set of updates changes.
-        val signature = pending.joinToString("|") { "${it.id}@${it.recommendedFork?.release?.tag}" }
+        val signature = pending.joinToString("|") { "${it.port.id}@${it.fork.repo}@${it.fork.release?.tag}" }
         if (signature == prefs.getString(LAST_NOTIFIED, null) || !canNotify(app)) return Result.success()
 
         val texts = AppLanguage.wrap(app)
         createChannel(texts)
-        val names = pending.joinToString(", ") { it.name }
+        val names = pending.map { it.port.name }.distinct().joinToString(", ")
         val notification = NotificationCompat.Builder(app, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(texts.resources.getQuantityString(R.plurals.updates_notification_title, pending.size, pending.size))

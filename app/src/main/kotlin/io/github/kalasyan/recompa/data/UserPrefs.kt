@@ -32,6 +32,15 @@ class UserPrefs(private val context: Context) {
         _favorites.value = updated
     }
 
+    /** Keeps the favorites of ports merged into another one ([aliases] -> id) as favorites of that one. */
+    fun followMerges(aliases: Map<String, String>) {
+        val current = _favorites.value
+        val updated = current.map { aliases[it] ?: it }.toSet()
+        if (updated == current) return
+        prefs.edit().putStringSet(FAVORITES, updated).apply()
+        _favorites.value = updated
+    }
+
     /**
      * Frontend mode runs Recompa full screen and lets Android offer it as the home app,
      * through an activity alias that stays disabled otherwise.

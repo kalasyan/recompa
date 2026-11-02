@@ -19,7 +19,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.kalasyan.recompa.R
-import io.github.kalasyan.recompa.core.install.PortStatus
 import io.github.kalasyan.recompa.data.AndroidDevice
 import io.github.kalasyan.recompa.ui.theme.LocalPalette
 
@@ -30,6 +29,7 @@ internal class PortTab(val title: String, val content: @Composable () -> Unit)
 @Composable
 internal fun portTabs(item: PortItem, galleryHeight: Dp): List<PortTab> {
     val port = item.port
+    val fork = pickedFork(port)
     val screenshots = port.art?.screenshots.orEmpty()
     return buildList {
         if (screenshots.isNotEmpty()) {
@@ -43,8 +43,9 @@ internal fun portTabs(item: PortItem, galleryHeight: Dp): List<PortTab> {
                 if (port.requirements.vulkan) Text(stringResource(R.string.req_vulkan))
             },
         )
-        if (port.recommendedFork?.release != null) add(PortTab(stringResource(R.string.section_versions)) { VersionsSection(item) })
-        add(PortTab(stringResource(R.string.section_reports)) { ReportsSection(port) })
+        // The picked version's releases and reports (see PortActions).
+        if (fork.release != null) add(PortTab(stringResource(R.string.section_versions)) { VersionsSection(item, fork) })
+        add(PortTab(stringResource(R.string.section_reports)) { ReportsSection(port, fork) })
         add(
             PortTab(stringResource(R.string.section_forks)) {
                 port.forks.forEach { fork -> ForkRow(fork, recommended = fork == port.recommendedFork) }
@@ -62,16 +63,17 @@ internal fun portStats(item: PortItem): List<PortStat> {
     val port = item.port
     val manager = rememberInstallManager()
     val revision by manager.revision.collectAsStateWithLifecycle()
-    val status = remember(port, revision) { manager.status(port) }
-    val installedTag = remember(port, revision) { manager.installedTag(port) }
+    val fork = pickedFork(port)
+    val status = remember(port, fork, revision) { manager.status(port, fork) }
+    val installedTag = remember(port, fork, revision) { manager.installedTag(port, fork) }
     val reports = port.reportSummary()
-    val release = port.recommendedFork?.release
+    val release = fork.release
     return buildList {
         if (reports.total > 0) {
             add(PortStat("${reports.workingPercent}%", stringResource(R.string.stat_working)))
             add(PortStat(reports.total.toString(), stringResource(R.string.stat_reports)))
         }
-        val tag = (if (status != PortStatus.NotInstalled) installedTag else null) ?: release?.tag
+        val tag = (if (status.installed) installedTag else null) ?: release?.tag
         tag?.let { add(PortStat(it.removePrefix("v").take(16), stringResource(R.string.stat_version))) }
         release?.asset?.size?.let { add(PortStat(sizeText(it), stringResource(R.string.stat_size))) }
     }

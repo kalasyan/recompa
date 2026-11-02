@@ -32,12 +32,13 @@ class FeedbackClient(
         .readTimeout(30, TimeUnit.SECONDS)
         .build(),
 ) {
-    /** [result] is `great`, `playable` or `broken`. */
-    suspend fun sendReport(port: String, device: String, version: String?, result: String, notes: String) =
+    /** [result] is `great`, `playable` or `broken`; [fork] is the repository of the version played. */
+    suspend fun sendReport(port: String, fork: String, device: String, version: String?, result: String, notes: String) =
         post(
             "report",
             JSONObject()
                 .put("port", port)
+                .put("fork", fork)
                 .put("device", device)
                 .put("version", version ?: "")
                 .put("result", result)

@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.kalasyan.recompa.BuildConfig
+import io.github.kalasyan.recompa.RecompaApplication
 import io.github.kalasyan.recompa.core.catalog.LiveReports
 import io.github.kalasyan.recompa.core.catalog.Port
 import io.github.kalasyan.recompa.core.catalog.UnsupportedCatalogException
@@ -69,7 +70,10 @@ class CatalogViewModel(application: Application) : AndroidViewModel(application)
         _state.value = CatalogState.Loading
         viewModelScope.launch {
             _state.value = try {
-                ready(repository.load().also { loaded = it }).also { refreshReports(force = true) }
+                ready(repository.load().also { loaded = it }).also {
+                    refreshReports(force = true)
+                    followMerges()
+                }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: UnsupportedCatalogException) {
@@ -104,24 +108,40 @@ class CatalogViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    /** Counts a report the player just sent, before the endpoint's next answer includes it. */
-    fun reportSent(portId: String, device: String, result: String, tag: String?) {
-        val catalog = loaded?.index?.ports?.firstOrNull { it.id == portId }?.reports.orEmpty()
-        live = (live ?: LiveReports()).withReport(portId, device, result, tag, fallback = catalog)
+    /** Counts a report the player just sent about [fork], before the endpoint's next answer includes it. */
+    fun reportSent(portId: String, fork: String, device: String, result: String, tag: String?) {
+        val port = loaded?.index?.ports?.firstOrNull { it.id == portId }
+        live = (live ?: LiveReports()).withReport(
+            portId, fork, device, result, tag,
+            fallback = port?.reports.orEmpty(),
+            forkFallback = port?.fork(fork)?.reports.orEmpty(),
+        )
         // The endpoint caches its answer for a couple of minutes: don't overwrite this with it yet.
         liveAt = System.currentTimeMillis() + 90_000
         loaded?.let { _state.value = ready(it) }
+    }
+
+    /** Favorites of ports merged into another one become favorites of that one. */
+    private fun followMerges() {
+        val aliases = loaded?.index?.ports.orEmpty().flatMap { port -> port.aliases.map { it to port.id } }.toMap()
+        if (aliases.isNotEmpty()) getApplication<RecompaApplication>().prefs.followMerges(aliases)
     }
 
     private fun feedbackUrl(): String? = loaded?.index?.feedbackUrl?.takeIf { it.startsWith("https://") }
 
     private fun ready(loaded: LoadedCatalog): CatalogState.Ready {
         val reports = live?.reports
+        val forkReports = live?.forks
         val items = loaded.index.ports
             .map { it.localized(language) }
             .map { port ->
                 val rows = reports?.get(port.id) ?: if (liveComplete) emptyList() else port.reports
-                port.copy(reports = rows)
+                // An endpoint from before versions had their own reports answers without them.
+                val byFork = forkReports?.get(port.id)
+                val forks = port.forks.map { fork ->
+                    fork.copy(reports = byFork?.get(fork.repo) ?: if (liveComplete && forkReports != null) emptyList() else fork.reports)
+                }
+                port.copy(reports = rows, forks = forks)
             }
             .map { PortItem(it, Compatibility.check(it.requirements, device)) }
             .sortedWith(compareBy({ !it.compatible }, { it.port.name.lowercase() }))

@@ -30,6 +30,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.kalasyan.recompa.R
 import io.github.kalasyan.recompa.RecompaApplication
 import io.github.kalasyan.recompa.core.install.ApkCheck
+import io.github.kalasyan.recompa.core.catalog.Fork
 import io.github.kalasyan.recompa.core.install.ApkCheckResult
 import io.github.kalasyan.recompa.core.install.PortStatus
 import io.github.kalasyan.recompa.data.UserPrefs
@@ -57,9 +58,12 @@ fun rememberSecondScreen(): SecondScreen {
     return remember { (context.applicationContext as RecompaApplication).secondScreen }
 }
 
-/** Install, update, open and uninstall buttons for a port, with progress and errors. */
+/**
+ * Install, update, open and uninstall buttons for [fork], the version of the port the player
+ * picked, with progress and errors.
+ */
 @Composable
-fun InstallActions(item: PortItem, manager: InstallManager = rememberInstallManager()) {
+fun InstallActions(item: PortItem, fork: Fork, manager: InstallManager = rememberInstallManager()) {
     val context = LocalContext.current
     val port = item.port
     val phases by manager.phases.collectAsStateWithLifecycle()
@@ -68,10 +72,9 @@ fun InstallActions(item: PortItem, manager: InstallManager = rememberInstallMana
         manager.refresh()
         onPauseOrDispose { }
     }
-    val status = remember(port, revision) { manager.status(port) }
+    val status = remember(port, fork, revision) { manager.status(port, fork) }
     val phase = phases[port.id] ?: InstallPhase.Idle
-    val fork = port.recommendedFork
-    val linked = remember(port, revision) { manager.isLinked(port) }
+    val linked = remember(port, fork, revision) { manager.isLinked(port, fork) }
     var picking by remember { mutableStateOf(false) }
     var mismatch by remember { mutableStateOf<LinkCandidate?>(null) }
     var confirmAnyway by remember { mutableStateOf(false) }
@@ -111,7 +114,9 @@ fun InstallActions(item: PortItem, manager: InstallManager = rememberInstallMana
             manager = manager,
             onPick = { app ->
                 picking = false
-                if (manager.matchesCatalog(port, app.packageName)) manager.link(port, app.packageName) else mismatch = app
+                // A build of another version is linked as that one.
+                val match = manager.matchingFork(port, app.packageName)
+                if (match != null) manager.link(port, match, app.packageName) else mismatch = app
             },
             onDismiss = { picking = false },
         )
@@ -121,7 +126,7 @@ fun InstallActions(item: PortItem, manager: InstallManager = rememberInstallMana
             app = app,
             portName = port.name,
             onLinkAnyway = {
-                manager.link(port, app.packageName)
+                manager.link(port, fork, app.packageName)
                 mismatch = null
             },
             onDismiss = { mismatch = null },
@@ -183,36 +188,40 @@ fun InstallActions(item: PortItem, manager: InstallManager = rememberInstallMana
         }
 
         val busy = phase !is InstallPhase.Idle && phase !is InstallPhase.Failed && phase != InstallPhase.NeedsPermission
-        val canInstall = fork != null && item.compatible && !busy
+        val canInstall = fork.release != null && item.compatible && !busy
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
             when (status) {
                 PortStatus.NotInstalled -> Button(
-                    onClick = { manager.install(port, fork!!) },
+                    onClick = { manager.install(port, fork) },
                     enabled = canInstall,
                     modifier = Modifier.weight(1f).focusRing(),
                 ) { Text(stringResource(R.string.action_install)) }
                 is PortStatus.UpdateAvailable -> {
-                    Button(onClick = { manager.install(port, fork!!) }, enabled = canInstall, modifier = Modifier.weight(1f).focusRing()) {
+                    Button(onClick = { manager.install(port, fork) }, enabled = canInstall, modifier = Modifier.weight(1f).focusRing()) {
                         Text(stringResource(R.string.action_update, status.tag))
                     }
-                    OpenButton(manager, item, Modifier.weight(1f))
+                    OpenButton(manager, item, fork, Modifier.weight(1f))
                 }
-                PortStatus.UpToDate, PortStatus.UnknownSigner, is PortStatus.OtherFork ->
-                    OpenButton(manager, item, Modifier.weight(1f))
+                PortStatus.UpToDate, PortStatus.UnknownSigner -> OpenButton(manager, item, fork, Modifier.weight(1f))
+                // The package is taken by another version: it has to go first.
+                is PortStatus.OtherFork -> OutlinedButton(
+                    onClick = { manager.uninstallIntent(port, status.fork)?.let(context::startSafely) },
+                    modifier = Modifier.weight(1f).focusRing(),
+                ) { Text(stringResource(R.string.action_uninstall_other, forkLabel(status.fork))) }
             }
         }
         when (status) {
             PortStatus.UnknownSigner ->
                 Note(stringResource(if (linked) R.string.status_linked_mismatch else R.string.status_unknown_signer))
-            is PortStatus.OtherFork -> Note(stringResource(R.string.status_other_fork, status.fork.repo))
-            is PortStatus.UpdateAvailable -> if (manager.isHeld(port)) {
-                Note(stringResource(R.string.status_held, manager.installedTag(port).orEmpty()))
+            is PortStatus.OtherFork -> Note(stringResource(R.string.status_other_fork, forkLabel(status.fork)))
+            is PortStatus.UpdateAvailable -> if (manager.isHeld(port, fork)) {
+                Note(stringResource(R.string.status_held, manager.installedTag(port, fork).orEmpty()))
             }
             else -> Unit
         }
-        if (status != PortStatus.NotInstalled) {
-            val installedTag = manager.installedTag(port)
-            fork?.blockedReason(installedTag)?.let { blocked ->
+        if (status.installed) {
+            val installedTag = manager.installedTag(port, fork)
+            fork.blockedReason(installedTag)?.let { blocked ->
                 Text(
                     blocked.reason?.let { stringResource(R.string.status_blocked_reason, installedTag.orEmpty(), it) }
                         ?: stringResource(R.string.status_blocked, installedTag.orEmpty()),
@@ -221,18 +230,18 @@ fun InstallActions(item: PortItem, manager: InstallManager = rememberInstallMana
                 )
             }
         }
-        if (status == PortStatus.NotInstalled && fork != null && !busy) {
+        if (status == PortStatus.NotInstalled && !busy) {
             TextButton(onClick = { picking = true }, modifier = Modifier.focusRing()) {
                 Text(stringResource(R.string.action_link))
             }
         }
-        if (status != PortStatus.NotInstalled) {
+        if (status.installed) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextButton(onClick = { manager.uninstallIntent(port)?.let(context::startSafely) }, modifier = Modifier.focusRing()) {
+                TextButton(onClick = { manager.uninstallIntent(port, fork)?.let(context::startSafely) }, modifier = Modifier.focusRing()) {
                     Text(stringResource(R.string.action_uninstall))
                 }
                 if (linked) {
-                    TextButton(onClick = { manager.unlink(port) }, modifier = Modifier.focusRing()) {
+                    TextButton(onClick = { manager.unlink(port, fork) }, modifier = Modifier.focusRing()) {
                         Text(stringResource(R.string.action_unlink))
                     }
                 }
@@ -266,9 +275,9 @@ private fun ConfirmDialog(title: String, text: String, confirm: String, onConfir
 }
 
 @Composable
-private fun OpenButton(manager: InstallManager, item: PortItem, modifier: Modifier) {
+private fun OpenButton(manager: InstallManager, item: PortItem, fork: Fork, modifier: Modifier) {
     val context = LocalContext.current
-    OutlinedButton(onClick = { manager.launchIntent(item.port)?.let(context::startSafely) }, modifier = modifier.focusRing()) {
+    OutlinedButton(onClick = { manager.launchIntent(item.port, fork)?.let(context::startSafely) }, modifier = modifier.focusRing()) {
         Text(stringResource(R.string.action_open))
     }
 }
@@ -317,3 +326,6 @@ internal fun Context.startSafely(intent: Intent) {
         // Nothing to open: the button simply does nothing on this device.
     }
 }
+
+/** How a version is called on screen: its own name, else its repository. */
+internal fun forkLabel(fork: Fork): String = fork.name ?: fork.repo

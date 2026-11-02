@@ -1,5 +1,12 @@
 package io.github.kalasyan.recompa.ui
 
+import io.github.kalasyan.recompa.core.catalog.Port
+import androidx.compose.ui.semantics.Role
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.material3.RadioButton
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.border
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
@@ -145,7 +152,7 @@ private fun ClassicPortPage(item: PortItem, header: @Composable () -> Unit) {
                     )
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Pill(platformName(port.originalPlatform))
-                        Pill(typeName(port.type))
+                        Pill(typeName(pickedFork(port).type ?: port.type))
                         StatusPill(item, status)
                     }
                     if (wide) PortActions(item)
@@ -186,7 +193,9 @@ internal fun PortActions(item: PortItem) {
             }
         }
         if (item.port.recommendedFork != null) {
-            Box(Modifier.widthIn(max = 420.dp)) { InstallActions(item) }
+            val fork = pickedFork(item.port)
+            if (item.port.versions.size > 1) VersionPicker(item.port, fork) { PickedForks.pick(item.port, it) }
+            Box(Modifier.widthIn(max = 420.dp)) { InstallActions(item, fork) }
         } else {
             Text(stringResource(R.string.no_release), color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
@@ -218,6 +227,99 @@ private fun Section(title: String, content: @Composable () -> Unit) {
     }
 }
 
+/**
+ * The ports of this game a player can install, to pick one: each with how players rate it,
+ * the recommended (best rated) one marked, and the installed ones.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun VersionPicker(port: Port, selected: Fork, onPick: (Fork) -> Unit) {
+    val manager = rememberInstallManager()
+    val revision by manager.revision.collectAsStateWithLifecycle()
+    val installed = remember(port, revision) { manager.installedForks(port).map { it.repo }.toSet() }
+    val recommended = port.recommendedFork
+    Column(Modifier.widthIn(max = 520.dp).selectableGroup(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(stringResource(R.string.versions_pick_title), style = MaterialTheme.typography.titleSmall)
+        Text(
+            stringResource(R.string.versions_pick_help),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        port.versions.forEach { fork ->
+            val shape = RoundedCornerShape(12.dp)
+            val chosen = fork.repo == selected.repo
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .focusRing(shape)
+                    .clip(shape)
+                    .background(if (chosen) Accent.copy(alpha = 0.18f) else Color.White.copy(alpha = 0.05f))
+                    .border(1.dp, if (chosen) Accent else Color.Transparent, shape)
+                    .selectable(selected = chosen, role = Role.RadioButton, onClick = { onPick(fork) })
+                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                RadioButton(selected = chosen, onClick = null)
+                Spacer(Modifier.width(8.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(forkLabel(fork), style = MaterialTheme.typography.bodyLarge)
+                    val details = listOfNotNull(
+                        fork.repo.takeIf { fork.name != null },
+                        fork.type?.takeIf { it != port.type }?.let { typeName(it) },
+                        fork.release?.tag,
+                        ratingText(fork),
+                    )
+                    Text(
+                        details.joinToString(" · "),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    if (fork == recommended) Pill(stringResource(R.string.fork_recommended), color = Accent, textColor = Night)
+                    if (fork.repo in installed) {
+                        Pill(stringResource(R.string.status_installed), color = MaterialTheme.colorScheme.secondary, textColor = Night)
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** How players rate [fork], in a few words. */
+@Composable
+private fun ratingText(fork: Fork): String {
+    val reports = fork.reports
+    if (reports.isEmpty()) return stringResource(R.string.fork_no_reports)
+    val good = reports.sumOf { it.great + it.playable }
+    val broken = reports.sumOf { it.broken }
+    return stringResource(R.string.fork_rating, good, broken)
+}
+
+/**
+ * The version of each port the player picked on its page, shared by the actions and the
+ * sections of every style. Kept while the app runs; a port nobody picked a version of shows
+ * the installed one, else the recommended one.
+ */
+internal object PickedForks {
+    private val picked = mutableStateMapOf<String, String>()
+
+    fun pick(port: Port, fork: Fork) {
+        picked[port.id] = fork.repo
+    }
+
+    fun repo(port: Port): String? = picked[port.id]
+}
+
+/** The version of [port] its page is about: picked, else installed, else recommended. */
+@Composable
+internal fun pickedFork(port: Port): Fork {
+    val manager = rememberInstallManager()
+    val revision by manager.revision.collectAsStateWithLifecycle()
+    val installed = remember(port, revision) { manager.installedFork(port) }
+    return port.fork(PickedForks.repo(port)) ?: installed ?: port.recommendedFork ?: port.forks.first()
+}
+
 @Composable
 internal fun ForkRow(fork: Fork, recommended: Boolean) {
     val context = LocalContext.current
@@ -242,6 +344,7 @@ internal fun ForkRow(fork: Fork, recommended: Boolean) {
                 .background(if (recommended) Accent else Color.White.copy(alpha = 0.2f), CircleShape),
         )
         Column(Modifier.weight(1f)) {
+            fork.name?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
             Text("${fork.repo} ↗", style = MaterialTheme.typography.bodyLarge, color = Accent)
             val release = fork.release
             Text(

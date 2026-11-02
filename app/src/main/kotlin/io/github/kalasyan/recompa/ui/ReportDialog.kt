@@ -29,6 +29,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import io.github.kalasyan.recompa.R
+import io.github.kalasyan.recompa.core.catalog.Fork
 import io.github.kalasyan.recompa.core.catalog.Port
 import io.github.kalasyan.recompa.data.FeedbackClient
 import io.github.kalasyan.recompa.data.FeedbackResult
@@ -54,6 +55,7 @@ private val results = listOf(
 @Composable
 fun ReportDialog(
     port: Port,
+    fork: Fork,
     device: String,
     installedTag: String?,
     feedbackUrl: String,
@@ -74,7 +76,11 @@ fun ReportDialog(
 
     AlertDialog(
         onDismissRequest = { if (!sending) onDismiss() },
-        title = { Text(stringResource(R.string.report_title, port.name)) },
+        title = {
+            // With several versions, say which one the report is about.
+            val name = if (port.forks.size > 1) "${port.name} (${forkLabel(fork)})" else port.name
+            Text(stringResource(R.string.report_title, name))
+        },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(stringResource(R.string.report_result), style = MaterialTheme.typography.titleSmall)
@@ -120,7 +126,7 @@ fun ReportDialog(
                     Text(message, color = MaterialTheme.colorScheme.error)
                     TextButton(
                         onClick = {
-                            context.startSafely(Intent(Intent.ACTION_VIEW, reportUrl(port, model.trim(), version.trim().ifEmpty { null })))
+                            context.startSafely(Intent(Intent.ACTION_VIEW, reportUrl(port, fork, model.trim(), version.trim().ifEmpty { null })))
                             onDismiss()
                         },
                         modifier = Modifier.focusRing(),
@@ -139,7 +145,7 @@ fun ReportDialog(
                     failure = null
                     scope.launch {
                         val sent = FeedbackClient(feedbackUrl)
-                            .sendReport(port.id, model.trim(), version.trim().ifEmpty { null }, picked, notes.trim())
+                            .sendReport(port.id, fork.repo, model.trim(), version.trim().ifEmpty { null }, picked, notes.trim())
                         sending = false
                         if (sent == FeedbackResult.Sent) {
                             onSent(picked, model.trim(), version.trim().ifEmpty { null })

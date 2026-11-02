@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.kalasyan.recompa.R
+import io.github.kalasyan.recompa.core.catalog.Fork
 import io.github.kalasyan.recompa.core.catalog.Port
 import io.github.kalasyan.recompa.core.catalog.Release
 import io.github.kalasyan.recompa.core.install.PortStatus
@@ -37,19 +38,18 @@ import io.github.kalasyan.recompa.ui.theme.Accent
 import io.github.kalasyan.recompa.ui.theme.Night
 
 /**
- * The recommended fork's latest release and the earlier ones the catalog keeps, to go back
+ * The picked version's latest release and the earlier ones the catalog keeps, to go back
  * to one when an update breaks something.
  */
 @Composable
-fun VersionsSection(item: PortItem) {
+fun VersionsSection(item: PortItem, fork: Fork) {
     val port = item.port
-    val fork = port.recommendedFork ?: return
     val latest = fork.release ?: return
     val manager = rememberInstallManager()
     val phases by manager.phases.collectAsStateWithLifecycle()
     val revision by manager.revision.collectAsStateWithLifecycle()
-    val status = remember(port, revision) { manager.status(port) }
-    val installedTag = remember(port, revision) { manager.installedTag(port) }
+    val status = remember(port, fork, revision) { manager.status(port, fork) }
+    val installedTag = remember(port, fork, revision) { manager.installedTag(port, fork) }
     val phase = phases[port.id] ?: InstallPhase.Idle
     val busy = phase !is InstallPhase.Idle && phase !is InstallPhase.Failed && phase != InstallPhase.NeedsPermission
     // Going back only makes sense for the fork that is installed, or before installing anything.
@@ -68,7 +68,7 @@ fun VersionsSection(item: PortItem) {
         VersionRow(
             release = release,
             latest = release == latest,
-            installed = status != PortStatus.NotInstalled && release.tag == installedTag,
+            installed = status.installed && release.tag == installedTag,
             enabled = canPick,
             onInstall = { manager.install(port, fork, release) },
         )
@@ -100,13 +100,23 @@ private fun VersionRow(release: Release, latest: Boolean, installed: Boolean, en
     }
 }
 
-/** How the port runs on players' devices, this device first, and a button to add a report. */
+/**
+ * How [fork], the picked version of the port, runs on players' devices, this device first,
+ * and a button to add a report about it.
+ */
 @Composable
-fun ReportsSection(port: Port) {
+fun ReportsSection(port: Port, fork: Fork) {
     val context = LocalContext.current
     val manager = rememberInstallManager()
     val device = remember { AndroidDevice.modelName() }
-    val reports = port.reports.sortedByDescending { it.device.equals(device, ignoreCase = true) }
+    // A catalog from before versions had their own reports only has the port's.
+    val perFork = port.forks.size > 1 && port.forks.any { it.reports.isNotEmpty() }
+    val rows = when {
+        port.forks.size == 1 -> fork.reports.ifEmpty { port.reports }
+        perFork -> fork.reports
+        else -> port.reports
+    }
+    val reports = rows.sortedByDescending { it.device.equals(device, ignoreCase = true) }
     val feedbackUrl = LocalFeedbackUrl.current
     var reporting by rememberSaveable { mutableStateOf(false) }
     // The same view model as the catalog's, which keeps the reports the endpoint counts now.
@@ -115,11 +125,20 @@ fun ReportsSection(port: Port) {
     if (reporting && feedbackUrl != null) {
         ReportDialog(
             port,
+            fork,
             device,
-            manager.installedTag(port),
+            manager.installedTag(port, fork),
             feedbackUrl,
-            onSent = { result, model, tag -> catalog.reportSent(port.id, model, result, tag) },
+            onSent = { result, model, tag -> catalog.reportSent(port.id, fork.repo, model, result, tag) },
             onDismiss = { reporting = false },
+        )
+    }
+
+    if (perFork) {
+        Text(
+            stringResource(R.string.reports_for_fork, forkLabel(fork)),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 
@@ -161,7 +180,7 @@ fun ReportsSection(port: Port) {
             if (feedbackUrl != null) {
                 reporting = true
             } else {
-                context.startSafely(Intent(Intent.ACTION_VIEW, reportUrl(port, device, manager.installedTag(port))))
+                context.startSafely(Intent(Intent.ACTION_VIEW, reportUrl(port, fork, device, manager.installedTag(port, fork))))
             }
         },
         modifier = Modifier.padding(top = 8.dp).focusRing(),
@@ -174,11 +193,12 @@ fun ReportsSection(port: Port) {
 }
 
 /** The compatibility issue form (.github/ISSUE_TEMPLATE/compat.yml), filled in as far as possible. */
-internal fun reportUrl(port: Port, device: String, tag: String?): Uri =
+internal fun reportUrl(port: Port, fork: Fork, device: String, tag: String?): Uri =
     Uri.parse("https://github.com/kalasyan/recompa/issues/new").buildUpon()
         .appendQueryParameter("template", "compat.yml")
-        .appendQueryParameter("title", "[compat] ${port.name} · $device")
+        .appendQueryParameter("title", "[compat] ${port.name}${fork.name?.let { " ($it)" }.orEmpty()} · $device")
         .appendQueryParameter("port", port.id)
+        .appendQueryParameter("fork", fork.repo)
         .appendQueryParameter("device", device)
         .apply { if (tag != null) appendQueryParameter("version", tag) }
         .build()

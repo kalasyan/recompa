@@ -42,7 +42,7 @@
     <string name="action_open">Abrir</string>
     <string name="action_uninstall">Desinstalar</string>
     <string name="status_unknown_signer">Este port está instalado con una firma que no reconoce el catálogo; Recompa no lo actualizará.</string>
-    <string name="status_other_fork">Instalado desde otra versión (%1$s). Para cambiar a la recomendada, desinstálalo primero; puedes perder partidas guardadas.</string>
+    <string name="status_other_fork">Este port se instala como la misma app que %1$s, que tienes instalado. Desinstala ese primero para instalar este; puedes perder sus partidas guardadas.</string>
     <string name="action_link">Ya lo tengo instalado</string>
     <string name="action_unlink">Desvincular</string>
     <string name="cancel">Cancelar</string>
@@ -232,4 +232,10 @@
     <string name="mosaic_ports">ports a la vista</string>
     <string name="mosaic_updates">actualizaciones</string>
     <string name="mosaic_new">nuevos</string>
+    <string name="versions_pick_title">Elige un port</string>
+    <string name="versions_pick_help">Hay más de un port de este juego. Comparten esta ficha, pero cada uno tiene sus versiones y sus informes. El recomendado es el que tiene mejores informes.</string>
+    <string name="fork_no_reports">Sin informes aún</string>
+    <string name="fork_rating">%1$d bien · %2$d no van</string>
+    <string name="action_uninstall_other">Desinstalar %1$s</string>
+    <string name="reports_for_fork">Informes de %1$s</string>
 </resources>

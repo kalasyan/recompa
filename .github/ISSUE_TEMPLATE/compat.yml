@@ -17,6 +17,11 @@ body:
     validations:
       required: true
   - type: input
+    id: fork
+    attributes:
+      label: Repositorio del port
+      description: La versión del juego que has probado, como autor/repositorio (por ejemplo, linkzenic/2ship2harkinian-Android).
+  - type: input
     id: device
     attributes:
       label: Dispositivo

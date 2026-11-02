@@ -43,7 +43,7 @@
     <string name="action_open">Open</string>
     <string name="action_uninstall">Uninstall</string>
     <string name="status_unknown_signer">This port is installed with a signature the catalog does not know; Recompa will not update it.</string>
-    <string name="status_other_fork">Installed from another build (%1$s). To switch to the recommended one, uninstall it first; saves may be lost.</string>
+    <string name="status_other_fork">This port installs as the same app as %1$s, which you have installed. Uninstall that one first to install this one; its saves may be lost.</string>
     <string name="action_link">I already have it installed</string>
     <string name="action_unlink">Unlink</string>
     <string name="cancel">Cancel</string>
@@ -232,4 +232,10 @@
     <string name="mosaic_ports">ports shown</string>
     <string name="mosaic_updates">updates</string>
     <string name="mosaic_new">new</string>
+    <string name="versions_pick_title">Choose a port</string>
+    <string name="versions_pick_help">There is more than one port of this game. They share this page, but each one has its own releases and reports. The recommended one has the best reports.</string>
+    <string name="fork_no_reports">No reports yet</string>
+    <string name="fork_rating">%1$d good · %2$d broken</string>
+    <string name="action_uninstall_other">Uninstall %1$s</string>
+    <string name="reports_for_fork">Reports for %1$s</string>
 </resources>
