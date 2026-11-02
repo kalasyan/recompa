@@ -27,19 +27,22 @@
 
 ## 📖 About
 
-**Recompa** is an Android launcher for **native game ports**: recompilations, decompilations and source ports that run without emulation.
+**Recompa** is an Android launcher for **over 250 native game ports**: recompilations, decompilations and source ports that run without emulation.
 
 Pick a game, install its port straight from the author's GitHub, set up your copy of the game and play. Recompa is built for controllers and handhelds like the AYN Thor.
 
 ## ✨ Features
 
-- 🎮 **Over 130 ports** from PC, N64, Xbox 360, GameCube, GBA, PSP and more.
-- 🖼 **Cover art** and a dark launcher UI made for the D-pad and shoulder buttons.
+- 🎮 **Over 250 ports** from PC, N64, Xbox 360, GameCube, GBA, PSP and more: recompilations, decompilations, source ports and games packaged with an embedded emulator.
+- 🎨 **Six styles:** Classic, Shelves, List, Arcade, Mosaic and Showcase. Each one changes the layout of the library, port pages and Settings, not just the colors (Settings → Style).
+- 🖥 **Second screen:** on dual-screen handhelds like the AYN Thor, the bottom screen shows the port's page, its gallery and the download queue.
+- 🗂 **One page per game:** when a game has several ports, they share one page where you pick which one to install, each with its own ratings.
+- 🖼 **Cover art and galleries** on every port, a **Recently added** section, and a UI made for the D-pad and shoulder buttons.
 - 🔒 **Verified installs:** every APK's SHA-256 and signature are checked before installing.
 - 🧩 **Game files wizard** that checks your ROM or data files and gets them ready.
 - 🔄 **Updates** for ports from inside the app: update everything at once, get notified when ports have new versions, or go back to an earlier version if an update breaks something.
-- ⬆️ **Recompa updates itself:** it tells you when a new version is out (in the app and with a notification) and installs it over the current one.
-- 📥 **Background downloads:** leave the app while ports download, verify and install. Progress shows as a notification.
+- ⬆️ **Recompa updates itself:** it tells you when a new version is out (in the app and with a notification), installs it over the current one and shows what's new.
+- 📥 **Background downloads:** pause and resume downloads without losing progress, or leave the app while ports download, verify and install. Progress shows as a notification.
 - 🔗 **Fork links:** every fork on a port's page opens its GitHub repository, so you can see where a port comes from.
 - 📌 **Link ports you already have:** "I already have it installed" links a port you installed outside Recompa. If it doesn't match the catalog's package or signature, Recompa warns you and won't update it.
 - 🔍 **Search and favorites**, both one button away on the gamepad (X and Y).
@@ -57,6 +60,22 @@ Pick a game, install its port straight from the author's GitHub, set up your cop
 <p align="center">
   <img src="docs/screenshots/port.png" width="49%" alt="A port's page">
 </p>
+
+### Styles
+
+Pick one in **Settings → Style**.
+
+<p align="center">
+  <img src="docs/screenshots/style-classic.png" width="32%" alt="Classic style">
+  <img src="docs/screenshots/style-shelves.png" width="32%" alt="Shelves style">
+  <img src="docs/screenshots/style-list.png" width="32%" alt="List style">
+</p>
+<p align="center">
+  <img src="docs/screenshots/style-arcade.png" width="32%" alt="Arcade style">
+  <img src="docs/screenshots/style-mosaic.png" width="32%" alt="Mosaic style">
+  <img src="docs/screenshots/style-showcase.png" width="32%" alt="Showcase style">
+</p>
+<p align="center"><sub>Classic · Shelves · List · Arcade · Mosaic · Showcase</sub></p>
 
 ### Where to find things
 
