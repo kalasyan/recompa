@@ -4,7 +4,7 @@ Las versiones estables se firman con la clave privada de Recompa, que solo vive 
 
 ## Nightlies
 
-- **Publicarlas:** en este repo, el secreto `NIGHTLY_REPO_TOKEN` guarda un token fine-grained con acceso solo a `kalasyan/recompa-nightlies` y permiso **Contents: Read and write**. Sin ese secreto, la nightly se guarda como borrador (draft) de release en este repo, que solo ven los colaboradores. Se guardan las 5 últimas.
+- **Publicarlas:** se compilan y publican en el propio repo privado `kalasyan/recompa-nightlies` (workflow *Nightly*), así que en este repo no aparece ningún run. Cada push a `main` llega por un webhook de GitHub al Worker de feedback (`feedback.recompa.app/github/push`), que arranca ese workflow; la configuración está en `feedback/README.md` de recompa-catalog. También se puede lanzar a mano desde *Actions → Nightly → Run workflow* de recompa-nightlies. Se guardan las 5 últimas.
 - **Actualizarlas desde la app:** en una nightly, **Ajustes → Actualizaciones de nightlies** pide otro token fine-grained, con acceso solo a `kalasyan/recompa-nightlies` y permiso **Contents: Read-only**. Se guarda solo en el dispositivo (fuera de las copias de seguridad) y con él la app avisa de cada nightly nueva y la instala como cualquier actualización. Sin token, la nightly no busca actualizaciones. Las versiones estables no tienen esta opción y siguen buscando solo releases estables de este repo.
 
 ## Configuración (una sola vez)

@@ -1,10 +1,10 @@
 name: Android
 
+# Checks pull requests. Nightlies of main are built in the private repo
+# kalasyan/recompa-nightlies (started by a push webhook through the feedback Worker), so
+# pushes to main run nothing here; stable versions come from release.yml.
 on:
   pull_request:
-    paths-ignore: ["**.md", "site/**", ".github/workflows/site.yml"]
-  push:
-    branches: [main]
     paths-ignore: ["**.md", "site/**", ".github/workflows/site.yml"]
   workflow_dispatch:
 
@@ -29,93 +29,3 @@ jobs:
         run: ./gradlew :core:test
       - name: Lint and debug build
         run: ./gradlew :app:lintDebug :app:assembleDebug
-      - uses: actions/upload-artifact@v4
-        with:
-          name: recompa-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
-          if-no-files-found: error
-          # Artifacts of a public repo can be downloaded by anyone signed in to GitHub, so
-          # nightlies would leak through them: the nightly job deletes it, and any other
-          # run's copy expires the next day.
-          retention-days: 1
-
-  # Every build of main becomes a "nightly-N" release of the private repo
-  # kalasyan/recompa-nightlies, signed with the public debug key, so the public only sees
-  # stable releases (release.yml). Nightly builds update themselves from there with a
-  # read-only token pasted in their settings. Publishing needs the NIGHTLY_REPO_TOKEN secret
-  # (Contents: read and write on recompa-nightlies); without it the nightly becomes a draft
-  # release here, which only collaborators see. Only the last few nightlies are kept.
-  nightly:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      actions: write
-    concurrency:
-      group: nightly-release
-      cancel-in-progress: false
-    env:
-      NIGHTLY_REPO: kalasyan/recompa-nightlies
-      NIGHTLY_REPO_TOKEN: ${{ secrets.NIGHTLY_REPO_TOKEN }}
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: recompa-debug-apk
-          path: apk
-      - name: Publish nightly to the private repo
-        if: env.NIGHTLY_REPO_TOKEN != ''
-        env:
-          GH_TOKEN: ${{ env.NIGHTLY_REPO_TOKEN }}
-          GH_REPO: ${{ env.NIGHTLY_REPO }}
-        run: |
-          cp apk/*.apk recompa.apk
-          # A release needs a commit to tag: give a new, empty repo its first one.
-          if ! gh api "repos/$GH_REPO/commits?per_page=1" --silent 2>/dev/null; then
-            printf '# Recompa nightlies\n\nPrivate test builds of https://github.com/kalasyan/recompa, one per push to main.\n' > README.md
-            gh api -X PUT "repos/$GH_REPO/contents/README.md" \
-              -f message="Add a README" -f content="$(base64 -w0 README.md)" --silent
-          fi
-          gh release create "nightly-${GITHUB_RUN_NUMBER}" recompa.apk \
-            --title "Nightly ${GITHUB_RUN_NUMBER}" \
-            --notes "Build automática de main (kalasyan/recompa@${GITHUB_SHA})."
-          gh release list --limit 100 --json tagName --jq '.[].tagName' \
-            | grep '^nightly-' | sort -t- -k2 -n -r | tail -n +6 \
-            | xargs -r -n1 gh release delete --cleanup-tag --yes
-      - name: Publish nightly draft
-        if: env.NIGHTLY_REPO_TOKEN == ''
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-        run: |
-          echo "::warning::NIGHTLY_REPO_TOKEN is not set: publishing the nightly as a draft here"
-          cp apk/*.apk recompa.apk
-          gh release create "nightly-${GITHUB_RUN_NUMBER}" recompa.apk \
-            --draft \
-            --target "$GITHUB_SHA" \
-            --title "Nightly ${GITHUB_RUN_NUMBER}" \
-            --notes "Build automática de main (${GITHUB_SHA::7})."
-      # Drafts here are kept only until nightlies go to the private repo; nightlies published
-      # before any of this (public, with tags) are removed.
-      - name: Prune nightlies here
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-        run: |
-          keep=5
-          [ -n "$NIGHTLY_REPO_TOKEN" ] && keep=0
-          gh release list --limit 100 --json tagName,isDraft --jq '.[] | select(.isDraft) | .tagName' \
-            | grep '^nightly-' | sort -t- -k2 -n -r | tail -n +$((keep + 1)) \
-            | xargs -r -n1 gh release delete --yes
-          gh release list --limit 100 --json tagName,isDraft --jq '.[] | select(.isDraft | not) | .tagName' \
-            | grep '^nightly-' \
-            | xargs -r -n1 gh release delete --cleanup-tag --yes
-      # This run's APK and any left by other runs (pull requests, older builds).
-      - name: Delete the APK artifacts
-        if: always()
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-        run: |
-          gh api --paginate "repos/$GH_REPO/actions/artifacts?name=recompa-debug-apk&per_page=100" --jq '.artifacts[].id' \
-            | xargs -r -I{} gh api -X DELETE "repos/$GH_REPO/actions/artifacts/{}"
