@@ -131,6 +131,8 @@
     <string name="settings_frontend_help">O Recompa roda em tela cheia e como tela inicial do Android. Depois escolha o Recompa em Escolher app de início.</string>
     <string name="settings_choose_home">Escolher app de início</string>
     <string name="settings_android">Configurações do Android</string>
+    <string name="settings_kofi">Apoie o Recompa no Ko-fi</string>
+    <string name="settings_kofi_help">Se você gosta do Recompa, pode me pagar um café em ko-fi.com/joeyrt</string>
     <string name="settings_nightly_token">Atualizações das nightlies</string>
     <string name="settings_nightly_token_set">Token salvo: esta nightly se atualiza a partir do repositório privado de nightlies.</string>
     <string name="settings_nightly_token_unset">Sem token: esta nightly não procura atualizações.</string>

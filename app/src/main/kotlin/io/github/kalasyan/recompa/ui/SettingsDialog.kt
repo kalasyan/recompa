@@ -163,7 +163,7 @@ private class SettingsSkin(
 )
 
 /**
- * The settings screen: language, style, frontend mode, the second screen and update
+ * The settings screen: a Ko-fi link, language, style, frontend mode, the second screen and update
  * notifications, drawn in the current style's own way.
  */
 @Composable
@@ -182,6 +182,11 @@ fun SettingsDialog(onDismiss: () -> Unit) {
     val styles = AppStyle.entries
 
     val items = buildList {
+        add(
+            SettingItem.Action("kofi", stringResource(R.string.settings_kofi), stringResource(R.string.settings_kofi_help)) {
+                context.openKofi()
+            },
+        )
         add(
             SettingItem.Choice(
                 "language", stringResource(R.string.settings_language), null,

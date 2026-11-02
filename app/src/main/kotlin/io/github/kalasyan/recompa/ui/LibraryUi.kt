@@ -25,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -165,7 +166,11 @@ internal fun LibraryActions(ui: LibraryUi, tint: Color = Color.White, container:
                 )
             }
         }
+        val context = LocalContext.current
         val colors = IconButtonDefaults.iconButtonColors(containerColor = container, contentColor = tint)
+        IconButton(onClick = { context.openKofi() }, colors = colors, modifier = Modifier.focusRing(CircleShape)) {
+            Icon(KofiCup, contentDescription = stringResource(R.string.settings_kofi))
+        }
         IconButton(onClick = ui.onSearch, colors = colors, modifier = Modifier.focusRing(CircleShape)) {
             Icon(Icons.Filled.Search, contentDescription = stringResource(R.string.search))
         }

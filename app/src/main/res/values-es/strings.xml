@@ -131,6 +131,8 @@
     <string name="settings_frontend_help">Recompa a pantalla completa y como pantalla de inicio de Android. Después elige Recompa en Elegir pantalla de inicio.</string>
     <string name="settings_choose_home">Elegir pantalla de inicio</string>
     <string name="settings_android">Ajustes de Android</string>
+    <string name="settings_kofi">Apoya Recompa en Ko-fi</string>
+    <string name="settings_kofi_help">Si te gusta Recompa, puedes invitarme a un café en ko-fi.com/joeyrt</string>
     <string name="settings_nightly_token">Actualizaciones de nightlies</string>
     <string name="settings_nightly_token_set">Token guardado: esta nightly se actualiza desde el repo privado de nightlies.</string>
     <string name="settings_nightly_token_unset">Sin token: esta nightly no busca actualizaciones.</string>

@@ -88,6 +88,7 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
@@ -479,6 +480,10 @@ private fun TopBar(
                     maxLines = 1,
                 )
             }
+        }
+        val context = LocalContext.current
+        IconButton(onClick = { context.openKofi() }, modifier = Modifier.focusRing(CircleShape)) {
+            Icon(KofiCup, contentDescription = stringResource(R.string.settings_kofi))
         }
         if (onSearch != null) {
             IconButton(onClick = onSearch, modifier = Modifier.focusRing(CircleShape)) {

@@ -131,6 +131,8 @@
     <string name="settings_frontend_help">Recompa s\'affiche en plein écran et comme écran d\'accueil d\'Android. Choisissez ensuite Recompa dans Choisir l\'application d\'accueil.</string>
     <string name="settings_choose_home">Choisir l\'application d\'accueil</string>
     <string name="settings_android">Paramètres d\'Android</string>
+    <string name="settings_kofi">Soutenir Recompa sur Ko-fi</string>
+    <string name="settings_kofi_help">Si Recompa vous plaît, vous pouvez m\'offrir un café sur ko-fi.com/joeyrt</string>
     <string name="settings_nightly_token">Mises à jour des nightlies</string>
     <string name="settings_nightly_token_set">Jeton enregistré : cette nightly se met à jour depuis le dépôt privé des nightlies.</string>
     <string name="settings_nightly_token_unset">Aucun jeton : cette nightly ne cherche pas de mises à jour.</string>
