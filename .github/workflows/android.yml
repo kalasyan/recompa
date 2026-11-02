@@ -72,3 +72,12 @@ jobs:
           gh release list --limit 100 --json tagName,isDraft --jq '.[] | select(.isDraft) | .tagName' \
             | grep '^nightly-' | sort -t- -k2 -n -r | tail -n +6 \
             | xargs -r -n1 gh release delete --yes
+      # Nightlies are private: remove any that were published before they became drafts.
+      - name: Remove public nightlies
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release list --limit 100 --json tagName,isDraft --jq '.[] | select(.isDraft | not) | .tagName' \
+            | grep '^nightly-' \
+            | xargs -r -n1 gh release delete --cleanup-tag --yes
