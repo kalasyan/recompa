@@ -173,6 +173,7 @@ private fun Library(
         manager.refresh()
         onPauseOrDispose { }
     }
+    LaunchedEffect(state.items) { manager.recoverRecords(state.items.map { it.port }) }
     val statuses = remember(state.items, revision) { state.items.associate { it.port.id to manager.status(it.port) } }
     val updates = remember(state.items, revision) { manager.pendingUpdates(state.items.map { it.port }) }
     val newIds = remember(state.items) { NewPorts.latestBatch(state.items.map { it.port }) }

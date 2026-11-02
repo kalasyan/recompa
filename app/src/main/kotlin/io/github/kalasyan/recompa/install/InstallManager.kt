@@ -13,6 +13,7 @@ import io.github.kalasyan.recompa.core.catalog.Release
 import io.github.kalasyan.recompa.core.install.ApkCheck
 import io.github.kalasyan.recompa.core.install.ApkCheckResult
 import io.github.kalasyan.recompa.core.install.DownloadResume
+import io.github.kalasyan.recompa.core.install.InstalledRelease
 import io.github.kalasyan.recompa.core.install.PortStatus
 import io.github.kalasyan.recompa.core.install.PortStatusResolver
 import io.github.kalasyan.recompa.core.install.Sha256
@@ -122,6 +123,51 @@ class InstallManager(private val context: Context) {
             return PortStatus.NotInstalled
         }
         return PortStatusResolver.resolve(fork, port.forks, installed, records.get(port.id)?.tag)
+    }
+
+    /**
+     * Rebuilds the install records that are missing for ports already on the device, for
+     * example after Recompa was uninstalled to switch between stable and nightly builds.
+     * Without a record every such port looks out of date. The release is found by the hash of
+     * the installed APK, or by its version name. Each package is only looked at once per
+     * version, so a port that matches no release is not hashed again on every launch.
+     */
+    suspend fun recoverRecords(ports: List<Port>) = withContext(Dispatchers.IO) {
+        val pm = context.packageManager
+        val checked = context.getSharedPreferences(RECOVERY_PREFS, Context.MODE_PRIVATE)
+        var recovered = false
+        for (port in ports) {
+            if (port.id == SELF_ID || records.get(port.id) != null || phaseOf(port.id) !in IDLE_PHASES) continue
+            val pkg = packageName(port) ?: continue
+            val info = pm.packageInfoOrNull(pkg) ?: continue
+            val stamp = "${info.versionCodeCompat}:${info.lastUpdateTime}:${port.recommendedFork?.release?.tag}"
+            if (checked.getString("${port.id}.$pkg", null) == stamp) continue
+            val signers = info.signerSha256()
+            val candidates = port.forks.filter { fork ->
+                (fork.packageName == null || fork.packageName == pkg) &&
+                    (fork.signerSha256?.let { signer -> signers.any { it.equals(signer, ignoreCase = true) } }
+                        ?: (fork.packageName == pkg))
+            }
+            if (candidates.isNotEmpty()) {
+                val apkSha = info.applicationInfo?.sourceDir?.let { path ->
+                    try {
+                        File(path).inputStream().use { Sha256.hex(it) }
+                    } catch (e: IOException) {
+                        null
+                    }
+                }
+                val match = candidates.firstNotNullOfOrNull { fork ->
+                    InstalledRelease.find(fork, apkSha, info.versionName)?.let { fork to it }
+                }
+                if (match != null && records.get(port.id) == null) {
+                    val (fork, release) = match
+                    records.put(port.id, InstallRecord(pkg, release.tag, fork.repo))
+                    recovered = true
+                }
+            }
+            checked.edit().putString("${port.id}.$pkg", stamp).apply()
+        }
+        if (recovered) refresh()
     }
 
     /** The release tag Recompa installed, or null when it did not install this port. */
@@ -502,5 +548,6 @@ class InstallManager(private val context: Context) {
 
         /** Recompa's own update goes through this manager too (see AppUpdater.UPDATE_ID). */
         const val SELF_ID = "recompa"
+        private const val RECOVERY_PREFS = "record_recovery"
     }
 }

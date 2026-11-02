@@ -52,6 +52,7 @@ class UpdateCheckWorker(context: Context, params: WorkerParameters) : CoroutineW
         } catch (e: Exception) {
             return Result.retry()
         }
+        app.installManager.recoverRecords(index.ports)
         val pending = app.installManager.pendingUpdates(index.ports)
         val notifications = NotificationManagerCompat.from(app)
         val prefs = app.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
