@@ -42,9 +42,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -75,6 +79,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -84,9 +90,11 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
+import io.github.kalasyan.recompa.BuildConfig
 import io.github.kalasyan.recompa.R
 import io.github.kalasyan.recompa.data.AppLanguage
 import io.github.kalasyan.recompa.data.AppStyle
+import io.github.kalasyan.recompa.data.NightlyToken
 import io.github.kalasyan.recompa.ui.theme.Accent
 import io.github.kalasyan.recompa.ui.theme.LocalAppStyle
 import io.github.kalasyan.recompa.ui.theme.Night
@@ -167,6 +175,8 @@ fun SettingsDialog(onDismiss: () -> Unit) {
     val notify by prefs.updateNotifications.collectAsStateWithLifecycle()
     val secondScreen by prefs.secondScreen.collectAsStateWithLifecycle()
     val style by prefs.style.collectAsStateWithLifecycle()
+    val nightlyToken by remember(context) { NightlyToken.flow(context) }.collectAsStateWithLifecycle()
+    var editingToken by remember { mutableStateOf(false) }
     val language = remember { AppLanguage.current(activity) }
     val languages = AppLanguage.supported.entries.toList()
     val styles = AppStyle.entries
@@ -196,6 +206,11 @@ fun SettingsDialog(onDismiss: () -> Unit) {
         }
         add(SettingItem.Toggle("second", stringResource(R.string.settings_second_screen), stringResource(R.string.settings_second_screen_help), secondScreen, prefs::setSecondScreen))
         add(SettingItem.Toggle("notify", stringResource(R.string.settings_notify), stringResource(R.string.settings_notify_help), notify, prefs::setUpdateNotifications))
+        // Only nightlies update from the private nightlies repo, with the user's token.
+        if (BuildConfig.DEBUG) {
+            val help = stringResource(if (nightlyToken != null) R.string.settings_nightly_token_set else R.string.settings_nightly_token_unset)
+            add(SettingItem.Action("nightly", stringResource(R.string.settings_nightly_token), help) { editingToken = true })
+        }
         add(SettingItem.Action("android", stringResource(R.string.settings_android), null) { context.startSafely(Intent(Settings.ACTION_SETTINGS)) })
     }
 
@@ -235,7 +250,53 @@ fun SettingsDialog(onDismiss: () -> Unit) {
             AppStyle.MOSAIC -> MosaicSettings(skin, onDismiss, rows)
             AppStyle.SHOWCASE -> ShowcaseSettings(skin, onDismiss, rows)
         }
+        if (editingToken) {
+            NightlyTokenDialog(
+                saved = nightlyToken != null,
+                onSave = { NightlyToken.set(context, it); editingToken = false },
+                onDismiss = { editingToken = false },
+            )
+        }
     }
+}
+
+/** Pasting, replacing or removing the token a nightly build reads the nightlies repo with. */
+@Composable
+private fun NightlyTokenDialog(saved: Boolean, onSave: (String?) -> Unit, onDismiss: () -> Unit) {
+    var value by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.settings_nightly_token)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(stringResource(R.string.settings_nightly_token_help))
+                OutlinedTextField(
+                    value = value,
+                    onValueChange = { value = it.trim() },
+                    singleLine = true,
+                    label = { Text(stringResource(R.string.settings_nightly_token_field)) },
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(enabled = value.isNotEmpty(), onClick = { onSave(value) }, modifier = Modifier.focusRing()) {
+                Text(stringResource(R.string.settings_nightly_token_save))
+            }
+        },
+        dismissButton = {
+            Row {
+                if (saved) {
+                    TextButton(onClick = { onSave(null) }, modifier = Modifier.focusRing()) {
+                        Text(stringResource(R.string.settings_nightly_token_remove))
+                    }
+                }
+                TextButton(onClick = onDismiss, modifier = Modifier.focusRing()) { Text(stringResource(R.string.dismiss)) }
+            }
+        },
+    )
 }
 
 @Composable

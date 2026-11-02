@@ -30,6 +30,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import io.github.kalasyan.recompa.R
 import io.github.kalasyan.recompa.core.update.AppRelease
 import io.github.kalasyan.recompa.data.AppUpdater
+import io.github.kalasyan.recompa.data.NightlyToken
 import io.github.kalasyan.recompa.install.InstallPhase
 import kotlinx.coroutines.delay
 import java.util.concurrent.TimeUnit
@@ -45,9 +46,11 @@ fun UpdateBanner(modifier: Modifier = Modifier) {
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     var release by remember { mutableStateOf<AppRelease?>(null) }
     var dismissedTag by remember { mutableStateOf<String?>(null) }
-    LaunchedEffect(lifecycle) {
+    // A nightly checks again as soon as its token is saved.
+    val nightlyToken by remember(context) { NightlyToken.flow(context) }.collectAsStateWithLifecycle()
+    LaunchedEffect(lifecycle, nightlyToken) {
         lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
-            val updater = AppUpdater()
+            val updater = AppUpdater(context.applicationContext)
             while (true) {
                 // A failed check keeps the release already found.
                 updater.check()?.let { release = it }

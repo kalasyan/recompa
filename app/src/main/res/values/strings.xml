@@ -132,6 +132,13 @@
     <string name="settings_frontend_help">Recompa runs full screen and as Android\'s home screen. Then pick Recompa in Choose home app.</string>
     <string name="settings_choose_home">Choose home app</string>
     <string name="settings_android">Android settings</string>
+    <string name="settings_nightly_token">Nightly updates</string>
+    <string name="settings_nightly_token_set">Token saved: this nightly updates itself from the private nightlies repo.</string>
+    <string name="settings_nightly_token_unset">No token: this nightly does not look for updates.</string>
+    <string name="settings_nightly_token_help">Paste a GitHub fine-grained token with read-only access (Contents) to kalasyan/recompa-nightlies. It stays on this device and is only used to look for and download new nightlies.</string>
+    <string name="settings_nightly_token_field">GitHub token</string>
+    <string name="settings_nightly_token_save">Save</string>
+    <string name="settings_nightly_token_remove">Remove</string>
     <string name="settings_notify">Notify about updates</string>
     <string name="settings_notify_help">Checks twice a day whether Recompa or your ports have a new version and tells you with a notification.</string>
     <string name="settings_language">Language</string>

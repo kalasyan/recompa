@@ -131,6 +131,13 @@
     <string name="settings_frontend_help">O Recompa roda em tela cheia e como tela inicial do Android. Depois escolha o Recompa em Escolher app de início.</string>
     <string name="settings_choose_home">Escolher app de início</string>
     <string name="settings_android">Configurações do Android</string>
+    <string name="settings_nightly_token">Atualizações das nightlies</string>
+    <string name="settings_nightly_token_set">Token salvo: esta nightly se atualiza a partir do repositório privado de nightlies.</string>
+    <string name="settings_nightly_token_unset">Sem token: esta nightly não procura atualizações.</string>
+    <string name="settings_nightly_token_help">Cole um token fine-grained do GitHub com acesso somente leitura (Contents) a kalasyan/recompa-nightlies. Ele fica neste dispositivo e só serve para procurar e baixar nightlies novas.</string>
+    <string name="settings_nightly_token_field">Token do GitHub</string>
+    <string name="settings_nightly_token_save">Salvar</string>
+    <string name="settings_nightly_token_remove">Remover</string>
     <string name="settings_notify">Avisar sobre atualizações</string>
     <string name="settings_notify_help">Verifica duas vezes por dia se o Recompa ou seus ports têm uma versão nova e avisa com uma notificação.</string>
     <string name="settings_language">Idioma</string>

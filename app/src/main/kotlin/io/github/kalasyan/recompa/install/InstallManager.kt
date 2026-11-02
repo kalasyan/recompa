@@ -18,6 +18,8 @@ import io.github.kalasyan.recompa.core.install.PortStatus
 import io.github.kalasyan.recompa.core.install.PortStatusResolver
 import io.github.kalasyan.recompa.core.install.Sha256
 import io.github.kalasyan.recompa.core.install.ZipEntries
+import io.github.kalasyan.recompa.core.update.AppReleases
+import io.github.kalasyan.recompa.data.NightlyToken
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
@@ -530,6 +532,7 @@ class InstallManager(private val context: Context) {
     private suspend fun fetch(portId: String, url: String, target: File, offset: Long): Boolean {
         val request = Request.Builder().url(url)
             .apply { DownloadResume.rangeHeader(offset)?.let { header("Range", it) } }
+            .apply { nightlyAuth(url) }
             .build()
         val call = client.newCall(request)
         // pause() cancels the call, so a blocked read stops at once.
@@ -568,6 +571,17 @@ class InstallManager(private val context: Context) {
             calls.remove(portId, call)
         }
         return true
+    }
+
+    /**
+     * A nightly's APK sits in a private repo: the API hands it over with the user's token.
+     * OkHttp drops the token when GitHub redirects to its file storage.
+     */
+    private fun Request.Builder.nightlyAuth(url: String) {
+        if (!url.startsWith(AppReleases.NIGHTLY_ASSET_PREFIX)) return
+        val token = NightlyToken.get(context) ?: return
+        header("Authorization", "Bearer $token")
+        header("Accept", "application/octet-stream")
     }
 
     private fun startVerifying(portId: String): Boolean {

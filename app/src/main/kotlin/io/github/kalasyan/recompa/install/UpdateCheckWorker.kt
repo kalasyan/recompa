@@ -88,7 +88,7 @@ class UpdateCheckWorker(context: Context, params: WorkerParameters) : CoroutineW
     /** Tells once about each new version of Recompa; the banner in the app installs it. */
     @SuppressLint("MissingPermission") // canNotify() checks it.
     private suspend fun notifyAppUpdate(context: Context) {
-        val release = AppUpdater().check() ?: return
+        val release = AppUpdater(context.applicationContext).check() ?: return
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         if (release.tag == prefs.getString(LAST_APP_NOTIFIED, null) || !canNotify(context)) return
         val texts = AppLanguage.wrap(context)

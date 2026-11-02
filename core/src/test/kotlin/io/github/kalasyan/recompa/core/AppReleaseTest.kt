@@ -38,4 +38,32 @@ class AppReleaseTest {
         assertFalse(AppReleases.isNewer("0.2.0", "0.3.0-nightly.5"))
         assertTrue(AppReleases.isNewer("0.2.1", "0.2"))
     }
+
+    @Test
+    fun picksTheNewestNightlyWithTheApk() {
+        fun entry(tag: String, asset: String = "recompa.apk", draft: Boolean = false) = """
+            {"tag_name": "$tag", "draft": $draft,
+             "assets": [{"name": "$asset", "browser_download_url": "https://example.com/$tag/$asset",
+                         "url": "https://api.example.com/assets/$tag"}]}
+        """
+        val body = "[" + listOf(
+            entry("v0.2.0"),
+            entry("nightly-9"),
+            entry("nightly-12", asset = "notes.txt"),
+            entry("nightly-13", draft = true),
+            entry("nightly-11"),
+        ).joinToString(",") + "]"
+        val nightly = assertNotNull(AppReleases.parseNewestNightly(body))
+        assertEquals("nightly-11", nightly.tag)
+        assertEquals("nightly 11", nightly.version)
+        assertEquals("https://api.example.com/assets/nightly-11", nightly.apkUrl)
+        assertNull(AppReleases.parseNewestNightly("[" + entry("v0.2.0") + "]"))
+    }
+
+    @Test
+    fun readsNightlyNumbers() {
+        assertEquals(42, AppReleases.nightlyNumber("nightly-42"))
+        assertNull(AppReleases.nightlyNumber("v0.2.0"))
+        assertNull(AppReleases.nightlyNumber("nightly-x"))
+    }
 }

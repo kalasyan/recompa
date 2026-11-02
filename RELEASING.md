@@ -1,10 +1,11 @@
 # Publicar una versión de Recompa
 
-Las versiones estables se firman con la clave privada de Recompa, que solo vive en los secretos del repositorio. Las builds `nightly-N` de cada push a `main` usan la clave de debug pública y se guardan como borradores (draft) de release: solo las ven los colaboradores del repositorio, así que el público solo puede descargar las versiones estables.
+Las versiones estables se firman con la clave privada de Recompa, que solo vive en los secretos del repositorio. Las builds `nightly-N` de cada push a `main` usan la clave de debug pública y se publican en el repo **privado** `kalasyan/recompa-nightlies`, así que el público solo puede descargar las versiones estables.
 
 ## Nightlies
 
-En <https://github.com/kalasyan/recompa/releases>, con la sesión de GitHub iniciada, las nightlies aparecen arriba como **Draft**; se guardan las 5 últimas. El APK se descarga desde ahí (en el móvil, desde el navegador con la sesión iniciada). Como no son públicas, la app instalada desde una nightly no busca actualizaciones: hay que instalar la siguiente nightly a mano encima.
+- **Publicarlas:** en este repo, el secreto `NIGHTLY_REPO_TOKEN` guarda un token fine-grained con acceso solo a `kalasyan/recompa-nightlies` y permiso **Contents: Read and write**. Sin ese secreto, la nightly se guarda como borrador (draft) de release en este repo, que solo ven los colaboradores. Se guardan las 5 últimas.
+- **Actualizarlas desde la app:** en una nightly, **Ajustes → Actualizaciones de nightlies** pide otro token fine-grained, con acceso solo a `kalasyan/recompa-nightlies` y permiso **Contents: Read-only**. Se guarda solo en el dispositivo (fuera de las copias de seguridad) y con él la app avisa de cada nightly nueva y la instala como cualquier actualización. Sin token, la nightly no busca actualizaciones. Las versiones estables no tienen esta opción y siguen buscando solo releases estables de este repo.
 
 ## Configuración (una sola vez)
 

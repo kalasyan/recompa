@@ -131,6 +131,13 @@
     <string name="settings_frontend_help">Recompa s\'affiche en plein écran et comme écran d\'accueil d\'Android. Choisissez ensuite Recompa dans Choisir l\'application d\'accueil.</string>
     <string name="settings_choose_home">Choisir l\'application d\'accueil</string>
     <string name="settings_android">Paramètres d\'Android</string>
+    <string name="settings_nightly_token">Mises à jour des nightlies</string>
+    <string name="settings_nightly_token_set">Jeton enregistré : cette nightly se met à jour depuis le dépôt privé des nightlies.</string>
+    <string name="settings_nightly_token_unset">Aucun jeton : cette nightly ne cherche pas de mises à jour.</string>
+    <string name="settings_nightly_token_help">Collez un jeton GitHub fine-grained en lecture seule (Contents) sur kalasyan/recompa-nightlies. Il reste sur cet appareil et ne sert qu\'à chercher et télécharger les nouvelles nightlies.</string>
+    <string name="settings_nightly_token_field">Jeton GitHub</string>
+    <string name="settings_nightly_token_save">Enregistrer</string>
+    <string name="settings_nightly_token_remove">Supprimer</string>
     <string name="settings_notify">Notifier les mises à jour</string>
     <string name="settings_notify_help">Vérifie deux fois par jour si Recompa ou vos ports ont une nouvelle version et vous prévient par une notification.</string>
     <string name="settings_language">Langue</string>

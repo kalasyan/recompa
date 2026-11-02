@@ -1,5 +1,6 @@
 package io.github.kalasyan.recompa.data
 
+import android.content.Context
 import io.github.kalasyan.recompa.BuildConfig
 import io.github.kalasyan.recompa.core.catalog.Fork
 import io.github.kalasyan.recompa.core.catalog.Port
@@ -15,11 +16,13 @@ import okhttp3.Request
 import java.util.concurrent.TimeUnit
 
 /**
- * Looks for a newer stable version of Recompa on GitHub. Debug builds (the nightlies) are
- * signed with another key, so they could only update to a newer nightly, and nightlies are
- * private draft releases the app cannot see: they don't look for updates.
+ * Looks for a newer version of Recompa on GitHub. Stable builds look for stable releases in
+ * the public repo. Debug builds (the nightlies) are signed with another key and can only
+ * update to a newer nightly, which lives in a private repo: they look there, and only when
+ * the user saved a token for it (see [NightlyToken]).
  */
 class AppUpdater(
+    private val context: Context,
     private val client: OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
@@ -28,16 +31,22 @@ class AppUpdater(
     /** The newer release, or null when there is none or it cannot be checked. */
     suspend fun check(): AppRelease? = withContext(Dispatchers.IO) {
         runCatching {
-            if (BuildConfig.DEBUG) return@runCatching null
-            fetch(AppReleases.LATEST_URL)?.let(AppReleases::parse)
-                ?.takeIf { AppReleases.isNewer(it.version, BuildConfig.VERSION_NAME) }
+            if (BuildConfig.DEBUG) {
+                val token = NightlyToken.get(context) ?: return@runCatching null
+                fetch(AppReleases.NIGHTLY_RELEASES_URL, token)?.let(AppReleases::parseNewestNightly)
+                    ?.takeIf { (AppReleases.nightlyNumber(it.tag) ?: 0) > BuildConfig.VERSION_CODE }
+            } else {
+                fetch(AppReleases.LATEST_URL)?.let(AppReleases::parse)
+                    ?.takeIf { AppReleases.isNewer(it.version, BuildConfig.VERSION_NAME) }
+            }
         }.getOrNull()
     }
 
-    private fun fetch(url: String): String? {
+    private fun fetch(url: String, token: String? = null): String? {
         val request = Request.Builder()
             .url(url)
             .header("Accept", "application/vnd.github+json")
+            .apply { token?.let { header("Authorization", "Bearer $it") } }
             .build()
         return client.newCall(request).execute().use { response ->
             if (response.isSuccessful) response.body?.string() else null

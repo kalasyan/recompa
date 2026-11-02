@@ -35,9 +35,12 @@ jobs:
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
 
-  # Every build of main becomes a private "nightly-N" draft release, signed with the public
-  # debug key. Drafts are only visible to the repository's collaborators, so the public only
-  # sees stable releases (release.yml). Only the last few nightlies are kept.
+  # Every build of main becomes a "nightly-N" release of the private repo
+  # kalasyan/recompa-nightlies, signed with the public debug key, so the public only sees
+  # stable releases (release.yml). Nightly builds update themselves from there with a
+  # read-only token pasted in their settings. Publishing needs the NIGHTLY_REPO_TOKEN secret
+  # (Contents: read and write on recompa-nightlies); without it the nightly becomes a draft
+  # release here, which only collaborators see. Only the last few nightlies are kept.
   nightly:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: build
@@ -47,37 +50,58 @@ jobs:
     concurrency:
       group: nightly-release
       cancel-in-progress: false
+    env:
+      NIGHTLY_REPO: kalasyan/recompa-nightlies
+      NIGHTLY_REPO_TOKEN: ${{ secrets.NIGHTLY_REPO_TOKEN }}
     steps:
       - uses: actions/download-artifact@v4
         with:
           name: recompa-debug-apk
           path: apk
+      - name: Publish nightly to the private repo
+        if: env.NIGHTLY_REPO_TOKEN != ''
+        env:
+          GH_TOKEN: ${{ env.NIGHTLY_REPO_TOKEN }}
+          GH_REPO: ${{ env.NIGHTLY_REPO }}
+        run: |
+          cp apk/*.apk recompa.apk
+          # A release needs a commit to tag: give a new, empty repo its first one.
+          if ! gh api "repos/$GH_REPO/commits?per_page=1" --silent 2>/dev/null; then
+            printf '# Recompa nightlies\n\nPrivate test builds of https://github.com/kalasyan/recompa, one per push to main.\n' > README.md
+            gh api -X PUT "repos/$GH_REPO/contents/README.md" \
+              -f message="Add a README" -f content="$(base64 -w0 README.md)" --silent
+          fi
+          gh release create "nightly-${GITHUB_RUN_NUMBER}" recompa.apk \
+            --title "Nightly ${GITHUB_RUN_NUMBER}" \
+            --notes "Build automática de main (kalasyan/recompa@${GITHUB_SHA})."
+          gh release list --limit 100 --json tagName --jq '.[].tagName' \
+            | grep '^nightly-' | sort -t- -k2 -n -r | tail -n +6 \
+            | xargs -r -n1 gh release delete --cleanup-tag --yes
       - name: Publish nightly draft
+        if: env.NIGHTLY_REPO_TOKEN == ''
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
+          echo "::warning::NIGHTLY_REPO_TOKEN is not set: publishing the nightly as a draft here"
           cp apk/*.apk recompa.apk
           gh release create "nightly-${GITHUB_RUN_NUMBER}" recompa.apk \
             --draft \
             --target "$GITHUB_SHA" \
             --title "Nightly ${GITHUB_RUN_NUMBER}" \
             --notes "Build automática de main (${GITHUB_SHA::7})."
-      # Drafts have no tag; older nightlies published before they became drafts do.
-      - name: Prune old nightlies
+      # Drafts here are kept only until nightlies go to the private repo; nightlies published
+      # before any of this (public, with tags) are removed.
+      - name: Prune nightlies here
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
+          keep=5
+          [ -n "$NIGHTLY_REPO_TOKEN" ] && keep=0
           gh release list --limit 100 --json tagName,isDraft --jq '.[] | select(.isDraft) | .tagName' \
-            | grep '^nightly-' | sort -t- -k2 -n -r | tail -n +6 \
+            | grep '^nightly-' | sort -t- -k2 -n -r | tail -n +$((keep + 1)) \
             | xargs -r -n1 gh release delete --yes
-      # Nightlies are private: remove any that were published before they became drafts.
-      - name: Remove public nightlies
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-        run: |
           gh release list --limit 100 --json tagName,isDraft --jq '.[] | select(.isDraft | not) | .tagName' \
             | grep '^nightly-' \
             | xargs -r -n1 gh release delete --cleanup-tag --yes
