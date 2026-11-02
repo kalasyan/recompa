@@ -98,6 +98,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.kalasyan.recompa.R
+import io.github.kalasyan.recompa.core.catalog.NewPorts
 import io.github.kalasyan.recompa.core.catalog.PortSearch
 import io.github.kalasyan.recompa.core.install.PortStatus
 import io.github.kalasyan.recompa.ui.theme.Accent
@@ -109,6 +110,7 @@ private const val FocusScale = 1.12f
 
 private enum class Filter(val label: Int) {
     ALL(R.string.filter_all),
+    NEW(R.string.filter_new),
     COMPATIBLE(R.string.filter_compatible),
     INSTALLED(R.string.filter_installed),
     FAVORITES(R.string.filter_favorites),
@@ -151,7 +153,8 @@ fun CatalogScreen(
 /**
  * The library: the selected port's art fills the background, its details sit beside or above
  * a grid of covers. Built for a gamepad: the D-pad moves between covers, A opens one, L1/R1
- * switch between All, Compatible, Installed and Favourites, L2/R2 between original platforms,
+ * switch between All, New (the ports added by the latest catalog generation that added any),
+ * Compatible, Installed and Favourites, L2/R2 between original platforms,
  * Y marks the selected port as a favourite and X opens the search.
  */
 @Composable
@@ -172,6 +175,7 @@ private fun Library(
     }
     val statuses = remember(state.items, revision) { state.items.associate { it.port.id to manager.status(it.port) } }
     val updates = remember(state.items, revision) { manager.pendingUpdates(state.items.map { it.port }) }
+    val newIds = remember(state.items) { NewPorts.latestBatch(state.items.map { it.port }) }
 
     var filter by rememberSaveable { mutableStateOf(Filter.ALL) }
     var platform by rememberSaveable { mutableStateOf<String?>(null) }
@@ -190,6 +194,7 @@ private fun Library(
     val inList = state.items.filter {
         val inFilter = when (filter) {
             Filter.ALL -> true
+            Filter.NEW -> it.port.id in newIds
             Filter.COMPATIBLE -> it.compatible && it.port.recommendedFork != null
             Filter.INSTALLED -> statuses[it.port.id] != PortStatus.NotInstalled
             Filter.FAVORITES -> it.port.id in favorites
@@ -211,8 +216,8 @@ private fun Library(
         Modifier.fillMaxSize().onPreviewKeyEvent { event ->
             if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
             when (event.key.nativeKeyCode) {
-                AndroidKeyEvent.KEYCODE_BUTTON_L1 -> filter = filter.cycle(-1)
-                AndroidKeyEvent.KEYCODE_BUTTON_R1 -> filter = filter.cycle(1)
+                AndroidKeyEvent.KEYCODE_BUTTON_L1 -> filter = filter.cycle(-1, newIds.isNotEmpty())
+                AndroidKeyEvent.KEYCODE_BUTTON_R1 -> filter = filter.cycle(1, newIds.isNotEmpty())
                 AndroidKeyEvent.KEYCODE_BUTTON_L2, AndroidKeyEvent.KEYCODE_BUTTON_R2 -> {
                     val options = listOf(null) + platforms.map { it.first }
                     val step = if (event.key.nativeKeyCode == AndroidKeyEvent.KEYCODE_BUTTON_L2) -1 else 1
@@ -269,6 +274,7 @@ private fun Library(
                                 item = item,
                                 status = statuses[item.port.id],
                                 favorite = item.port.id in favorites,
+                                new = item.port.id in newIds,
                                 onClick = {
                                     selectedId = item.port.id
                                     onOpen(item)
@@ -283,6 +289,7 @@ private fun Library(
             Column(Modifier.fillMaxSize()) {
                 TopBar(
                     filter,
+                    hasNew = newIds.isNotEmpty(),
                     onFilter = { filter = it },
                     offline = state.fromCache,
                     onDiagnostics = onDiagnostics,
@@ -333,11 +340,16 @@ private fun Library(
     }
 }
 
-private fun Filter.cycle(step: Int) = Filter.entries[(ordinal + step).mod(Filter.entries.size)]
+/** The next filter in [step]'s direction; New is left out when the catalog has no dates. */
+private fun Filter.cycle(step: Int, hasNew: Boolean): Filter {
+    val options = Filter.entries.filter { hasNew || it != Filter.NEW }
+    return options[(options.indexOf(this) + step).mod(options.size)]
+}
 
 @Composable
 private fun TopBar(
     filter: Filter?,
+    hasNew: Boolean = false,
     onFilter: (Filter) -> Unit,
     offline: Boolean,
     onDiagnostics: () -> Unit,
@@ -369,7 +381,7 @@ private fun TopBar(
             modifier = Modifier.weight(1f).horizontalScroll(rememberScrollState()),
         ) {
             filter?.let { current ->
-                Filter.entries.forEach { option ->
+                Filter.entries.filter { hasNew || it != Filter.NEW }.forEach { option ->
                     val reveal = remember { BringIntoViewRequester() }
                     if (option == current) LaunchedEffect(current) { reveal.bringIntoView() }
                     Chip(
@@ -583,6 +595,7 @@ private fun Poster(
     item: PortItem,
     status: PortStatus?,
     favorite: Boolean,
+    new: Boolean,
     onClick: () -> Unit,
     onFocused: () -> Unit,
     modifier: Modifier = Modifier,
@@ -626,6 +639,7 @@ private fun Poster(
                 status is PortStatus.UpdateAvailable -> stringResource(R.string.status_update) to Accent
                 status != null && status != PortStatus.NotInstalled ->
                     stringResource(R.string.status_installed) to MaterialTheme.colorScheme.secondary
+                new -> stringResource(R.string.status_new) to Color.White
                 else -> null
             }
             badge?.let { (text, color) ->

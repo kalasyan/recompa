@@ -37,6 +37,8 @@ data class Port(
     val reports: List<DeviceReport> = emptyList(),
     /** The texts in other languages, by language code. The fields above are in English. */
     val i18n: Map<String, PortTexts> = emptyMap(),
+    /** When the catalog first published this port (UTC, ISO 8601); null in catalogs older than the field. */
+    @SerialName("added_at") val addedAt: String? = null,
 ) {
     /** The first fork with a published release; forks are listed in order of preference. */
     val recommendedFork: Fork? get() = forks.firstOrNull { it.release != null }

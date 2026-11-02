@@ -87,12 +87,14 @@
     <string name="asset_send">Enviar al port</string>
     <string name="asset_delivered">%1$s entregado.</string>
     <string name="filter_all">Todos</string>
+    <string name="filter_new">Novedades</string>
     <string name="filter_compatible">Compatibles</string>
     <string name="filter_installed">Instalados</string>
     <string name="empty_filter">No hay ports en esta lista.</string>
     <string name="offline_badge">Sin conexión</string>
     <string name="status_installed">Instalado</string>
     <string name="status_update">Actualización</string>
+    <string name="status_new">Nuevo</string>
     <string name="type_recomp">Recompilación</string>
     <string name="type_decomp">Decompilación</string>
     <string name="type_source_port">Source port</string>
