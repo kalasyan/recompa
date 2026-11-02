@@ -5,8 +5,6 @@ name: Style screenshots
 # feat/style-screenshots branch (force-pushed, images only).
 on:
   workflow_dispatch:
-  push:
-    branches: [feat/temas]  # TEMP: removed before merging
 
 permissions:
   contents: write

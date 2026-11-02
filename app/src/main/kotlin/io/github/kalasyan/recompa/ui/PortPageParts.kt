@@ -72,7 +72,7 @@ internal fun portStats(item: PortItem): List<PortStat> {
             add(PortStat(reports.total.toString(), stringResource(R.string.stat_reports)))
         }
         val tag = (if (status != PortStatus.NotInstalled) installedTag else null) ?: release?.tag
-        tag?.let { add(PortStat(it.removePrefix("v").take(14), stringResource(R.string.stat_version))) }
+        tag?.let { add(PortStat(it.removePrefix("v").take(16), stringResource(R.string.stat_version))) }
         release?.asset?.size?.let { add(PortStat(sizeText(it), stringResource(R.string.stat_size))) }
     }
 }
