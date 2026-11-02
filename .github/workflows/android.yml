@@ -110,11 +110,12 @@ jobs:
           gh release list --limit 100 --json tagName,isDraft --jq '.[] | select(.isDraft | not) | .tagName' \
             | grep '^nightly-' \
             | xargs -r -n1 gh release delete --cleanup-tag --yes
-      - name: Delete the APK artifact
+      # This run's APK and any left by other runs (pull requests, older builds).
+      - name: Delete the APK artifacts
         if: always()
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          gh api "repos/$GH_REPO/actions/runs/$GITHUB_RUN_ID/artifacts" --jq '.artifacts[] | select(.name == "recompa-debug-apk") | .id' \
+          gh api --paginate "repos/$GH_REPO/actions/artifacts?name=recompa-debug-apk&per_page=100" --jq '.artifacts[].id' \
             | xargs -r -I{} gh api -X DELETE "repos/$GH_REPO/actions/artifacts/{}"
