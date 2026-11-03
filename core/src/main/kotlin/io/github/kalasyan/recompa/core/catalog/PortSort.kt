@@ -7,6 +7,8 @@ import java.text.Normalizer
  * added or updated on the same day stay in alphabetical order.
  */
 enum class PortSort(val id: String) {
+    /** The order from before there was a choice: by the port's own name. */
+    DEFAULT("default"),
     /** By the original game's name, not the port's (which often has nothing to do with it). */
     GAME("game"),
     /** The ports the catalog added last first. */
@@ -20,6 +22,7 @@ enum class PortSort(val id: String) {
     fun <T> sort(items: List<T>, port: (T) -> Port): List<T> {
         val byName = compareBy<T> { sortKey(port(it)) }
         val comparator = when (this) {
+            DEFAULT -> compareBy<T> { port(it).name.lowercase() }
             GAME -> byName
             ADDED -> compareByDescending<T> { port(it).addedAt.orEmpty() }.then(byName)
             UPDATED -> compareByDescending<T> { lastRelease(port(it)).orEmpty() }.then(byName)
@@ -31,7 +34,7 @@ enum class PortSort(val id: String) {
     }
 
     companion object {
-        fun fromId(id: String?): PortSort = entries.firstOrNull { it.id == id } ?: GAME
+        fun fromId(id: String?): PortSort = entries.firstOrNull { it.id == id } ?: DEFAULT
 
         private val articles = listOf("the ", "a ", "an ", "el ", "la ", "los ", "las ", "le ", "les ", "l'", "der ", "die ", "das ", "o ", "os ")
         private val marks = Regex("\\p{M}+")

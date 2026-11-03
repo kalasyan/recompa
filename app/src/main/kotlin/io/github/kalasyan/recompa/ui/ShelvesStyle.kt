@@ -126,7 +126,7 @@ internal fun ShelvesLibrary(ui: LibraryUi) {
                 ) {
                     ui.filters.forEach { f -> UnderlineTab(stringResource(f.label), f == ui.filter) { ui.onFilter(f) } }
                 }
-                LibraryActions(ui)
+                LibraryActions(ui, compact = true)
             }
             ui.searchBar(Modifier.padding(horizontal = 28.dp, vertical = 4.dp).fillMaxWidth(0.6f))
             if (selected != null && !ui.secondShowing) {

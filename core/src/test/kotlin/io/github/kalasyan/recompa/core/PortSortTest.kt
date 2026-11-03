@@ -48,6 +48,13 @@ class PortSortTest {
     }
 
     @Test
+    fun defaultOrderIsByThePortsOwnNameAndIsWhatUnknownIdsGet() {
+        assertEquals(listOf("b", "a"), ids(PortSort.DEFAULT, port("a", game = "Alpha").copy(name = "Zulu"), port("b", game = "Zulu").copy(name = "Alpha")))
+        assertEquals(PortSort.DEFAULT, PortSort.fromId(null))
+        assertEquals(PortSort.DEFAULT, PortSort.fromId("nope"))
+    }
+
+    @Test
     fun sortNameWinsOverTheGame() {
         assertEquals(listOf("b", "a"), ids(PortSort.GAME, port("a", game = "Alpha"), port("b", game = "Zulu", sortName = "Aardvark")))
     }

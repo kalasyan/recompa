@@ -101,7 +101,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.kalasyan.recompa.R
 import io.github.kalasyan.recompa.core.catalog.NewPorts
 import io.github.kalasyan.recompa.core.catalog.PortSearch
-import io.github.kalasyan.recompa.core.catalog.PortSort
 import io.github.kalasyan.recompa.core.install.PortStatus
 import io.github.kalasyan.recompa.ui.theme.Accent
 import io.github.kalasyan.recompa.ui.theme.Night
@@ -400,11 +399,15 @@ private fun ClassicLibrary(ui: LibraryUi) {
                 updates = ui.updates,
                 updatingAll = ui.updatingAll,
                 onUpdateAll = ui.onUpdateAll,
-                sort = ui.sort,
-                onNextSort = ui.onNextSort,
             )
             ui.searchBar(Modifier.padding(horizontal = 24.dp, vertical = 4.dp).fillMaxWidth(0.6f))
-            PlatformBar(ui.platforms, ui.platform, total = ui.listCount, onPlatform = ui.onPlatform)
+            // The order sits beside the platforms: in the top bar it left no room for the filters.
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(end = 16.dp)) {
+                Box(Modifier.weight(1f)) {
+                    PlatformBar(ui.platforms, ui.platform, total = ui.listCount, onPlatform = ui.onPlatform)
+                }
+                SortButton(ui.sort, ui.onNextSort)
+            }
             if (side) {
                 Row(Modifier.weight(1f)) {
                     if (selected != null && !ui.secondShowing) {
@@ -451,8 +454,6 @@ private fun TopBar(
     updates: Int = 0,
     updatingAll: Boolean = false,
     onUpdateAll: () -> Unit = {},
-    sort: PortSort? = null,
-    onNextSort: () -> Unit = {},
 ) {
     Row(
         Modifier
@@ -504,7 +505,6 @@ private fun TopBar(
                 )
             }
         }
-        if (sort != null) SortButton(sort, onNextSort)
         val context = LocalContext.current
         IconButton(onClick = { context.openKofi() }, modifier = Modifier.focusRing(CircleShape)) {
             Icon(KofiCup, contentDescription = stringResource(R.string.settings_kofi))

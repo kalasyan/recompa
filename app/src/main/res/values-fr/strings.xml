@@ -258,6 +258,7 @@
     <string name="settings_whats_new_help">Les changements de Recompa %1$s.</string>
     <string name="sort_title">Tri</string>
     <string name="sort_toast">Trié par : %1$s</string>
+    <string name="sort_default">Par défaut</string>
     <string name="sort_game">Par jeu</string>
     <string name="sort_added">Ajoutés récemment</string>
     <string name="sort_updated">Mis à jour récemment</string>

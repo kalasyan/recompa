@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -159,10 +160,41 @@ internal fun CornerBadge(text: String, color: Color, modifier: Modifier = Modifi
  * settings and diagnostics.
  */
 @Composable
-internal fun LibraryActions(ui: LibraryUi, tint: Color = Color.White, container: Color = Color.Transparent) {
+internal fun LibraryActions(
+    ui: LibraryUi,
+    tint: Color = Color.White,
+    container: Color = Color.Transparent,
+    /**
+     * Icons only for the sort and update-all buttons (the update one with its count), for
+     * styles whose header has no room for their labels; they name the order elsewhere.
+     */
+    compact: Boolean = false,
+) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         if (ui.offline) Pill(stringResource(R.string.offline_badge))
-        if (ui.updates > 0 || ui.updatingAll) {
+        if (compact && (ui.updates > 0 || ui.updatingAll)) {
+            IconButton(onClick = ui.onUpdateAll, enabled = !ui.updatingAll, modifier = Modifier.focusRing(CircleShape)) {
+                Box {
+                    Icon(
+                        Icons.Filled.Refresh,
+                        contentDescription = if (ui.updatingAll) stringResource(R.string.updating_all) else stringResource(R.string.update_all, ui.updates),
+                        tint = Accent,
+                    )
+                    if (!ui.updatingAll) {
+                        Text(
+                            "${ui.updates}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Night,
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .offset(x = 8.dp, y = (-6).dp)
+                                .background(Accent, CircleShape)
+                                .padding(horizontal = 4.dp),
+                        )
+                    }
+                }
+            }
+        } else if (ui.updates > 0 || ui.updatingAll) {
             TextButton(onClick = ui.onUpdateAll, enabled = !ui.updatingAll, modifier = Modifier.focusRing()) {
                 Icon(Icons.Filled.Refresh, contentDescription = null, tint = Accent)
                 Spacer(Modifier.width(6.dp))
@@ -175,7 +207,13 @@ internal fun LibraryActions(ui: LibraryUi, tint: Color = Color.White, container:
         }
         val context = LocalContext.current
         val colors = IconButtonDefaults.iconButtonColors(containerColor = container, contentColor = tint)
-        SortButton(ui.sort, ui.onNextSort, tint)
+        if (compact) {
+            IconButton(onClick = ui.onNextSort, colors = colors, modifier = Modifier.focusRing(CircleShape)) {
+                Icon(SortIcon, contentDescription = stringResource(R.string.sort_title))
+            }
+        } else {
+            SortButton(ui.sort, ui.onNextSort, tint)
+        }
         IconButton(onClick = { context.openKofi() }, colors = colors, modifier = Modifier.focusRing(CircleShape)) {
             Icon(KofiCup, contentDescription = stringResource(R.string.settings_kofi))
         }
@@ -197,6 +235,7 @@ internal fun LibraryActions(ui: LibraryUi, tint: Color = Color.White, container:
 /** The name of an order, as the sort button and the settings show it. */
 internal val PortSort.label: Int
     get() = when (this) {
+        PortSort.DEFAULT -> R.string.sort_default
         PortSort.GAME -> R.string.sort_game
         PortSort.ADDED -> R.string.sort_added
         PortSort.UPDATED -> R.string.sort_updated

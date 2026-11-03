@@ -121,7 +121,7 @@ internal fun ArcadeLibrary(ui: LibraryUi) {
                     style = pixel(22, Yellow).copy(shadow = Shadow(Pink, Offset(5f, 5f), 0f)),
                     modifier = Modifier.align(Alignment.TopCenter).padding(top = 4.dp),
                 )
-                Box(Modifier.align(Alignment.TopEnd)) { LibraryActions(ui, tint = Cyan) }
+                Box(Modifier.align(Alignment.TopEnd)) { LibraryActions(ui, tint = Cyan, compact = true) }
             }
             Row(
                 Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp),
@@ -178,6 +178,7 @@ internal fun ArcadeLibrary(ui: LibraryUi) {
                     "A " + stringResource(R.string.hint_open),
                     "L2/R2 " + stringResource(R.string.hint_platform),
                     "Y " + stringResource(R.string.favorite),
+                    "SELECT " + stringResource(ui.sort.label),
                 ).joinToString("  ·  ").uppercase(),
                 style = pixel(8),
                 textAlign = TextAlign.Center,
@@ -237,7 +238,10 @@ private fun WheelCover(ui: LibraryUi, item: PortItem, distance: Int) {
             Text(
                 text.uppercase(),
                 style = pixel(6, Deep),
-                modifier = Modifier.align(Alignment.TopEnd).padding(4.dp).background(color).padding(3.dp),
+                // One line: a long label ("ACTUALIZACIÓN") broke in two on small covers.
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.align(Alignment.TopEnd).padding(2.dp).background(color).padding(horizontal = 2.dp, vertical = 3.dp),
             )
         }
         if (ui.isFavorite(item)) {

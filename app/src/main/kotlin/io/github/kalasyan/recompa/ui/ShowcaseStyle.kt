@@ -98,7 +98,7 @@ internal fun ShowcaseLibrary(ui: LibraryUi) {
                     ui.filters.forEach { f -> Segment(stringResource(f.label), f == ui.filter) { ui.onFilter(f) } }
                 }
                 Spacer(Modifier.weight(1f))
-                LibraryActions(ui)
+                LibraryActions(ui, compact = true)
             }
             ui.searchBar(Modifier.align(Alignment.CenterHorizontally).padding(top = 4.dp).fillMaxWidth(0.6f))
             if (ui.items.isEmpty()) {

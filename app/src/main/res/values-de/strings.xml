@@ -258,6 +258,7 @@
     <string name="settings_whats_new_help">Die Änderungen in Recompa %1$s.</string>
     <string name="sort_title">Sortierung</string>
     <string name="sort_toast">Sortiert nach: %1$s</string>
+    <string name="sort_default">Standard</string>
     <string name="sort_game">Nach Spiel</string>
     <string name="sort_added">Zuletzt hinzugefügt</string>
     <string name="sort_updated">Zuletzt aktualisiert</string>

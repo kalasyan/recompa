@@ -85,10 +85,14 @@ internal fun ListLibrary(ui: LibraryUi) {
             var last: String? = null
             // By name the list is one A to Z run with letter headings, compatible or not, so each
             // letter shows up once; other orders have no headings.
-            val byName = ui.sort == PortSort.GAME
-            (if (byName) ui.items.sortedBy { PortSort.sortKey(it.port) } else ui.items).forEach { item ->
-                if (byName) {
-                    val letter = initial(PortSort.sortKey(item.port))
+            val key: ((PortItem) -> String)? = when (ui.sort) {
+                PortSort.DEFAULT -> { item -> item.port.name.lowercase() }
+                PortSort.GAME -> { item -> PortSort.sortKey(item.port) }
+                else -> null
+            }
+            (if (key != null) ui.items.sortedBy(key) else ui.items).forEach { item ->
+                if (key != null) {
+                    val letter = initial(key(item))
                     if (letter != last) add(ListEntry.Letter(letter))
                     last = letter
                 }
