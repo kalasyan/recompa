@@ -121,23 +121,28 @@ internal fun ListLibrary(ui: LibraryUi) {
                 .windowInsetsPadding(WindowInsets.safeDrawing),
         ) {
             Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("◀", color = Accent, fontSize = 11.sp)
-                Text(
-                    (ui.platform?.let { platformName(it) } ?: stringResource(R.string.list_all_platforms)).uppercase(),
-                    style = TextStyle(fontFamily = Rajdhani, fontWeight = FontWeight.Bold, fontSize = 15.sp, letterSpacing = 2.sp),
-                    color = Color.White,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(horizontal = 8.dp).weight(1f, fill = false),
-                )
-                Text("▶", color = Accent, fontSize = 11.sp)
-                Spacer(Modifier.weight(1f))
+                // The platform takes all the room the count and buttons leave (a weighted spacer
+                // beside it used to take half, leaving none for the name).
+                Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                    Text("◀", color = Accent, fontSize = 11.sp)
+                    Text(
+                        (ui.platform?.let { platformName(it) } ?: stringResource(R.string.list_all_platforms)).uppercase(),
+                        style = TextStyle(fontFamily = Rajdhani, fontWeight = FontWeight.Bold, fontSize = 15.sp, letterSpacing = 2.sp),
+                        color = Color.White,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(horizontal = 8.dp).weight(1f, fill = false),
+                    )
+                    Text("▶", color = Accent, fontSize = 11.sp)
+                }
                 Text(
                     "${ui.items.size} / ${ui.filterCounts[Filter.ALL] ?: ui.items.size}",
                     style = TextStyle(fontFamily = Rajdhani, fontWeight = FontWeight.Bold, fontSize = 13.sp),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                if (!preview) LibraryActions(ui, compact = portrait)
+                // Icons only: the order's name is in the hints at the bottom, and a long one
+                // ("Actualizados recientemente") pushed the other buttons off the screen.
+                if (!preview) LibraryActions(ui, compact = true)
             }
             Row(
                 Modifier.padding(horizontal = 10.dp, vertical = 4.dp).horizontalScroll(rememberScrollState()),
@@ -171,7 +176,7 @@ internal fun ListLibrary(ui: LibraryUi) {
                 ButtonHint("L1/R1", stringResource(R.string.hint_filter))
                 ButtonHint("L2/R2", stringResource(R.string.hint_platform))
                 ButtonHint("Y", stringResource(R.string.favorite))
-                ButtonHint("Select", stringResource(R.string.sort_title))
+                ButtonHint("Select", stringResource(ui.sort.label))
             }
         }
     }
