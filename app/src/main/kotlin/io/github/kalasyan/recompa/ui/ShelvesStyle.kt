@@ -129,9 +129,14 @@ internal fun ShelvesLibrary(ui: LibraryUi) {
             Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0.3f to Color.Transparent, 0.62f to Night)))
         }
 
+        val tabs: @Composable (Modifier) -> Unit = { modifier ->
+            Row(modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                ui.filters.forEach { f -> UnderlineTab(stringResource(f.label), f == ui.filter) { ui.onFilter(f) } }
+            }
+        }
         Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
             Row(
-                Modifier.fillMaxWidth().padding(start = 28.dp, end = 12.dp, top = 6.dp),
+                Modifier.fillMaxWidth().padding(start = if (portrait) 18.dp else 28.dp, end = if (portrait) 4.dp else 12.dp, top = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
@@ -139,15 +144,12 @@ internal fun ShelvesLibrary(ui: LibraryUi) {
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black, letterSpacing = 1.sp),
                     color = Color.White,
                 )
-                Row(
-                    Modifier.weight(1f).padding(start = 20.dp).horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    ui.filters.forEach { f -> UnderlineTab(stringResource(f.label), f == ui.filter) { ui.onFilter(f) } }
-                }
+                // In portrait the tabs get a line of their own under the name and the buttons.
+                if (portrait) Spacer(Modifier.weight(1f)) else tabs(Modifier.weight(1f).padding(start = 20.dp))
                 LibraryActions(ui, compact = true)
             }
-            ui.searchBar(Modifier.padding(horizontal = 28.dp, vertical = 4.dp).fillMaxWidth(0.6f))
+            if (portrait) tabs(Modifier.fillMaxWidth().padding(horizontal = 18.dp))
+            ui.searchBar(Modifier.padding(horizontal = 28.dp, vertical = 4.dp).fillMaxWidth(if (portrait) 1f else 0.6f))
             if (selected != null && !ui.secondShowing) {
                 Column(Modifier.padding(start = 28.dp, top = 6.dp, end = 28.dp).fillMaxWidth(if (portrait) 1f else 0.55f)) {
                     PortTitle(selected.port, logoHeight = 56.dp, style = MaterialTheme.typography.headlineMedium)

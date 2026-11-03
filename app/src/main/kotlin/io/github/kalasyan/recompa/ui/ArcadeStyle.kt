@@ -107,6 +107,8 @@ internal fun ArcadeLibrary(ui: LibraryUi) {
     // Keep the selected cover in the middle while moving along the wheel.
     LaunchedEffect(ui.selectedIndex) { if (ui.selectedIndex >= 0) listState.animateScrollToItem(ui.selectedIndex) }
 
+    // In portrait the buttons take the whole top line, so the title moves down under them.
+    val portrait = isPortrait()
     Box(Modifier.fillMaxSize().background(Deep)) {
         SynthwaveBackground(Modifier.fillMaxSize())
         Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
@@ -119,7 +121,7 @@ internal fun ArcadeLibrary(ui: LibraryUi) {
                 Text(
                     "RECOMPA",
                     style = pixel(22, Yellow).copy(shadow = Shadow(Pink, Offset(5f, 5f), 0f)),
-                    modifier = Modifier.align(Alignment.TopCenter).padding(top = 4.dp),
+                    modifier = Modifier.align(Alignment.TopCenter).padding(top = if (portrait) 56.dp else 4.dp),
                 )
                 Box(Modifier.align(Alignment.TopEnd)) { LibraryActions(ui, tint = Cyan, compact = true) }
             }
@@ -137,7 +139,7 @@ internal fun ArcadeLibrary(ui: LibraryUi) {
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
             )
-            ui.searchBar(Modifier.align(Alignment.CenterHorizontally).padding(top = 4.dp).fillMaxWidth(0.6f))
+            ui.searchBar(Modifier.align(Alignment.CenterHorizontally).padding(top = 4.dp, start = 16.dp, end = 16.dp).fillMaxWidth(if (portrait) 1f else 0.6f))
             if (ui.items.isEmpty()) {
                 ui.emptyState(Modifier.weight(1f))
             } else {

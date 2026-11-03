@@ -357,6 +357,7 @@ private fun ClassicLibrary(ui: LibraryUi) {
     BoxWithConstraints(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
         // Landscape handhelds have little height: details on the left, covers on the right.
         val side = maxWidth > maxHeight && maxHeight < 600.dp
+        val portrait = maxHeight > maxWidth
         val gridState = rememberLazyGridState()
         // Keep the selected cover in view and focused, also when coming back from a port's page.
         FocusSelectedOnChange(ui, side) { gridState.scrollToItem(it) }
@@ -400,7 +401,7 @@ private fun ClassicLibrary(ui: LibraryUi) {
                 updatingAll = ui.updatingAll,
                 onUpdateAll = ui.onUpdateAll,
             )
-            ui.searchBar(Modifier.padding(horizontal = 24.dp, vertical = 4.dp).fillMaxWidth(0.6f))
+            ui.searchBar(Modifier.padding(horizontal = 24.dp, vertical = 4.dp).fillMaxWidth(if (portrait) 1f else 0.6f))
             // The order sits beside the platforms: in the top bar it left no room for the filters.
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(end = 16.dp)) {
                 Box(Modifier.weight(1f)) {
@@ -426,10 +427,11 @@ private fun ClassicLibrary(ui: LibraryUi) {
                         selected,
                         ui.statuses[selected.port.id],
                         compact = false,
-                        modifier = Modifier.height(232.dp).padding(horizontal = 24.dp).fillMaxWidth(0.7f),
+                        // Portrait: the whole width, so the description isn't a narrow strip.
+                        modifier = Modifier.height(232.dp).padding(horizontal = 24.dp).fillMaxWidth(if (portrait) 1f else 0.7f),
                     )
                 }
-                grid(Modifier.weight(1f), 128.dp)
+                grid(Modifier.weight(1f), if (portrait) 100.dp else 128.dp)
             }
         }
     }
@@ -455,25 +457,14 @@ private fun TopBar(
     updatingAll: Boolean = false,
     onUpdateAll: () -> Unit = {},
 ) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .height(TopBarHeight)
-            .background(Brush.verticalGradient(listOf(Panel, Color.Transparent)))
-            .padding(start = 24.dp, end = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            stringResource(R.string.app_name),
-            style = MaterialTheme.typography.titleLarge,
-            color = Accent,
-        )
-        Spacer(Modifier.width(20.dp))
+    // Portrait screens are too narrow for the filters and the buttons on one line: the filters
+    // go on a second line under the name and the buttons.
+    val chips: @Composable (Modifier) -> Unit = { modifier ->
         // The chips scroll when the bar is too narrow; a focused chip scrolls itself into view, and
         // so does the picked one when it was half hidden under an edge or the Update button.
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.weight(1f).horizontalScroll(rememberScrollState()),
+            modifier = modifier.horizontalScroll(rememberScrollState()),
         ) {
             filter?.let { current ->
                 Filter.entries.filter { hasNew || it != Filter.NEW }.forEach { option ->
@@ -488,6 +479,8 @@ private fun TopBar(
                 }
             }
         }
+    }
+    val actions: @Composable () -> Unit = {
         if (offline) Pill(stringResource(R.string.offline_badge))
         if (updates > 0 || updatingAll) {
             Button(
@@ -524,6 +517,39 @@ private fun TopBar(
         }
         IconButton(onClick = onDiagnostics, modifier = Modifier.focusRing(CircleShape)) {
             Icon(Icons.Filled.Info, contentDescription = stringResource(R.string.diagnostics_title))
+        }
+    }
+    val title: @Composable () -> Unit = {
+        Text(
+            stringResource(R.string.app_name),
+            style = MaterialTheme.typography.titleLarge,
+            color = Accent,
+        )
+    }
+    val bar = Modifier
+        .fillMaxWidth()
+        .background(Brush.verticalGradient(listOf(Panel, Color.Transparent)))
+    if (isPortrait()) {
+        Column(bar) {
+            Row(
+                Modifier.fillMaxWidth().height(TopBarHeight).padding(start = 16.dp, end = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                title()
+                Spacer(Modifier.weight(1f))
+                actions()
+            }
+            if (filter != null) chips(Modifier.fillMaxWidth().padding(horizontal = 16.dp))
+        }
+    } else {
+        Row(
+            bar.height(TopBarHeight).padding(start = 24.dp, end = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            title()
+            Spacer(Modifier.width(20.dp))
+            chips(Modifier.weight(1f))
+            actions()
         }
     }
 }
