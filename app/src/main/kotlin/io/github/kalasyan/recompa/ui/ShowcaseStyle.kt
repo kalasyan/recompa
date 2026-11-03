@@ -19,6 +19,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -55,6 +57,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
@@ -105,12 +108,14 @@ internal fun ShowcaseLibrary(ui: LibraryUi) {
                 ui.emptyState(Modifier.weight(1f))
             } else {
                 BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
-                    val side = (maxWidth - CaseWidth) / 2
+                    // A portrait screen has height to spare: bigger boxes.
+                    val caseWidth = if (maxHeight > maxWidth) CaseWidth * 1.35f else CaseWidth
+                    val side = (maxWidth - caseWidth) / 2
                     // The shelf's edge, a soft line under the boxes.
                     Box(
                         Modifier
                             .align(Alignment.Center)
-                            .padding(top = 150.dp)
+                            .padding(top = 150.dp * (caseWidth / CaseWidth))
                             .fillMaxWidth()
                             .height(1.dp)
                             .background(Brush.horizontalGradient(listOf(Color.Transparent, Color.White.copy(alpha = 0.25f), Color.Transparent))),
@@ -123,7 +128,7 @@ internal fun ShowcaseLibrary(ui: LibraryUi) {
                         modifier = Modifier.fillMaxSize(),
                     ) {
                         itemsIndexed(ui.items, key = { _, it -> it.port.id }) { index, item ->
-                            Case(ui, item, index, listState)
+                            Case(ui, item, index, listState, caseWidth)
                         }
                     }
                 }
@@ -183,11 +188,11 @@ private fun Segment(label: String, selected: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-private fun Case(ui: LibraryUi, item: PortItem, index: Int, listState: androidx.compose.foundation.lazy.LazyListState) {
+private fun Case(ui: LibraryUi, item: PortItem, index: Int, listState: androidx.compose.foundation.lazy.LazyListState, caseWidth: Dp) {
     val distance = abs(index - ui.selectedIndex)
     Column(
         Modifier
-            .width(CaseWidth)
+            .width(caseWidth)
             .zIndex(-distance.toFloat())
             .graphicsLayer {
                 // Turn each box by how far its centre is from the middle of the shelf.
@@ -246,10 +251,24 @@ private fun Case(ui: LibraryUi, item: PortItem, index: Int, listState: androidx.
  * Showcase port page: the box turned in 3D on the left; title, facts, actions and the sections
  * on the right, set like a booklet.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun ShowcasePortPage(item: PortItem, header: @Composable () -> Unit) {
     val port = item.port
     val scroll = rememberScrollState()
+    val portrait = isPortrait()
+    val cover: @Composable (Modifier) -> Unit = { modifier ->
+        PortCover(
+            port,
+            modifier
+                .graphicsLayer {
+                    rotationY = 20f
+                    cameraDistance = 14f * density
+                }
+                .shadow(30.dp, RoundedCornerShape(6.dp)),
+        )
+    }
+    // In portrait the box stands above the text, which then has the whole width.
     Row(
         Modifier
             .fillMaxSize()
@@ -257,17 +276,10 @@ internal fun ShowcasePortPage(item: PortItem, header: @Composable () -> Unit) {
             .background(Brush.radialGradient(listOf(Color(0xFF2C2F3A), Night), radius = 1400f))
             .windowInsetsPadding(WindowInsets.safeDrawing),
     ) {
-        Box(Modifier.fillMaxWidth(0.32f).fillMaxHeight(), contentAlignment = Alignment.Center) {
-            PortCover(
-                port,
-                Modifier
-                    .padding(28.dp)
-                    .graphicsLayer {
-                        rotationY = 20f
-                        cameraDistance = 14f * density
-                    }
-                    .shadow(30.dp, RoundedCornerShape(6.dp)),
-            )
+        if (!portrait) {
+            Box(Modifier.fillMaxWidth(0.32f).fillMaxHeight(), contentAlignment = Alignment.Center) {
+                cover(Modifier.padding(28.dp))
+            }
         }
         Column(
             Modifier
@@ -275,10 +287,15 @@ internal fun ShowcasePortPage(item: PortItem, header: @Composable () -> Unit) {
                 .fillMaxHeight()
                 .verticalScroll(scroll)
                 .dpadScroll(scroll)
-                .padding(end = 32.dp, top = 12.dp, bottom = 24.dp),
+                .padding(start = if (portrait) 20.dp else 0.dp, end = if (portrait) 20.dp else 32.dp, top = 12.dp, bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             header()
+            if (portrait) {
+                Box(Modifier.fillMaxWidth().padding(vertical = 8.dp), contentAlignment = Alignment.Center) {
+                    cover(Modifier.width(170.dp))
+                }
+            }
             Text(port.name, style = MaterialTheme.typography.displaySmall.copy(fontFamily = Playfair))
             Text(
                 "${port.game} · ${platformName(port.originalPlatform)}",
@@ -286,7 +303,7 @@ internal fun ShowcasePortPage(item: PortItem, header: @Composable () -> Unit) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             port.description?.let { Text(it, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.widthIn(max = 560.dp)) }
-            Row(horizontalArrangement = Arrangement.spacedBy(22.dp), modifier = Modifier.padding(vertical = 6.dp)) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(22.dp), verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(vertical = 6.dp)) {
                 portStats(item).forEach { stat ->
                     Column {
                         Text(stat.label.uppercase(), style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.5.sp), color = MaterialTheme.colorScheme.onSurfaceVariant)

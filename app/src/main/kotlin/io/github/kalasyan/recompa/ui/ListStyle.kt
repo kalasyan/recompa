@@ -7,6 +7,9 @@ import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -77,6 +80,7 @@ private fun initial(name: String): String = name.firstOrNull()?.uppercaseChar()?
  * List: every port in the chosen order (with letter headings when by name) on the left; the selected port's art, cover,
  * facts and screenshots on the right. Like the menus of retro frontends.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun ListLibrary(ui: LibraryUi) {
     val selected = ui.selected
@@ -109,11 +113,10 @@ internal fun ListLibrary(ui: LibraryUi) {
     val rail = Night.copy(alpha = 1f).let { Color(red = it.red * 0.7f, green = it.green * 0.7f, blue = it.blue * 0.7f) }
     val preview = selected != null && !ui.secondShowing
 
-    Row(Modifier.fillMaxSize().background(Night)) {
+    val portrait = isPortrait()
+    val railColumn: @Composable (Modifier) -> Unit = { modifier ->
         Column(
-            Modifier
-                .then(if (preview) Modifier.fillMaxWidth(0.44f) else Modifier.fillMaxWidth())
-                .fillMaxHeight()
+            modifier
                 .background(rail)
                 .windowInsetsPadding(WindowInsets.safeDrawing),
         ) {
@@ -155,14 +158,15 @@ internal fun ListLibrary(ui: LibraryUi) {
                                 color = Accent,
                                 modifier = Modifier.padding(start = 16.dp, top = 6.dp, bottom = 2.dp),
                             )
-                            is ListEntry.Entry -> ListRow(ui, entry.item, showPlatform = !preview)
+                            is ListEntry.Entry -> ListRow(ui, entry.item, showPlatform = !preview || portrait)
                         }
                     }
                 }
             }
-            Row(
+            FlowRow(
                 Modifier.fillMaxWidth().background(Color.Black.copy(alpha = 0.25f)).padding(horizontal = 16.dp, vertical = 6.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 ButtonHint("L1/R1", stringResource(R.string.hint_filter))
                 ButtonHint("L2/R2", stringResource(R.string.hint_platform))
@@ -170,6 +174,17 @@ internal fun ListLibrary(ui: LibraryUi) {
                 ButtonHint("Select", stringResource(R.string.sort_title))
             }
         }
+    }
+    if (portrait) {
+        // Portrait: the selected port as a banner on top, the list under it with the whole width.
+        Column(Modifier.fillMaxSize().background(Night).windowInsetsPadding(WindowInsets.safeDrawing)) {
+            if (preview && selected != null) ListPreview(ui, selected, Modifier.fillMaxWidth().height(230.dp), banner = true)
+            railColumn(Modifier.fillMaxWidth().weight(1f))
+        }
+        return
+    }
+    Row(Modifier.fillMaxSize().background(Night)) {
+        railColumn(Modifier.then(if (preview) Modifier.fillMaxWidth(0.44f) else Modifier.fillMaxWidth()).fillMaxHeight())
         if (preview && selected != null) ListPreview(ui, selected, Modifier.weight(1f).fillMaxHeight())
     }
 }
@@ -248,12 +263,13 @@ private fun portFactsTable(ui: LibraryUi?, item: PortItem): List<Pair<String, St
     )
 }
 
+/** The selected port beside the list, or above it as a shorter [banner] in portrait. */
 @Composable
-private fun ListPreview(ui: LibraryUi, item: PortItem, modifier: Modifier) {
+private fun ListPreview(ui: LibraryUi, item: PortItem, modifier: Modifier, banner: Boolean = false) {
     val port = item.port
     Box(modifier) {
-        PortHero(port, Modifier.fillMaxWidth().fillMaxHeight(0.55f))
-        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0.15f to Color.Transparent, 0.55f to Night)))
+        PortHero(port, Modifier.fillMaxWidth().fillMaxHeight(if (banner) 1f else 0.55f))
+        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0.15f to Color.Transparent, (if (banner) 0.8f else 0.55f) to Night)))
         Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(16.dp)) {
             Row(verticalAlignment = Alignment.Top) {
                 Box(Modifier.weight(1f).padding(top = 4.dp)) {
@@ -263,7 +279,7 @@ private fun ListPreview(ui: LibraryUi, item: PortItem, modifier: Modifier) {
             }
             Spacer(Modifier.weight(1f))
             Row(verticalAlignment = Alignment.Bottom) {
-                PortCover(port, Modifier.width(84.dp))
+                PortCover(port, Modifier.width(if (banner) 64.dp else 84.dp))
                 Spacer(Modifier.width(14.dp))
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(port.name, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -275,7 +291,8 @@ private fun ListPreview(ui: LibraryUi, item: PortItem, modifier: Modifier) {
                     }
                 }
             }
-            port.description?.let {
+            // The banner has no room for the description and screenshots.
+            if (!banner) port.description?.let {
                 Text(
                     it,
                     style = MaterialTheme.typography.bodySmall,
@@ -285,7 +302,7 @@ private fun ListPreview(ui: LibraryUi, item: PortItem, modifier: Modifier) {
                     modifier = Modifier.padding(top = 8.dp),
                 )
             }
-            val shots = port.art?.screenshots.orEmpty().take(3)
+            val shots = if (banner) emptyList() else port.art?.screenshots.orEmpty().take(3)
             if (shots.isNotEmpty()) {
                 Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     shots.forEach { url ->
@@ -326,6 +343,56 @@ internal fun SideTabsPage(item: PortItem, header: @Composable () -> Unit, skin: 
     val tabs = listOf(PortTab(stringResource(R.string.section_overview)) { Overview(item) }) + portTabs(item, galleryHeight = 130.dp)
     var tab by rememberSaveable(port.id) { mutableStateOf(0) }
     val scroll = rememberScrollState()
+    val content: @Composable ColumnScope.() -> Unit = {
+        val current = tabs.getOrNull(tab) ?: tabs.first()
+        if (tab != 0) {
+            Text(
+                if (skin.uppercase) current.title.uppercase() else current.title,
+                style = skin.tabText.copy(fontSize = skin.tabText.fontSize * 1.4f),
+                color = Color.White,
+            )
+            Spacer(Modifier.height(6.dp))
+        }
+        current.content()
+        Spacer(Modifier.height(24.dp))
+    }
+    if (isPortrait()) {
+        // Portrait: the menu becomes a row of tabs under the title, the section gets the width.
+        Box(Modifier.fillMaxSize().background(Night)) {
+            skin.background(this)
+            Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).then(skin.frame)) {
+                Column(Modifier.fillMaxWidth().background(skin.railColor).padding(top = 12.dp)) {
+                    Row(Modifier.padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+                        header()
+                        Box(Modifier.weight(1f).padding(start = 12.dp)) {
+                            PortTitle(port, logoHeight = 40.dp, style = skin.tabText.copy(fontSize = skin.tabText.fontSize * 1.2f, color = Color.White))
+                        }
+                    }
+                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(top = 8.dp, start = 6.dp, end = 6.dp)) {
+                        tabs.forEachIndexed { index, t ->
+                            TopTab(
+                                if (skin.uppercase) t.title.uppercase() else t.title,
+                                selected = index == tab,
+                                skin = skin,
+                                onSelect = { tab = index },
+                            )
+                        }
+                    }
+                }
+                Column(
+                    Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .verticalScroll(scroll)
+                        .dpadScroll(scroll)
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    content = content,
+                )
+            }
+        }
+        return
+    }
     Box(Modifier.fillMaxSize().background(Night)) {
         skin.background(this)
         Row(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).then(skin.frame)) {
@@ -354,20 +421,33 @@ internal fun SideTabsPage(item: PortItem, header: @Composable () -> Unit, skin: 
                     .dpadScroll(scroll)
                     .padding(horizontal = 22.dp, vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                val current = tabs.getOrNull(tab) ?: tabs.first()
-                if (tab != 0) {
-                    Text(
-                        if (skin.uppercase) current.title.uppercase() else current.title,
-                        style = skin.tabText.copy(fontSize = skin.tabText.fontSize * 1.4f),
-                        color = Color.White,
-                    )
-                    Spacer(Modifier.height(6.dp))
-                }
-                current.content()
-                Spacer(Modifier.height(24.dp))
-            }
+                content = content,
+            )
         }
+    }
+}
+
+/** A section of the side-menu pages as a tab along the top, for portrait screens. */
+@Composable
+private fun TopTab(label: String, selected: Boolean, skin: SideTabsSkin, onSelect: () -> Unit) {
+    val interaction = remember { MutableInteractionSource() }
+    val focused by interaction.collectIsFocusedAsState()
+    Column(
+        Modifier
+            .keepInView(selected)
+            .onFocusChanged { if (it.isFocused) onSelect() }
+            .background(if (focused) skin.selectedColor.copy(alpha = 0.28f) else Color.Transparent)
+            .clickable(interactionSource = interaction, indication = null, onClick = onSelect),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            label,
+            style = skin.tabText,
+            color = if (selected || focused) Color.White else Color.White.copy(alpha = 0.6f),
+            maxLines = 1,
+            modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 6.dp),
+        )
+        Box(Modifier.width(if (selected) 28.dp else 0.dp).height(3.dp).background(skin.selectedColor))
     }
 }
 
@@ -399,15 +479,23 @@ private fun SideTab(label: String, selected: Boolean, skin: SideTabsSkin, onSele
 @Composable
 private fun Overview(item: PortItem) {
     val port = item.port
-    Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
-        PortCover(port, Modifier.width(130.dp))
+    // In portrait the actions and numbers go under the cover, with the whole width.
+    val portrait = isPortrait()
+    Row(horizontalArrangement = Arrangement.spacedBy(if (portrait) 14.dp else 18.dp)) {
+        PortCover(port, Modifier.width(if (portrait) 96.dp else 130.dp))
         Column(Modifier.weight(1f).widthIn(max = 520.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(port.name, style = MaterialTheme.typography.titleLarge)
             Text(stringResource(R.string.original_game, port.game), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(portFacts(item), style = MaterialTheme.typography.labelLarge, color = Accent)
-            PortActions(item)
-            PortStats(item)
+            if (!portrait) {
+                PortActions(item)
+                PortStats(item)
+            }
         }
+    }
+    if (portrait) {
+        PortActions(item)
+        PortStats(item)
     }
     port.description?.let {
         Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f), modifier = Modifier.padding(top = 10.dp).widthIn(max = 680.dp))

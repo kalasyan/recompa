@@ -11,6 +11,8 @@ import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -26,6 +28,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items as gridItems
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -69,6 +75,7 @@ private class Shelf(val key: String, val title: String, val items: List<PortItem
  * Shelves: the selected port fills the top of the screen with its art, logo and description;
  * below, rows of wide tiles: installed ports, the newest ones, then one row per platform.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun ShelvesLibrary(ui: LibraryUi) {
     val selected = ui.selected
@@ -91,8 +98,15 @@ internal fun ShelvesLibrary(ui: LibraryUi) {
     val home = shelves.indexOfFirst { it.key.startsWith("p:") && it.items.any { item -> item == selected } }
     val columnState = rememberLazyListState()
     val rowStates = remember { mutableMapOf<String, LazyListState>() }
-    FocusSelectedOnChange(ui) {
-        if (home >= 0) {
+    val portrait = isPortrait()
+    // A portrait screen with a single shelf (one platform picked) would show one row and leave
+    // the rest empty: its tiles fill a grid instead.
+    val gridded = portrait && shelves.size == 1
+    val gridState = rememberLazyGridState()
+    FocusSelectedOnChange(ui, gridded) {
+        if (gridded) {
+            gridState.scrollToItem(shelves[0].items.indexOf(selected).coerceAtLeast(0))
+        } else if (home >= 0) {
             columnState.scrollToItem(home)
             val shelf = shelves[home]
             rowStates.getOrPut(shelf.key) { LazyListState() }.scrollToItem(shelf.items.indexOf(selected).coerceAtLeast(0))
@@ -100,15 +114,20 @@ internal fun ShelvesLibrary(ui: LibraryUi) {
     }
 
     Box(Modifier.fillMaxSize().background(Night)) {
+        // In portrait the art is a banner behind the top of the screen, not three quarters of it.
         Crossfade(selected?.port, animationSpec = tween(400), label = "shelves-hero") { port ->
-            if (port != null) PortHero(port, Modifier.fillMaxWidth().fillMaxHeight(0.75f))
+            if (port != null) PortHero(port, Modifier.fillMaxWidth().fillMaxHeight(if (portrait) 0.34f else 0.75f))
         }
-        Box(
-            Modifier.fillMaxSize().background(
-                Brush.horizontalGradient(0f to Night.copy(alpha = 0.95f), 0.55f to Night.copy(alpha = 0.4f), 1f to Color.Transparent),
-            ),
-        )
-        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0.3f to Color.Transparent, 0.62f to Night)))
+        if (portrait) {
+            Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0f to Night.copy(alpha = 0.55f), 0.12f to Night.copy(alpha = 0.25f), 0.34f to Night)))
+        } else {
+            Box(
+                Modifier.fillMaxSize().background(
+                    Brush.horizontalGradient(0f to Night.copy(alpha = 0.95f), 0.55f to Night.copy(alpha = 0.4f), 1f to Color.Transparent),
+                ),
+            )
+            Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0.3f to Color.Transparent, 0.62f to Night)))
+        }
 
         Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
             Row(
@@ -130,7 +149,7 @@ internal fun ShelvesLibrary(ui: LibraryUi) {
             }
             ui.searchBar(Modifier.padding(horizontal = 28.dp, vertical = 4.dp).fillMaxWidth(0.6f))
             if (selected != null && !ui.secondShowing) {
-                Column(Modifier.padding(start = 28.dp, top = 6.dp, end = 28.dp).fillMaxWidth(0.55f)) {
+                Column(Modifier.padding(start = 28.dp, top = 6.dp, end = 28.dp).fillMaxWidth(if (portrait) 1f else 0.55f)) {
                     PortTitle(selected.port, logoHeight = 56.dp, style = MaterialTheme.typography.headlineMedium)
                     Spacer(Modifier.height(6.dp))
                     Text(portFacts(selected), style = MaterialTheme.typography.labelLarge, color = Color.White.copy(alpha = 0.75f))
@@ -145,7 +164,7 @@ internal fun ShelvesLibrary(ui: LibraryUi) {
                         )
                     }
                     Spacer(Modifier.height(8.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         ButtonHint("A", stringResource(R.string.hint_open))
                         ButtonHint("Y", stringResource(R.string.favorite))
                         ButtonHint("Select", stringResource(ui.sort.label))
@@ -155,6 +174,25 @@ internal fun ShelvesLibrary(ui: LibraryUi) {
             }
             if (ui.items.isEmpty()) {
                 ui.emptyState(Modifier.weight(1f))
+            } else if (gridded) {
+                val shelf = shelves[0]
+                Row(Modifier.padding(start = 28.dp, top = 10.dp, bottom = 2.dp), verticalAlignment = Alignment.Bottom) {
+                    Text(shelf.title, style = MaterialTheme.typography.titleSmall, color = Color.White)
+                    Spacer(Modifier.width(8.dp))
+                    Text(shelf.items.size.toString(), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                LazyVerticalGrid(
+                    state = gridState,
+                    columns = GridCells.Adaptive(minSize = 150.dp),
+                    contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 24.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.weight(1f),
+                ) {
+                    gridItems(shelf.items, key = { it.port.id }) { item ->
+                        ShelfTile(ui, item, progress = false, focus = item == selected, modifier = Modifier.fillMaxWidth())
+                    }
+                }
             } else {
                 LazyColumn(
                     state = columnState,
@@ -197,15 +235,14 @@ internal fun ShelvesLibrary(ui: LibraryUi) {
 }
 
 @Composable
-private fun ShelfTile(ui: LibraryUi, item: PortItem, progress: Boolean, focus: Boolean) {
+private fun ShelfTile(ui: LibraryUi, item: PortItem, progress: Boolean, focus: Boolean, modifier: Modifier = Modifier.width(168.dp)) {
     val interaction = remember { MutableInteractionSource() }
     val focused by interaction.collectIsFocusedAsState()
     val scale by animateFloatAsState(if (focused) 1.07f else 1f, label = "tile-scale")
     val shape = RoundedCornerShape(8.dp)
     val unavailable = !item.compatible || item.port.recommendedFork == null
     Box(
-        Modifier
-            .width(168.dp)
+        modifier
             .aspectRatio(16f / 9f)
             .graphicsLayer { scaleX = scale; scaleY = scale }
             .then(if (focus) Modifier.focusRequester(ui.focusTarget) else Modifier)
@@ -269,24 +306,32 @@ internal fun ShelvesPortPage(item: PortItem, header: @Composable () -> Unit) {
     val tabs = portTabs(item, galleryHeight = 150.dp)
     var tab by rememberSaveable(port.id) { mutableStateOf(0) }
     val scroll = rememberScrollState()
+    // In portrait the art is a banner on top and the text uses the whole width under it.
+    val portrait = isPortrait()
     Box(Modifier.fillMaxSize().background(Night)) {
-        PortHero(port, Modifier.fillMaxSize())
-        Box(
-            Modifier.fillMaxSize().background(
-                Brush.horizontalGradient(0f to Night.copy(alpha = 0.97f), 0.5f to Night.copy(alpha = 0.6f), 1f to Night.copy(alpha = 0.1f)),
-            ),
-        )
-        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0.35f to Color.Transparent, 0.75f to Night)))
+        if (portrait) {
+            PortHero(port, Modifier.fillMaxWidth().fillMaxHeight(0.42f))
+            Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0.12f to Night.copy(alpha = 0.2f), 0.42f to Night)))
+        } else {
+            PortHero(port, Modifier.fillMaxSize())
+            Box(
+                Modifier.fillMaxSize().background(
+                    Brush.horizontalGradient(0f to Night.copy(alpha = 0.97f), 0.5f to Night.copy(alpha = 0.6f), 1f to Night.copy(alpha = 0.1f)),
+                ),
+            )
+            Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0.35f to Color.Transparent, 0.75f to Night)))
+        }
         Column(
             Modifier
                 .fillMaxSize()
                 .verticalScroll(scroll)
                 .dpadScroll(scroll)
                 .windowInsetsPadding(WindowInsets.safeDrawing)
-                .padding(horizontal = 32.dp, vertical = 12.dp),
+                .padding(horizontal = if (portrait) 20.dp else 32.dp, vertical = 12.dp),
         ) {
             header()
-            Column(Modifier.fillMaxWidth(0.6f).padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (portrait) Spacer(Modifier.height(96.dp))
+            Column(Modifier.fillMaxWidth(if (portrait) 1f else 0.6f).padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 PortTitle(port, logoHeight = 80.dp, style = MaterialTheme.typography.displaySmall)
                 Text(
                     listOf(port.game, portFacts(item)).joinToString(" · "),
