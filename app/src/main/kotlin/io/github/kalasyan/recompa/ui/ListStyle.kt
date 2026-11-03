@@ -271,11 +271,18 @@ private fun ListPreview(ui: LibraryUi, item: PortItem, modifier: Modifier, banne
         PortHero(port, Modifier.fillMaxWidth().fillMaxHeight(if (banner) 1f else 0.55f))
         Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0.15f to Color.Transparent, (if (banner) 0.8f else 0.55f) to Night)))
         Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(16.dp)) {
-            Row(verticalAlignment = Alignment.Top) {
-                Box(Modifier.weight(1f).padding(top = 4.dp)) {
-                    PortTitle(port, logoHeight = 52.dp, style = MaterialTheme.typography.headlineSmall)
+            if (banner) {
+                // The banner is narrow: the buttons get their own line so a wide logo can't run under them.
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    LibraryActions(ui, container = Night.copy(alpha = 0.5f), compact = true)
                 }
-                LibraryActions(ui, container = Night.copy(alpha = 0.5f), compact = banner)
+            } else {
+                Row(verticalAlignment = Alignment.Top) {
+                    Box(Modifier.weight(1f).padding(top = 4.dp)) {
+                        PortTitle(port, logoHeight = 52.dp, style = MaterialTheme.typography.headlineSmall)
+                    }
+                    LibraryActions(ui, container = Night.copy(alpha = 0.5f))
+                }
             }
             Spacer(Modifier.weight(1f))
             Row(verticalAlignment = Alignment.Bottom) {

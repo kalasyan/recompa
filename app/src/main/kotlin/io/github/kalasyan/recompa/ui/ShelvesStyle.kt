@@ -119,7 +119,7 @@ internal fun ShelvesLibrary(ui: LibraryUi) {
             if (port != null) PortHero(port, Modifier.fillMaxWidth().fillMaxHeight(if (portrait) 0.34f else 0.75f))
         }
         if (portrait) {
-            Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0f to Night.copy(alpha = 0.55f), 0.12f to Night.copy(alpha = 0.25f), 0.34f to Night)))
+            Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0f to Night.copy(alpha = 0.85f), 0.1f to Night.copy(alpha = 0.55f), 0.2f to Night.copy(alpha = 0.35f), 0.34f to Night)))
         } else {
             Box(
                 Modifier.fillMaxSize().background(
