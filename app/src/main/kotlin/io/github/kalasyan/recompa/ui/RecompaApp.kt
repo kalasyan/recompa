@@ -64,6 +64,7 @@ fun RecompaApp(viewModel: CatalogViewModel = viewModel()) {
                             onOpen = { route = it.port.id },
                             onDiagnostics = { route = DIAGNOSTICS },
                             onSettings = { settings = true },
+                            settingsOpen = settings,
                         )
                     }
                     UpdateBanner(Modifier.align(Alignment.BottomCenter))

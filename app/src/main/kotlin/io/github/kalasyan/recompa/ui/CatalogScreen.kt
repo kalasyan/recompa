@@ -126,9 +126,11 @@ fun CatalogScreen(
     onOpen: (PortItem) -> Unit,
     onDiagnostics: () -> Unit,
     onSettings: () -> Unit,
+    /** Whether the settings are showing over the library. */
+    settingsOpen: Boolean = false,
 ) {
     when (state) {
-        is CatalogState.Ready -> Library(state, onOpen, onDiagnostics, onSettings)
+        is CatalogState.Ready -> Library(state, onOpen, onDiagnostics, onSettings, settingsOpen)
         else -> Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
             TopBar(filter = null, onFilter = {}, offline = false, onDiagnostics = onDiagnostics, onSettings = onSettings)
             Column(
@@ -168,6 +170,7 @@ private fun Library(
     onOpen: (PortItem) -> Unit,
     onDiagnostics: () -> Unit,
     onSettings: () -> Unit,
+    settingsOpen: Boolean,
 ) {
     val manager = rememberInstallManager()
     val prefs = rememberUserPrefs()
@@ -235,6 +238,19 @@ private fun Library(
     val secondShowing by secondScreen.showing.collectAsStateWithLifecycle()
     LaunchedEffect(selected) { secondScreen.select(selected) }
     val focusTarget = remember { FocusRequester() }
+    // Changing the style in the settings rebuilds the library under them, so the button that
+    // opened them is gone and nothing has focus when they close: the gamepad buttons (Select,
+    // Y, X...) then reach nothing until the D-pad moves. Give focus back to the selected port.
+    var wasOpen by remember { mutableStateOf(false) }
+    LaunchedEffect(settingsOpen) {
+        if (settingsOpen) {
+            wasOpen = true
+        } else if (wasOpen) {
+            wasOpen = false
+            withFrameNanos { }
+            runCatching { focusTarget.requestFocus() }
+        }
+    }
     val filters = Filter.entries.filter { newIds.isNotEmpty() || it != Filter.NEW }
 
     val ui = LibraryUi(
