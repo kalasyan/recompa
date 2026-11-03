@@ -27,7 +27,9 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -67,16 +69,25 @@ private val TileGap = 8.dp
 /** Ports per block: one big tile (2×2) and eight small ones (4 columns, 2 rows). */
 private const val PerBlock = 9
 
+/** In portrait a block is one big tile and four small ones (2 columns, 2 rows). */
+private const val PortraitPerBlock = 5
+
 /**
  * Mosaic: a menu in large type on the left (one entry per filter) and flat tiles on the right:
  * counters that are also shortcuts, then blocks of one big tile and eight small ones.
  */
 @Composable
 internal fun MosaicLibrary(ui: LibraryUi) {
-    val blocks = remember(ui.items) { ui.items.chunked(PerBlock) }
+    val portrait = isPortrait()
+    val perBlock = if (portrait) PortraitPerBlock else PerBlock
+    val blocks = remember(ui.items, perBlock) { ui.items.chunked(perBlock) }
     val listState = rememberLazyListState()
     // Item 0 is the row of counters.
-    FocusSelectedOnChange(ui) { listState.scrollToItem(if (it < PerBlock) 0 else 1 + it / PerBlock) }
+    FocusSelectedOnChange(ui, portrait) { listState.scrollToItem(if (it < perBlock) 0 else 1 + it / perBlock) }
+    if (portrait) {
+        PortraitMosaic(ui, blocks, listState)
+        return
+    }
 
     Row(Modifier.fillMaxSize().background(Night).windowInsetsPadding(WindowInsets.safeDrawing)) {
         Column(
@@ -114,7 +125,7 @@ internal fun MosaicLibrary(ui: LibraryUi) {
                         item(key = "empty") { ui.emptyState(Modifier.height(unit * 2)) }
                     }
                     itemsIndexed(blocks, key = { index, _ -> "block$index" }) { index, block ->
-                        Block(ui, block, unit, mirrored = index % 2 == 1)
+                        Block(ui, block, unit, mirrored = index % 2 == 1, smallColumns = 4)
                     }
                 }
             }
@@ -122,13 +133,68 @@ internal fun MosaicLibrary(ui: LibraryUi) {
     }
 }
 
+/**
+ * Mosaic on a portrait screen: the menu runs along the top as a scrolling row and the tiles get
+ * the whole width, four units across.
+ */
 @Composable
-private fun MenuEntry(label: String, count: String, selected: Boolean, onClick: () -> Unit) {
+private fun PortraitMosaic(ui: LibraryUi, blocks: List<List<PortItem>>, listState: LazyListState) {
+    Column(Modifier.fillMaxSize().background(Night).windowInsetsPadding(WindowInsets.safeDrawing)) {
+        Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 4.dp, top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                stringResource(R.string.app_name).uppercase(),
+                style = MaterialTheme.typography.labelLarge.copy(letterSpacing = 4.sp, fontWeight = FontWeight.Bold),
+                color = Accent,
+            )
+            Spacer(Modifier.weight(1f))
+            LibraryActions(ui)
+        }
+        Row(
+            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 20.dp),
+            horizontalArrangement = Arrangement.spacedBy(20.dp),
+        ) {
+            ui.filters.forEach { f ->
+                MenuEntry(
+                    stringResource(f.label),
+                    (ui.filterCounts[f] ?: 0).toString(),
+                    selected = f == ui.filter,
+                    modifier = Modifier.keepInView(f == ui.filter),
+                ) { ui.onFilter(f) }
+            }
+        }
+        Text(
+            "L2/R2 · " + (ui.platform?.let { platformName(it) } ?: stringResource(R.string.list_all_platforms)),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 20.dp, top = 4.dp, bottom = 8.dp),
+        )
+        ui.searchBar(Modifier.padding(horizontal = 20.dp, vertical = 4.dp).fillMaxWidth())
+        BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
+            val unit = (maxWidth - 40.dp - TileGap * 3) / 4
+            LazyColumn(
+                state = listState,
+                contentPadding = PaddingValues(start = 20.dp, top = 4.dp, end = 20.dp, bottom = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(TileGap),
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                item(key = "counters") { Counters(ui, unit) }
+                if (ui.items.isEmpty()) {
+                    item(key = "empty") { ui.emptyState(Modifier.height(unit * 2)) }
+                }
+                itemsIndexed(blocks, key = { index, _ -> "block$index" }) { index, block ->
+                    Block(ui, block, unit, mirrored = index % 2 == 1, smallColumns = 2)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MenuEntry(label: String, count: String, selected: Boolean, modifier: Modifier = Modifier.fillMaxWidth(), onClick: () -> Unit) {
     val interaction = remember { MutableInteractionSource() }
     val focused by interaction.collectIsFocusedAsState()
     Column(
-        Modifier
-            .fillMaxWidth()
+        modifier
             .background(if (focused) Color.White.copy(alpha = 0.1f) else Color.Transparent)
             .clickable(interactionSource = interaction, indication = null, onClick = onClick)
             .padding(vertical = 4.dp),
@@ -147,7 +213,7 @@ private fun MenuEntry(label: String, count: String, selected: Boolean, onClick: 
 /** Counters that double as shortcuts: ports shown, updates (installs them), new ports, search. */
 @Composable
 private fun Counters(ui: LibraryUi, unit: Dp) {
-    Row(Modifier.fillMaxWidth().height(unit * 0.8f), horizontalArrangement = Arrangement.spacedBy(TileGap)) {
+    Row(Modifier.fillMaxWidth().height(maxOf(unit * 0.8f, 84.dp)), horizontalArrangement = Arrangement.spacedBy(TileGap)) {
         CounterTile(ui.items.size.toString(), stringResource(R.string.mosaic_ports), Indigo, Color.White, onClick = null)
         CounterTile(
             if (ui.updatingAll) "…" else ui.updates.toString(),
@@ -187,7 +253,7 @@ private fun RowScope.CounterTile(value: String?, label: String, color: Color, te
 }
 
 @Composable
-private fun Block(ui: LibraryUi, ports: List<PortItem>, unit: Dp, mirrored: Boolean) {
+private fun Block(ui: LibraryUi, ports: List<PortItem>, unit: Dp, mirrored: Boolean, smallColumns: Int) {
     val big = ports.first()
     val small = ports.drop(1)
     Row(Modifier.fillMaxWidth().height(unit * 2 + TileGap), horizontalArrangement = Arrangement.spacedBy(TileGap)) {
@@ -195,8 +261,8 @@ private fun Block(ui: LibraryUi, ports: List<PortItem>, unit: Dp, mirrored: Bool
             Tile(ui, big, Modifier.width(unit * 2 + TileGap).fillMaxHeight(), wide = true)
         }
         if (!mirrored) bigTile()
-        Column(Modifier.width(unit * 4 + TileGap * 3), verticalArrangement = Arrangement.spacedBy(TileGap)) {
-            small.chunked(4).forEach { row ->
+        Column(Modifier.width(unit * smallColumns + TileGap * (smallColumns - 1)), verticalArrangement = Arrangement.spacedBy(TileGap)) {
+            small.chunked(smallColumns).forEach { row ->
                 Row(horizontalArrangement = Arrangement.spacedBy(TileGap)) {
                     row.forEach { Tile(ui, it, Modifier.size(unit), wide = false) }
                 }
@@ -271,6 +337,7 @@ internal fun MosaicPortPage(item: PortItem, header: @Composable () -> Unit) {
     val scroll = rememberScrollState()
     val stats = portStats(item)
     val statColors = listOf(Indigo, Slate, Slate, Slate)
+    val portrait = isPortrait()
     Column(
         Modifier
             .fillMaxSize()
@@ -289,7 +356,7 @@ internal fun MosaicPortPage(item: PortItem, header: @Composable () -> Unit) {
                 Text(port.game, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
-        Row(Modifier.fillMaxWidth().height(220.dp), horizontalArrangement = Arrangement.spacedBy(TileGap)) {
+        Row(Modifier.fillMaxWidth().height(if (portrait) 180.dp else 220.dp), horizontalArrangement = Arrangement.spacedBy(TileGap)) {
             Box(Modifier.weight(1f).fillMaxHeight()) {
                 PortHero(port, Modifier.matchParentSize())
                 Box(Modifier.matchParentSize().background(Brush.verticalGradient(0.5f to Color.Transparent, 1f to Color.Black.copy(alpha = 0.7f))))
@@ -299,18 +366,23 @@ internal fun MosaicPortPage(item: PortItem, header: @Composable () -> Unit) {
             }
             Box(Modifier.fillMaxHeight().aspectRatio(2f / 3f)) { PortCover(port, Modifier.fillMaxSize()) }
         }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(TileGap)) {
-            Column(Modifier.weight(2f).background(Slate).padding(12.dp)) {
+        val actions: @Composable (Modifier) -> Unit = { modifier ->
+            Column(modifier.background(Slate).padding(12.dp)) {
                 Text(portFacts(item), style = MaterialTheme.typography.labelLarge, color = Accent)
                 PortActions(item)
             }
+        }
+        // In portrait the actions take a full-width tile and the numbers a row of their own.
+        if (portrait) actions(Modifier.fillMaxWidth())
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(TileGap)) {
+            if (!portrait) actions(Modifier.weight(2f))
             stats.forEachIndexed { index, stat ->
                 Column(
                     Modifier.weight(1f).height(96.dp).background(statColors.getOrElse(index) { Slate }).padding(12.dp),
                     verticalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Text(stat.label.uppercase(), style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.5.sp), color = Color.White.copy(alpha = 0.75f))
-                    Text(stat.value, style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold), maxLines = 1)
+                    Text(stat.value, style = (if (portrait) MaterialTheme.typography.titleMedium else MaterialTheme.typography.headlineSmall).copy(fontWeight = FontWeight.Bold), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
         }

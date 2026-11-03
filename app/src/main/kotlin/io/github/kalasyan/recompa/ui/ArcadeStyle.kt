@@ -142,7 +142,9 @@ internal fun ArcadeLibrary(ui: LibraryUi) {
                 ui.emptyState(Modifier.weight(1f))
             } else {
                 BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
-                    val side = (maxWidth - 128.dp) / 2
+                    // A portrait screen has height to spare: bigger covers on the wheel.
+                    val scale = if (maxHeight > maxWidth) 1.4f else 1f
+                    val side = (maxWidth - 128.dp * scale) / 2
                     LazyRow(
                         state = listState,
                         contentPadding = PaddingValues(horizontal = side.coerceAtLeast(0.dp)),
@@ -151,7 +153,7 @@ internal fun ArcadeLibrary(ui: LibraryUi) {
                         modifier = Modifier.fillMaxSize(),
                     ) {
                         itemsIndexed(ui.items, key = { _, it -> it.port.id }) { index, item ->
-                            WheelCover(ui, item, distance = abs(index - ui.selectedIndex))
+                            WheelCover(ui, item, distance = abs(index - ui.selectedIndex), scale = scale)
                         }
                     }
                 }
@@ -202,13 +204,13 @@ private fun PixelTab(label: String, selected: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-private fun WheelCover(ui: LibraryUi, item: PortItem, distance: Int) {
+private fun WheelCover(ui: LibraryUi, item: PortItem, distance: Int, scale: Float = 1f) {
     val width by animateDpAsState(
         when (distance) {
             0 -> 128.dp
             1 -> 96.dp
             else -> 80.dp
-        },
+        } * scale,
         label = "wheel-width",
     )
     val dim by animateFloatAsState(

@@ -700,7 +700,8 @@ internal fun ShelvesSettings(
             Modifier
                 .align(Alignment.CenterEnd)
                 .fillMaxHeight()
-                .fillMaxWidth(0.52f)
+                // A side sheet in landscape; in portrait half the width would be a sliver.
+                .fillMaxWidth(if (isPortrait()) 1f else 0.52f)
                 .background(Night.copy(alpha = 0.97f))
                 .windowInsetsPadding(WindowInsets.safeDrawing)
                 .padding(horizontal = 28.dp, vertical = 20.dp),
@@ -807,6 +808,26 @@ internal fun MosaicSettings(
     scroll: ScrollState = rememberScrollState(),
     rows: @Composable ColumnScope.() -> Unit,
 ) {
+    if (isPortrait()) {
+        // Portrait: the big title and Close on top, the tiles below with the whole width.
+        Column(Modifier.fillMaxSize().background(Night).windowInsetsPadding(WindowInsets.safeDrawing).padding(horizontal = 16.dp)) {
+            Text(
+                stringResource(R.string.app_name).uppercase(),
+                style = skin.label.copy(fontSize = 12.sp, letterSpacing = 4.sp, color = skin.accent),
+                modifier = Modifier.padding(top = 18.dp, start = 6.dp),
+            )
+            Row(Modifier.padding(top = 8.dp, bottom = 14.dp, start = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(title, style = skin.title, modifier = Modifier.weight(1f))
+                CloseButton(skin, onDismiss)
+            }
+            Column(
+                Modifier.weight(1f).verticalScroll(scroll).padding(bottom = 18.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                content = rows,
+            )
+        }
+        return
+    }
     Row(Modifier.fillMaxSize().background(Night).windowInsetsPadding(WindowInsets.safeDrawing)) {
         Column(Modifier.width(200.dp).fillMaxHeight().padding(start = 22.dp, top = 18.dp)) {
             Text(
