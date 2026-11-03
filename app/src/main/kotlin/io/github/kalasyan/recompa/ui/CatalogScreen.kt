@@ -426,11 +426,22 @@ private fun ClassicLibrary(ui: LibraryUi) {
             )
             ui.searchBar(Modifier.padding(horizontal = 24.dp, vertical = 4.dp).fillMaxWidth(if (portrait) 1f else 0.6f))
             // The order sits beside the platforms: in the top bar it left no room for the filters.
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(end = 16.dp)) {
+            // In portrait the order is just its icon: its name ("Actualizados recientemente") took
+            // half the line from the platforms. Settings and Select still say which one it is.
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(end = if (portrait) 8.dp else 16.dp, top = if (portrait) 6.dp else 0.dp),
+            ) {
                 Box(Modifier.weight(1f)) {
                     PlatformBar(ui.platforms, ui.platform, total = ui.listCount, onPlatform = ui.onPlatform)
                 }
-                SortButton(ui.sort, ui.onNextSort)
+                if (portrait) {
+                    IconButton(onClick = ui.onNextSort, modifier = Modifier.focusRing(CircleShape)) {
+                        Icon(SortIcon, contentDescription = stringResource(R.string.sort_title) + ": " + stringResource(ui.sort.label))
+                    }
+                } else {
+                    SortButton(ui.sort, ui.onNextSort)
+                }
             }
             if (side) {
                 Row(Modifier.weight(1f)) {
@@ -562,7 +573,7 @@ private fun TopBar(
                 Spacer(Modifier.weight(1f))
                 actions()
             }
-            if (filter != null) chips(Modifier.fillMaxWidth().padding(horizontal = 16.dp))
+            if (filter != null) chips(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 4.dp))
         }
     } else {
         Row(
@@ -631,7 +642,7 @@ private fun PlatformBar(platforms: List<Pair<String, Int>>, selected: String?, t
     }
     LazyRow(
         state = listState,
-        contentPadding = PaddingValues(horizontal = 24.dp),
+        contentPadding = PaddingValues(horizontal = if (isPortrait()) 16.dp else 24.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         modifier = Modifier.fillMaxWidth().height(44.dp),
     ) {
