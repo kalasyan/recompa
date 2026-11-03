@@ -40,6 +40,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import io.github.kalasyan.recompa.BuildConfig
 import io.github.kalasyan.recompa.R
 import io.github.kalasyan.recompa.core.catalog.Port
 import io.github.kalasyan.recompa.core.catalog.PortSort
@@ -233,8 +234,11 @@ internal fun LibraryActions(
         IconButton(onClick = ui.onSettings, colors = colors, modifier = Modifier.focusRing(CircleShape)) {
             Icon(Icons.Filled.Settings, contentDescription = stringResource(R.string.settings_title))
         }
-        IconButton(onClick = ui.onDiagnostics, colors = colors, modifier = Modifier.focusRing(CircleShape)) {
-            Icon(Icons.Filled.Info, contentDescription = stringResource(R.string.diagnostics_title))
+        // Diagnostics (hashes and signers of installed apps) only in nightlies, not in releases.
+        if (BuildConfig.DEBUG) {
+            IconButton(onClick = ui.onDiagnostics, colors = colors, modifier = Modifier.focusRing(CircleShape)) {
+                Icon(Icons.Filled.Info, contentDescription = stringResource(R.string.diagnostics_title))
+            }
         }
     }
 }

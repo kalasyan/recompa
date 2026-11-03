@@ -98,6 +98,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.kalasyan.recompa.BuildConfig
 import io.github.kalasyan.recompa.R
 import io.github.kalasyan.recompa.core.catalog.NewPorts
 import io.github.kalasyan.recompa.core.catalog.PortSearch
@@ -544,8 +545,11 @@ private fun TopBar(
         IconButton(onClick = onSettings, modifier = Modifier.focusRing(CircleShape)) {
             Icon(Icons.Filled.Settings, contentDescription = stringResource(R.string.settings_title))
         }
-        IconButton(onClick = onDiagnostics, modifier = Modifier.focusRing(CircleShape)) {
-            Icon(Icons.Filled.Info, contentDescription = stringResource(R.string.diagnostics_title))
+        // Diagnostics (hashes and signers of installed apps) only in nightlies, not in releases.
+        if (BuildConfig.DEBUG) {
+            IconButton(onClick = onDiagnostics, modifier = Modifier.focusRing(CircleShape)) {
+                Icon(Icons.Filled.Info, contentDescription = stringResource(R.string.diagnostics_title))
+            }
         }
     }
     val title: @Composable () -> Unit = {
