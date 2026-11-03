@@ -16,6 +16,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.kalasyan.recompa.data.AppLanguage
+import io.github.kalasyan.recompa.ui.ProvidePortrait
 import io.github.kalasyan.recompa.ui.RecompaApp
 import io.github.kalasyan.recompa.ui.theme.RecompaTheme
 
@@ -48,7 +49,7 @@ class MainActivity : ComponentActivity() {
             }
             val style by prefs.style.collectAsStateWithLifecycle()
             RecompaTheme(style) {
-                RecompaApp()
+                ProvidePortrait { RecompaApp() }
             }
         }
     }
