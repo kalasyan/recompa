@@ -22,6 +22,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -67,6 +74,8 @@ internal class LibraryUi(
     val sort: PortSort,
     /** Moves on to the next order, like the Select button. */
     val onNextSort: () -> Unit,
+    /** Picks an order, from the sort button's menu. */
+    val onSort: (PortSort) -> Unit,
     val offline: Boolean,
     val updates: Int,
     val updatingAll: Boolean,
@@ -208,11 +217,9 @@ internal fun LibraryActions(
         val context = LocalContext.current
         val colors = IconButtonDefaults.iconButtonColors(containerColor = container, contentColor = tint)
         if (compact) {
-            IconButton(onClick = ui.onNextSort, colors = colors, modifier = Modifier.focusRing(CircleShape)) {
-                Icon(SortIcon, contentDescription = stringResource(R.string.sort_title))
-            }
+            SortButton(ui.sort, ui.onSort, tint, iconOnly = true)
         } else {
-            SortButton(ui.sort, ui.onNextSort, tint)
+            SortButton(ui.sort, ui.onSort, tint)
         }
         IconButton(onClick = { context.openKofi() }, colors = colors, modifier = Modifier.focusRing(CircleShape)) {
             Icon(KofiCup, contentDescription = stringResource(R.string.settings_kofi))
@@ -242,13 +249,51 @@ internal val PortSort.label: Int
         PortSort.RATING -> R.string.sort_rating
     }
 
-/** Shows the library's order and moves on to the next one, like the Select button. */
+/**
+ * Shows the library's order (or just its icon, with [iconOnly]) and opens a small menu right
+ * there to pick another. Select on the gamepad still moves on to the next one.
+ */
 @Composable
-internal fun SortButton(sort: PortSort, onNext: () -> Unit, tint: Color = Color.White) {
-    TextButton(onClick = onNext, modifier = Modifier.focusRing()) {
-        Icon(SortIcon, contentDescription = stringResource(R.string.sort_title), tint = tint)
-        Spacer(Modifier.width(6.dp))
-        Text(stringResource(sort.label), color = tint, maxLines = 1, style = MaterialTheme.typography.labelLarge)
+internal fun SortButton(sort: PortSort, onPick: (PortSort) -> Unit, tint: Color = Color.White, iconOnly: Boolean = false) {
+    var open by remember { mutableStateOf(false) }
+    Box {
+        val description = stringResource(R.string.sort_title) + ": " + stringResource(sort.label)
+        if (iconOnly) {
+            IconButton(onClick = { open = true }, modifier = Modifier.focusRing(CircleShape)) {
+                Icon(SortIcon, contentDescription = description, tint = tint)
+            }
+        } else {
+            TextButton(onClick = { open = true }, modifier = Modifier.focusRing()) {
+                Icon(SortIcon, contentDescription = stringResource(R.string.sort_title), tint = tint)
+                Spacer(Modifier.width(6.dp))
+                Text(stringResource(sort.label), color = tint, maxLines = 1, style = MaterialTheme.typography.labelLarge)
+            }
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            Text(
+                stringResource(R.string.sort_title),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+            )
+            PortSort.entries.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(stringResource(option.label)) },
+                    onClick = {
+                        open = false
+                        if (option != sort) onPick(option)
+                    },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Filled.Check,
+                            contentDescription = null,
+                            tint = if (option == sort) Accent else Color.Transparent,
+                        )
+                    },
+                    modifier = Modifier.focusRing(),
+                )
+            }
+        }
     }
 }
 

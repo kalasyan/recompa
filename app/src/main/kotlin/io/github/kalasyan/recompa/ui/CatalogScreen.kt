@@ -279,6 +279,7 @@ private fun Library(
         onPlatform = { platform = it },
         sort = sort,
         onNextSort = nextSort,
+        onSort = { prefs.setSort(it) },
         offline = state.fromCache,
         updates = updates.size,
         updatingAll = updatingAll,
@@ -427,7 +428,7 @@ private fun ClassicLibrary(ui: LibraryUi) {
             ui.searchBar(Modifier.padding(horizontal = 24.dp, vertical = 4.dp).fillMaxWidth(if (portrait) 1f else 0.6f))
             // The order sits beside the platforms: in the top bar it left no room for the filters.
             // In portrait the order is just its icon: its name ("Actualizados recientemente") took
-            // half the line from the platforms. Settings and Select still say which one it is.
+            // half the line from the platforms. Its menu and Settings still say which one it is.
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(end = if (portrait) 8.dp else 16.dp, top = if (portrait) 6.dp else 0.dp),
@@ -435,13 +436,7 @@ private fun ClassicLibrary(ui: LibraryUi) {
                 Box(Modifier.weight(1f)) {
                     PlatformBar(ui.platforms, ui.platform, total = ui.listCount, onPlatform = ui.onPlatform)
                 }
-                if (portrait) {
-                    IconButton(onClick = ui.onNextSort, modifier = Modifier.focusRing(CircleShape)) {
-                        Icon(SortIcon, contentDescription = stringResource(R.string.sort_title) + ": " + stringResource(ui.sort.label))
-                    }
-                } else {
-                    SortButton(ui.sort, ui.onNextSort)
-                }
+                SortButton(ui.sort, ui.onSort, iconOnly = portrait)
             }
             if (side) {
                 Row(Modifier.weight(1f)) {
