@@ -156,7 +156,7 @@ fun CatalogScreen(
 /**
  * The library: the selected port's art fills the background, its details sit beside or above
  * a grid of covers. Built for a gamepad: the D-pad moves between covers, A opens one, L1/R1
- * switch between All, New (the ports added by the latest catalog generation that added any),
+ * switch between All, New (the ports added on the latest day that added any),
  * Compatible, Installed and Favourites, L2/R2 between original platforms,
  * Y marks the selected port as a favourite and X opens the search.
  */

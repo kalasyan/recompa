@@ -14,12 +14,12 @@ class NewPortsTest {
     )
 
     @Test
-    fun latestBatchIsThePortsOfTheNewestGeneration() {
+    fun latestBatchIsEveryPortOfTheNewestDay() {
         val ports = listOf(
             port("old", "2026-10-27T00:00:00Z"),
             port("a", "2026-11-02T06:17:00Z"),
-            port("b", "2026-11-02T06:17:00Z"),
-            port("before", "2026-11-01T18:17:00Z"),
+            port("b", "2026-11-02T18:17:00Z"),
+            port("before", "2026-11-01T23:59:00Z"),
         )
         assertEquals(setOf("a", "b"), NewPorts.latestBatch(ports))
     }
