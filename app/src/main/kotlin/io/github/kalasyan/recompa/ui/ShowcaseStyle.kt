@@ -106,8 +106,13 @@ internal fun ShowcaseLibrary(ui: LibraryUi) {
             ) {
                 Text(stringResource(R.string.app_name), style = MaterialTheme.typography.titleLarge.copy(fontFamily = Playfair))
                 // In portrait the filters get a line of their own, centred under the name.
-                if (!portrait) segments(Modifier.padding(start = 18.dp).weight(1f, fill = false))
-                Spacer(Modifier.weight(1f))
+                // The filters take all the room between the name and the actions (a weighted
+                // spacer beside them used to halve it, hiding the tab picked with L1/R1).
+                if (portrait) {
+                    Spacer(Modifier.weight(1f))
+                } else {
+                    Box(Modifier.padding(start = 18.dp, end = 8.dp).weight(1f)) { segments(Modifier) }
+                }
                 LibraryActions(ui, compact = true)
             }
             if (portrait) segments(Modifier.align(Alignment.CenterHorizontally).padding(horizontal = 16.dp, vertical = 4.dp))

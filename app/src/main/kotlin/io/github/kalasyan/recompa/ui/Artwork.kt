@@ -19,6 +19,7 @@ import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
@@ -93,7 +94,11 @@ fun Modifier.keepInView(picked: Boolean): Modifier = composed {
     suspend fun show() =
         if (size == IntSize.Zero) reveal.bringIntoView()
         else reveal.bringIntoView(Rect(-margin, 0f, size.width + margin, size.height.toFloat()))
-    if (picked) LaunchedEffect(Unit) { show() }
+    // A frame later, once the row has laid out the newly picked tab at its new width.
+    if (picked) LaunchedEffect(Unit) {
+        withFrameNanos { }
+        show()
+    }
     bringIntoViewRequester(reveal)
         .onSizeChanged { size = it }
         .onFocusChanged { if (it.isFocused) scope.launch { show() } }
