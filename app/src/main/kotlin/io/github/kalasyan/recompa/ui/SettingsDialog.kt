@@ -95,6 +95,7 @@ import io.github.kalasyan.recompa.BuildConfig
 import io.github.kalasyan.recompa.R
 import io.github.kalasyan.recompa.data.AppLanguage
 import io.github.kalasyan.recompa.data.AppStyle
+import io.github.kalasyan.recompa.core.catalog.PortSort
 import io.github.kalasyan.recompa.data.NightlyToken
 import io.github.kalasyan.recompa.data.WhatsNew
 import io.github.kalasyan.recompa.ui.theme.Accent
@@ -177,6 +178,7 @@ fun SettingsDialog(onDismiss: () -> Unit) {
     val notify by prefs.updateNotifications.collectAsStateWithLifecycle()
     val secondScreen by prefs.secondScreen.collectAsStateWithLifecycle()
     val style by prefs.style.collectAsStateWithLifecycle()
+    val sort by prefs.sort.collectAsStateWithLifecycle()
     val nightlyToken by remember(context) { NightlyToken.flow(context) }.collectAsStateWithLifecycle()
     var editingToken by remember { mutableStateOf(false) }
     val whatsNew = remember(context) { WhatsNew(context) }
@@ -184,6 +186,7 @@ fun SettingsDialog(onDismiss: () -> Unit) {
     val language = remember { AppLanguage.current(activity) }
     val languages = AppLanguage.supported.entries.toList()
     val styles = AppStyle.entries
+    val sorts = PortSort.entries
 
     val items = buildList {
         add(
@@ -207,6 +210,14 @@ fun SettingsDialog(onDismiss: () -> Unit) {
                 options = styles.map { stringResource(it.label) },
                 selected = styles.indexOf(style),
                 onPick = { prefs.setStyle(styles[it]) },
+            ),
+        )
+        add(
+            SettingItem.Choice(
+                "sort", stringResource(R.string.sort_title), stringResource(R.string.settings_sort_help),
+                options = sorts.map { stringResource(it.label) },
+                selected = sorts.indexOf(sort),
+                onPick = { prefs.setSort(sorts[it]) },
             ),
         )
         add(SettingItem.Toggle("frontend", stringResource(R.string.settings_frontend), stringResource(R.string.settings_frontend_help), frontend, prefs::setFrontendMode))

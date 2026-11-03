@@ -25,12 +25,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.addPathNodes
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.kalasyan.recompa.R
 import io.github.kalasyan.recompa.core.catalog.Port
+import io.github.kalasyan.recompa.core.catalog.PortSort
 import io.github.kalasyan.recompa.core.install.PortStatus
 import io.github.kalasyan.recompa.ui.theme.Accent
 import io.github.kalasyan.recompa.ui.theme.Night
@@ -40,7 +44,7 @@ import io.github.kalasyan.recompa.ui.theme.Night
  * selection) and handles the shoulder buttons; each style only lays it out.
  */
 internal class LibraryUi(
-    /** Ports in the current filter, platform and search, in catalog order. */
+    /** Ports in the current filter, platform and search, in the order of [sort]. */
     val items: List<PortItem>,
     /** Ports in the current filter and search, before picking a platform. */
     val listCount: Int,
@@ -59,6 +63,9 @@ internal class LibraryUi(
     val platforms: List<Pair<String, Int>>,
     val platform: String?,
     val onPlatform: (String?) -> Unit,
+    val sort: PortSort,
+    /** Moves on to the next order, like the Select button. */
+    val onNextSort: () -> Unit,
     val offline: Boolean,
     val updates: Int,
     val updatingAll: Boolean,
@@ -168,6 +175,7 @@ internal fun LibraryActions(ui: LibraryUi, tint: Color = Color.White, container:
         }
         val context = LocalContext.current
         val colors = IconButtonDefaults.iconButtonColors(containerColor = container, contentColor = tint)
+        SortButton(ui.sort, ui.onNextSort, tint)
         IconButton(onClick = { context.openKofi() }, colors = colors, modifier = Modifier.focusRing(CircleShape)) {
             Icon(KofiCup, contentDescription = stringResource(R.string.settings_kofi))
         }
@@ -185,6 +193,35 @@ internal fun LibraryActions(ui: LibraryUi, tint: Color = Color.White, container:
         }
     }
 }
+
+/** The name of an order, as the sort button and the settings show it. */
+internal val PortSort.label: Int
+    get() = when (this) {
+        PortSort.GAME -> R.string.sort_game
+        PortSort.ADDED -> R.string.sort_added
+        PortSort.UPDATED -> R.string.sort_updated
+        PortSort.RATING -> R.string.sort_rating
+    }
+
+/** Shows the library's order and moves on to the next one, like the Select button. */
+@Composable
+internal fun SortButton(sort: PortSort, onNext: () -> Unit, tint: Color = Color.White) {
+    TextButton(onClick = onNext, modifier = Modifier.focusRing()) {
+        Icon(SortIcon, contentDescription = stringResource(R.string.sort_title), tint = tint)
+        Spacer(Modifier.width(6.dp))
+        Text(stringResource(sort.label), color = tint, maxLines = 1, style = MaterialTheme.typography.labelLarge)
+    }
+}
+
+/** Three lines getting shorter (Material's "sort"), for the sort button. */
+internal val SortIcon: ImageVector by lazy {
+    ImageVector.Builder("Sort", 24.dp, 24.dp, 24f, 24f)
+        .addPath(addPathNodes("M3,18h6v-2H3v2zM3,6v2h18V6H3zM3,13h12v-2H3v2z"), fill = SolidColor(Color.Black))
+        .build()
+}
+
+/** The order after this one, as Select and the sort button cycle them. */
+internal fun PortSort.next(): PortSort = PortSort.entries[(ordinal + 1) % PortSort.entries.size]
 
 /** A gamepad button and what it does, for the hint lines at the bottom of some styles. */
 @Composable

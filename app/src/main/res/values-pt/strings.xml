@@ -256,4 +256,11 @@
     <string name="whats_new_scroll">Rolar</string>
     <string name="settings_whats_new">Novidades desta versão</string>
     <string name="settings_whats_new_help">As mudanças do Recompa %1$s.</string>
+    <string name="sort_title">Ordem</string>
+    <string name="sort_toast">Ordenado por: %1$s</string>
+    <string name="sort_game">Por jogo</string>
+    <string name="sort_added">Adicionados recentemente</string>
+    <string name="sort_updated">Atualizados recentemente</string>
+    <string name="sort_rating">Mais bem avaliados</string>
+    <string name="settings_sort_help">Como a biblioteca é ordenada. Os ports compatíveis vêm sempre primeiro. O botão Select do controle também a muda.</string>
 </resources>

@@ -256,4 +256,11 @@
     <string name="whats_new_scroll">Blättern</string>
     <string name="settings_whats_new">Neuigkeiten dieser Version</string>
     <string name="settings_whats_new_help">Die Änderungen in Recompa %1$s.</string>
+    <string name="sort_title">Sortierung</string>
+    <string name="sort_toast">Sortiert nach: %1$s</string>
+    <string name="sort_game">Nach Spiel</string>
+    <string name="sort_added">Zuletzt hinzugefügt</string>
+    <string name="sort_updated">Zuletzt aktualisiert</string>
+    <string name="sort_rating">Beste Bewertung</string>
+    <string name="settings_sort_help">Wie die Bibliothek sortiert wird. Kompatible Ports stehen immer oben. Die Select-Taste des Controllers ändert sie auch.</string>
 </resources>

@@ -59,6 +59,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import io.github.kalasyan.recompa.R
+import io.github.kalasyan.recompa.core.catalog.PortSort
 import io.github.kalasyan.recompa.core.install.PortStatus
 import io.github.kalasyan.recompa.ui.theme.Accent
 import io.github.kalasyan.recompa.ui.theme.Night
@@ -73,19 +74,24 @@ private sealed interface ListEntry {
 private fun initial(name: String): String = name.firstOrNull()?.uppercaseChar()?.takeIf { it.isLetter() }?.toString() ?: "#"
 
 /**
- * List: every port by name, with letter headings, on the left; the selected port's art, cover,
+ * List: every port in the chosen order (with letter headings when by name) on the left; the selected port's art, cover,
  * facts and screenshots on the right. Like the menus of retro frontends.
  */
 @Composable
 internal fun ListLibrary(ui: LibraryUi) {
     val selected = ui.selected
-    val entries = remember(ui.items) {
+    val entries = remember(ui.items, ui.sort) {
         buildList {
             var last: String? = null
-            ui.items.sortedBy { it.port.name.lowercase() }.forEach { item ->
-                val letter = initial(item.port.name)
-                if (letter != last) add(ListEntry.Letter(letter))
-                last = letter
+            // By name the list is one A to Z run with letter headings, compatible or not, so each
+            // letter shows up once; other orders have no headings.
+            val byName = ui.sort == PortSort.GAME
+            (if (byName) ui.items.sortedBy { PortSort.sortKey(it.port) } else ui.items).forEach { item ->
+                if (byName) {
+                    val letter = initial(PortSort.sortKey(item.port))
+                    if (letter != last) add(ListEntry.Letter(letter))
+                    last = letter
+                }
                 add(ListEntry.Entry(item))
             }
         }
@@ -157,6 +163,7 @@ internal fun ListLibrary(ui: LibraryUi) {
                 ButtonHint("L1/R1", stringResource(R.string.hint_filter))
                 ButtonHint("L2/R2", stringResource(R.string.hint_platform))
                 ButtonHint("Y", stringResource(R.string.favorite))
+                ButtonHint("Select", stringResource(R.string.sort_title))
             }
         }
         if (preview && selected != null) ListPreview(ui, selected, Modifier.weight(1f).fillMaxHeight())

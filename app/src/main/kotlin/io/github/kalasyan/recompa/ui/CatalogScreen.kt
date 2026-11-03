@@ -101,6 +101,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.kalasyan.recompa.R
 import io.github.kalasyan.recompa.core.catalog.NewPorts
 import io.github.kalasyan.recompa.core.catalog.PortSearch
+import io.github.kalasyan.recompa.core.catalog.PortSort
 import io.github.kalasyan.recompa.core.install.PortStatus
 import io.github.kalasyan.recompa.ui.theme.Accent
 import io.github.kalasyan.recompa.ui.theme.Night
@@ -158,7 +159,9 @@ fun CatalogScreen(
  * a grid of covers. Built for a gamepad: the D-pad moves between covers, A opens one, L1/R1
  * switch between All, New (the ports added on the latest day that added any),
  * Compatible, Installed and Favourites, L2/R2 between original platforms,
- * Y marks the selected port as a favourite and X opens the search.
+ * Y marks the selected port as a favourite, X opens the search and Select changes the order
+ * (game name, recently added, recently updated, best rated). Compatible ports come first in
+ * every order.
  */
 @Composable
 private fun Library(
@@ -170,6 +173,17 @@ private fun Library(
     val manager = rememberInstallManager()
     val prefs = rememberUserPrefs()
     val favorites by prefs.favorites.collectAsStateWithLifecycle()
+    val sort by prefs.sort.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val nextSort: () -> Unit = {
+        val next = sort.next()
+        prefs.setSort(next)
+        android.widget.Toast.makeText(
+            context,
+            context.getString(R.string.sort_toast, context.getString(next.label)),
+            android.widget.Toast.LENGTH_SHORT,
+        ).show()
+    }
     val updatingAll by manager.updatingAll.collectAsStateWithLifecycle()
     val revision by manager.revision.collectAsStateWithLifecycle()
     LifecycleResumeEffect(manager) {
@@ -204,7 +218,9 @@ private fun Library(
             Filter.FAVORITES -> item.port.id in favorites
         }
     }
-    val inList = state.items.filter { inFilter(it, filter) && PortSearch.matches(it.port, query) }
+    // Compatible ports first, then the chosen order (the sort is stable).
+    val sorted = remember(state.items, sort) { sort.sort(state.items) { it.port }.sortedBy { !it.compatible } }
+    val inList = sorted.filter { inFilter(it, filter) && PortSearch.matches(it.port, query) }
     // Platforms of the current list, the most common first and "other" last.
     val platforms = inList.groupingBy { it.port.originalPlatform }.eachCount().entries
         .sortedWith(compareBy({ it.key == "other" }, { -it.value }))
@@ -239,6 +255,8 @@ private fun Library(
         platforms = platforms,
         platform = activePlatform,
         onPlatform = { platform = it },
+        sort = sort,
+        onNextSort = nextSort,
         offline = state.fromCache,
         updates = updates.size,
         updatingAll = updatingAll,
@@ -302,6 +320,7 @@ private fun Library(
                 }
                 AndroidKeyEvent.KEYCODE_BUTTON_Y -> selected?.let { prefs.toggleFavorite(it.port.id) }
                 AndroidKeyEvent.KEYCODE_BUTTON_X -> searching = true
+                AndroidKeyEvent.KEYCODE_BUTTON_SELECT -> nextSort()
                 else -> return@onPreviewKeyEvent false
             }
             true
@@ -324,7 +343,7 @@ private fun Library(
  */
 @Composable
 internal fun FocusSelectedOnChange(ui: LibraryUi, vararg keys: Any?, scrollTo: suspend (index: Int) -> Unit) {
-    LaunchedEffect(ui.filter, ui.platform, *keys) {
+    LaunchedEffect(ui.filter, ui.platform, ui.sort, *keys) {
         scrollTo(ui.selectedIndex.coerceAtLeast(0))
         withFrameNanos { }
         runCatching { ui.focusTarget.requestFocus() }
@@ -381,6 +400,8 @@ private fun ClassicLibrary(ui: LibraryUi) {
                 updates = ui.updates,
                 updatingAll = ui.updatingAll,
                 onUpdateAll = ui.onUpdateAll,
+                sort = ui.sort,
+                onNextSort = ui.onNextSort,
             )
             ui.searchBar(Modifier.padding(horizontal = 24.dp, vertical = 4.dp).fillMaxWidth(0.6f))
             PlatformBar(ui.platforms, ui.platform, total = ui.listCount, onPlatform = ui.onPlatform)
@@ -430,6 +451,8 @@ private fun TopBar(
     updates: Int = 0,
     updatingAll: Boolean = false,
     onUpdateAll: () -> Unit = {},
+    sort: PortSort? = null,
+    onNextSort: () -> Unit = {},
 ) {
     Row(
         Modifier
@@ -481,6 +504,7 @@ private fun TopBar(
                 )
             }
         }
+        if (sort != null) SortButton(sort, onNextSort)
         val context = LocalContext.current
         IconButton(onClick = { context.openKofi() }, modifier = Modifier.focusRing(CircleShape)) {
             Icon(KofiCup, contentDescription = stringResource(R.string.settings_kofi))

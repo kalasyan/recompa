@@ -148,6 +148,7 @@ internal fun ShelvesLibrary(ui: LibraryUi) {
                     Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                         ButtonHint("A", stringResource(R.string.hint_open))
                         ButtonHint("Y", stringResource(R.string.favorite))
+                        ButtonHint("Select", stringResource(ui.sort.label))
                         ButtonHint("L2/R2", ui.platform?.let { platformName(it) } ?: stringResource(R.string.hint_platform))
                     }
                 }

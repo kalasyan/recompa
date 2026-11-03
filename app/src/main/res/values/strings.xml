@@ -257,4 +257,11 @@
     <string name="whats_new_scroll">Scroll</string>
     <string name="settings_whats_new">What\'s new in this version</string>
     <string name="settings_whats_new_help">The changes in Recompa %1$s.</string>
+    <string name="sort_title">Order</string>
+    <string name="sort_toast">Sorted by %1$s</string>
+    <string name="sort_game">By game</string>
+    <string name="sort_added">Recently added</string>
+    <string name="sort_updated">Recently updated</string>
+    <string name="sort_rating">Best rated</string>
+    <string name="settings_sort_help">How the library is sorted. Compatible ports always come first. Select on the gamepad changes it too.</string>
 </resources>

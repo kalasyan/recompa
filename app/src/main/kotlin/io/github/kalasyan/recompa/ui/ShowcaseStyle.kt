@@ -152,6 +152,7 @@ internal fun ShowcaseLibrary(ui: LibraryUi) {
                 ) {
                     ButtonHint("A", stringResource(R.string.hint_open))
                     ButtonHint("Y", stringResource(R.string.favorite))
+                    ButtonHint("Select", stringResource(ui.sort.label))
                     Text(
                         "${ui.selectedIndex + 1} / ${ui.items.size}",
                         style = MaterialTheme.typography.labelMedium,

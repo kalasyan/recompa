@@ -23,6 +23,8 @@ data class Port(
     val id: String,
     val name: String,
     val game: String,
+    /** What to sort the game by when its name doesn't (say "Zelda" for "The Legend of Zelda"); null to use [game]. */
+    @SerialName("sort_name") val sortName: String? = null,
     @SerialName("original_platform") val originalPlatform: String,
     val type: String,
     val upstream: String? = null,

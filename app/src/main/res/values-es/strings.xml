@@ -257,4 +257,11 @@
     <string name="whats_new_scroll">Desplazar</string>
     <string name="settings_whats_new">Novedades de esta versión</string>
     <string name="settings_whats_new_help">Los cambios de Recompa %1$s.</string>
+    <string name="sort_title">Orden</string>
+    <string name="sort_toast">Ordenado por: %1$s</string>
+    <string name="sort_game">Por juego</string>
+    <string name="sort_added">Añadidos recientemente</string>
+    <string name="sort_updated">Actualizados recientemente</string>
+    <string name="sort_rating">Mejor valorados</string>
+    <string name="settings_sort_help">Cómo se ordena la biblioteca. Los ports compatibles siempre van primero. El botón Select del mando también lo cambia.</string>
 </resources>

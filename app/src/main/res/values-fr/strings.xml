@@ -256,4 +256,11 @@
     <string name="whats_new_scroll">Défiler</string>
     <string name="settings_whats_new">Nouveautés de cette version</string>
     <string name="settings_whats_new_help">Les changements de Recompa %1$s.</string>
+    <string name="sort_title">Tri</string>
+    <string name="sort_toast">Trié par : %1$s</string>
+    <string name="sort_game">Par jeu</string>
+    <string name="sort_added">Ajoutés récemment</string>
+    <string name="sort_updated">Mis à jour récemment</string>
+    <string name="sort_rating">Mieux notés</string>
+    <string name="settings_sort_help">Ordre de la bibliothèque. Les ports compatibles passent toujours en premier. Le bouton Select de la manette le change aussi.</string>
 </resources>
