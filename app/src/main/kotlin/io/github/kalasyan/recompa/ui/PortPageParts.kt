@@ -3,7 +3,8 @@ package io.github.kalasyan.recompa.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -80,6 +81,7 @@ internal fun portStats(item: PortItem): List<PortStat> {
 }
 
 /** [portStats] as a row of small boxes. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun PortStats(
     item: PortItem,
@@ -88,7 +90,8 @@ internal fun PortStats(
     labelColor: Color = Color.White.copy(alpha = 0.7f),
 ) {
     val shape = RoundedCornerShape(LocalPalette.current.corner)
-    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+    // Wraps onto a second line when the screen is narrow, as in portrait.
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         portStats(item).forEach { stat ->
             Column(Modifier.background(box, shape).padding(horizontal = 12.dp, vertical = 8.dp)) {
                 Text(stat.value, style = valueStyle, maxLines = 1)
