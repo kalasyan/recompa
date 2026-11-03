@@ -137,7 +137,7 @@ internal fun ListLibrary(ui: LibraryUi) {
                     style = TextStyle(fontFamily = Rajdhani, fontWeight = FontWeight.Bold, fontSize = 13.sp),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                if (!preview) LibraryActions(ui)
+                if (!preview) LibraryActions(ui, compact = portrait)
             }
             Row(
                 Modifier.padding(horizontal = 10.dp, vertical = 4.dp).horizontalScroll(rememberScrollState()),
@@ -275,7 +275,7 @@ private fun ListPreview(ui: LibraryUi, item: PortItem, modifier: Modifier, banne
                 Box(Modifier.weight(1f).padding(top = 4.dp)) {
                     PortTitle(port, logoHeight = 52.dp, style = MaterialTheme.typography.headlineSmall)
                 }
-                LibraryActions(ui, container = Night.copy(alpha = 0.5f))
+                LibraryActions(ui, container = Night.copy(alpha = 0.5f), compact = banner)
             }
             Spacer(Modifier.weight(1f))
             Row(verticalAlignment = Alignment.Bottom) {

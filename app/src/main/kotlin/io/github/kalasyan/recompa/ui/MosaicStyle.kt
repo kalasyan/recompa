@@ -147,7 +147,7 @@ private fun PortraitMosaic(ui: LibraryUi, blocks: List<List<PortItem>>, listStat
                 color = Accent,
             )
             Spacer(Modifier.weight(1f))
-            LibraryActions(ui)
+            LibraryActions(ui, compact = true)
         }
         Row(
             Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 20.dp),

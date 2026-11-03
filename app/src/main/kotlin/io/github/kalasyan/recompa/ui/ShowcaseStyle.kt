@@ -73,6 +73,7 @@ private val CaseWidth = 124.dp
  * Showcase: the game boxes stand on a lit shelf and turn towards the middle, where the selected
  * one faces the player, larger, over its reflection.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun ShowcaseLibrary(ui: LibraryUi) {
     val selected = ui.selected
@@ -87,12 +88,10 @@ internal fun ShowcaseLibrary(ui: LibraryUi) {
             .background(Brush.radialGradient(listOf(Color(0xFF2C2F3A), Night), radius = 1400f)),
     ) {
         Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
-            Row(Modifier.fillMaxWidth().padding(start = 24.dp, end = 12.dp, top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(stringResource(R.string.app_name), style = MaterialTheme.typography.titleLarge.copy(fontFamily = Playfair))
+            val portrait = isPortrait()
+            val segments: @Composable (Modifier) -> Unit = { modifier ->
                 Row(
-                    Modifier
-                        .padding(start = 18.dp)
-                        .weight(1f, fill = false)
+                    modifier
                         .clip(RoundedCornerShape(50))
                         .background(Color.White.copy(alpha = 0.07f))
                         .horizontalScroll(rememberScrollState())
@@ -100,10 +99,19 @@ internal fun ShowcaseLibrary(ui: LibraryUi) {
                 ) {
                     ui.filters.forEach { f -> Segment(stringResource(f.label), f == ui.filter) { ui.onFilter(f) } }
                 }
+            }
+            Row(
+                Modifier.fillMaxWidth().padding(start = if (portrait) 18.dp else 24.dp, end = if (portrait) 4.dp else 12.dp, top = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(stringResource(R.string.app_name), style = MaterialTheme.typography.titleLarge.copy(fontFamily = Playfair))
+                // In portrait the filters get a line of their own, centred under the name.
+                if (!portrait) segments(Modifier.padding(start = 18.dp).weight(1f, fill = false))
                 Spacer(Modifier.weight(1f))
                 LibraryActions(ui, compact = true)
             }
-            ui.searchBar(Modifier.align(Alignment.CenterHorizontally).padding(top = 4.dp).fillMaxWidth(0.6f))
+            if (portrait) segments(Modifier.align(Alignment.CenterHorizontally).padding(horizontal = 16.dp, vertical = 4.dp))
+            ui.searchBar(Modifier.align(Alignment.CenterHorizontally).padding(top = 4.dp, start = 16.dp, end = 16.dp).fillMaxWidth(if (portrait) 1f else 0.6f))
             if (ui.items.isEmpty()) {
                 ui.emptyState(Modifier.weight(1f))
             } else {
@@ -151,9 +159,10 @@ internal fun ShowcaseLibrary(ui: LibraryUi) {
                         modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
                     )
                 }
-                Row(
-                    Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 12.dp),
+                FlowRow(
+                    Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 12.dp, start = 16.dp, end = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     ButtonHint("A", stringResource(R.string.hint_open))
                     ButtonHint("Y", stringResource(R.string.favorite))
