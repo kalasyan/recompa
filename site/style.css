@@ -50,6 +50,13 @@ main > section { max-width: 1160px; margin: 0 auto; padding: 72px 20px; }
   border-radius: 999px; padding: 6px 12px; font: inherit; font-size: .85rem; cursor: pointer;
 }
 
+.kofi-top {
+  display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px 5px 9px; border-radius: 999px; text-decoration: none;
+  background: rgba(255, 122, 61, .14); border: 1px solid rgba(255, 122, 61, .45); color: var(--text); font-size: .85rem; font-weight: 600;
+}
+.kofi-top svg { width: 20px; height: 20px; }
+.kofi-top:hover { background: rgba(255, 122, 61, .24); }
+
 .btn {
   display: inline-flex; align-items: center; gap: 10px;
   padding: 14px 22px; border-radius: 999px;
@@ -153,6 +160,17 @@ main > section { max-width: 1160px; margin: 0 auto; padding: 72px 20px; }
 .faq summary { cursor: pointer; font-weight: 600; font-size: 1.05rem; }
 .faq details p { color: var(--muted); margin-top: 10px; }
 
+.support { padding-top: 0 !important; padding-bottom: 0 !important; }
+.support .card {
+  display: flex; align-items: center; gap: 28px; padding: 28px 32px; border-radius: var(--radius); border: 1px solid var(--line);
+  background: linear-gradient(120deg, rgba(255, 122, 61, .16), rgba(168, 85, 247, .12));
+}
+.support .mug { flex: none; width: 64px; height: 64px; border-radius: 18px; display: grid; place-items: center; background: var(--surface-2); color: var(--text); }
+.support .mug svg { width: 38px; height: 38px; }
+.support .txt { flex: 1; }
+.support h2 { font-size: 1.5rem; }
+.support .txt p { color: var(--muted); margin-top: 6px; max-width: 60ch; }
+
 footer { border-top: 1px solid var(--line); padding: 32px 20px 48px; text-align: center; color: var(--muted); font-size: .88rem; }
 footer p { max-width: 760px; margin: 0 auto 10px; }
 
@@ -160,11 +178,15 @@ footer p { max-width: 760px; margin: 0 auto 10px; }
   .hero { grid-template-columns: 1fr; gap: 32px; }
   .features .grid, .steps, .gallery { grid-template-columns: 1fr 1fr; }
   .top nav { display: none; }
-  .lang { margin-left: auto; }
+  .kofi-top { margin-left: auto; }
 }
 @media (max-width: 600px) {
   main > section { padding: 52px 16px; }
   .stats, .features .grid, .steps, .shots { grid-template-columns: 1fr; }
   .ports { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 12px; }
   .cta .btn { flex: 1 1 100%; justify-content: center; }
+  .support .card { flex-direction: column; align-items: flex-start; padding: 22px; gap: 16px; }
+  .support .btn { width: 100%; justify-content: center; }
+  .kofi-top { padding: 5px 8px; }
+  .kofi-top span { display: none; }
 }
