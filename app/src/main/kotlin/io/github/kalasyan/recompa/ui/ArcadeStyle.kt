@@ -7,6 +7,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsDraggedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -24,6 +25,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.gestures.snapping.SnapPosition
+import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -36,7 +39,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -55,6 +62,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.kalasyan.recompa.R
 import io.github.kalasyan.recompa.ui.theme.PressStart
+import kotlinx.coroutines.flow.filter
 import kotlin.math.abs
 import kotlin.math.pow
 
@@ -106,6 +114,24 @@ internal fun ArcadeLibrary(ui: LibraryUi) {
     FocusSelectedOnChange(ui) { listState.scrollToItem(it) }
     // Keep the selected cover in the middle while moving along the wheel.
     LaunchedEffect(ui.selectedIndex) { if (ui.selectedIndex >= 0) listState.animateScrollToItem(ui.selectedIndex) }
+    // Dragged by touch, the wheel settles with a cover in the middle and that one becomes the
+    // selected (zoomed) cover, so the zoom never stays on one that scrolled out of view.
+    // Only after a drag: the gamepad's own scrolling, cut short by fast presses, must not
+    // pick a cover on its way.
+    val currentUi by rememberUpdatedState(ui)
+    val dragged by listState.interactionSource.collectIsDraggedAsState()
+    var touched by remember { mutableStateOf(false) }
+    LaunchedEffect(dragged) { if (dragged) touched = true }
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.isScrollInProgress }.filter { !it }.collect {
+            if (!touched) return@collect
+            touched = false
+            val info = listState.layoutInfo
+            val middle = (info.viewportStartOffset + info.viewportEndOffset) / 2
+            val centred = info.visibleItemsInfo.minByOrNull { abs(it.offset + it.size / 2 - middle) } ?: return@collect
+            currentUi.items.getOrNull(centred.index)?.takeIf { it != currentUi.selected }?.let { currentUi.onSelect(it) }
+        }
+    }
 
     // In portrait the buttons take the whole top line, so the title moves down under them.
     val portrait = isPortrait()
@@ -149,6 +175,7 @@ internal fun ArcadeLibrary(ui: LibraryUi) {
                     val side = (maxWidth - 128.dp * scale) / 2
                     LazyRow(
                         state = listState,
+                        flingBehavior = rememberSnapFlingBehavior(listState, SnapPosition.Center),
                         contentPadding = PaddingValues(horizontal = side.coerceAtLeast(0.dp)),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically,
