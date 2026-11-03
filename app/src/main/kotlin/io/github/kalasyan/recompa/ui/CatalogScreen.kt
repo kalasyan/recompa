@@ -232,6 +232,13 @@ private fun Library(
     LaunchedEffect(activePlatform) { platform = activePlatform }
     val visible = inList.filter { activePlatform == null || it.port.originalPlatform == activePlatform }
     var selectedId by rememberSaveable { mutableStateOf<String?>(null) }
+    // A new order starts at the top of the list (with Select, the sort button or Settings);
+    // staying on the same port could jump from the start to the end of the list.
+    var sortShown by rememberSaveable { mutableStateOf(sort.id) }
+    if (sortShown != sort.id) {
+        sortShown = sort.id
+        selectedId = null
+    }
     val selected = visible.firstOrNull { it.port.id == selectedId } ?: visible.firstOrNull()
     val secondScreen = rememberSecondScreen()
     // With a second screen showing the selected port, the layouts leave out their own details.
