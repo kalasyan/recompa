@@ -40,6 +40,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.flow.filter
+import androidx.compose.runtime.withFrameNanos
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
+import androidx.compose.foundation.gestures.snapping.SnapPosition
+import androidx.compose.foundation.interaction.collectIsDraggedAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -80,6 +89,26 @@ internal fun ShowcaseLibrary(ui: LibraryUi) {
     val listState = rememberLazyListState()
     FocusSelectedOnChange(ui) { listState.scrollToItem(it) }
     LaunchedEffect(ui.selectedIndex) { if (ui.selectedIndex >= 0) listState.animateScrollToItem(ui.selectedIndex) }
+    // Dragged by touch, the shelf settles with a box in the middle (the one drawn biggest) and
+    // that one becomes the selected, lit box with focus, as if the D-pad had moved there.
+    // Only after a drag: the gamepad's own scrolling must not pick a box on its way.
+    val currentUi by rememberUpdatedState(ui)
+    val dragged by listState.interactionSource.collectIsDraggedAsState()
+    var touched by remember { mutableStateOf(false) }
+    LaunchedEffect(dragged) { if (dragged) touched = true }
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.isScrollInProgress }.filter { !it }.collect {
+            if (!touched) return@collect
+            touched = false
+            val info = listState.layoutInfo
+            val middle = (info.viewportStartOffset + info.viewportEndOffset) / 2
+            val centred = info.visibleItemsInfo.minByOrNull { abs(it.offset + it.size / 2 - middle) } ?: return@collect
+            val item = currentUi.items.getOrNull(centred.index) ?: return@collect
+            if (item != currentUi.selected) currentUi.onSelect(item)
+            withFrameNanos { }
+            runCatching { currentUi.focusTarget.requestFocus() }
+        }
+    }
 
     Box(
         Modifier
@@ -135,6 +164,7 @@ internal fun ShowcaseLibrary(ui: LibraryUi) {
                     )
                     LazyRow(
                         state = listState,
+                        flingBehavior = rememberSnapFlingBehavior(listState, SnapPosition.Center),
                         contentPadding = PaddingValues(horizontal = side.coerceAtLeast(0.dp)),
                         horizontalArrangement = Arrangement.spacedBy(2.dp),
                         verticalAlignment = Alignment.CenterVertically,
