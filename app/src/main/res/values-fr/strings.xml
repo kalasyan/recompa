@@ -264,4 +264,27 @@
     <string name="sort_updated">Mis à jour récemment</string>
     <string name="sort_rating">Mieux notés</string>
     <string name="settings_sort_help">Ordre de la bibliothèque. Les ports compatibles passent toujours en premier. Le bouton Select de la manette le change aussi.</string>
+    <string name="genre_title">Genre</string>
+    <string name="genre_all">Tous les genres</string>
+    <string name="genre_action">Action</string>
+    <string name="genre_adventure">Aventure</string>
+    <string name="genre_platform">Plates-formes</string>
+    <string name="genre_shooter">Tir</string>
+    <string name="genre_rpg">RPG</string>
+    <string name="genre_fighting">Combat</string>
+    <string name="genre_racing">Course</string>
+    <string name="genre_sports">Sport</string>
+    <string name="genre_strategy">Stratégie</string>
+    <string name="genre_simulation">Simulation</string>
+    <string name="genre_puzzle">Réflexion</string>
+    <string name="genre_horror">Horreur</string>
+    <string name="genre_arcade">Arcade</string>
+    <string name="genre_music">Musique</string>
+    <string name="sort_downloads">Les plus téléchargés</string>
+    <string name="stat_downloads">téléchargements</string>
+    <string name="downloads_count">%1$s téléchargements</string>
+    <string name="action_install_size">Installer · %1$s</string>
+    <string name="action_app_info">Infos de l\'appli</string>
+    <string name="installed_size">L\'appli occupe %1$s, sans ses sauvegardes ni les fichiers du jeu. Les infos de l\'appli montrent tout.</string>
+    <string name="error_no_space">Pas assez d\'espace : il faut %1$s et il ne reste que %2$s. Libérez de l\'espace et réessayez.</string>
 </resources>

@@ -43,6 +43,10 @@ data class Port(
     @SerialName("added_at") val addedAt: String? = null,
     /** Ids of ports merged into this one: what Recompa installed under them belongs here now. */
     val aliases: List<String> = emptyList(),
+    /** The game's genres, ids from [Genres.ALL]; empty in catalogs older than the field. */
+    val genres: List<String> = emptyList(),
+    /** How many times the APKs of all its versions were downloaded from GitHub; null in older catalogs. */
+    val downloads: Long? = null,
 ) {
     /**
      * The versions of the game a player can install: each fork (or separate port of the same
@@ -107,6 +111,8 @@ data class Fork(
     val blocked: List<BlockedRelease> = emptyList(),
     /** How this version runs on each device, from players' reports. */
     val reports: List<DeviceReport> = emptyList(),
+    /** How many times this version's APKs were downloaded from GitHub; null in older catalogs. */
+    val downloads: Long? = null,
 ) {
     fun blockedReason(tag: String?): BlockedRelease? = blocked.firstOrNull { it.tag == tag }
 
@@ -248,4 +254,18 @@ data class Art(
 
     /** Wide backgrounds to try in order: the hero, then the first screenshot. */
     val backdrops: List<String> get() = listOfNotNull(hero, screenshots.firstOrNull())
+}
+
+/** The genres a port can have, in the order the library lists them (the catalog's build uses the same ids). */
+object Genres {
+    val ALL = listOf(
+        "action", "adventure", "platform", "shooter", "rpg", "fighting", "racing", "sports",
+        "strategy", "simulation", "puzzle", "horror", "arcade", "music",
+    )
+
+    /** The genres of [ports] with how many ports each has, in the order of [ALL]; unknown ids last. */
+    fun counts(ports: List<Port>): List<Pair<String, Int>> = ports.flatMap { it.genres.distinct() }
+        .groupingBy { it }.eachCount().entries
+        .sortedBy { ALL.indexOf(it.key).takeIf { i -> i >= 0 } ?: Int.MAX_VALUE }
+        .map { it.key to it.value }
 }

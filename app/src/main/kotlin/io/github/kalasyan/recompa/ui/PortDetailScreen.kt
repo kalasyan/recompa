@@ -153,6 +153,9 @@ private fun ClassicPortPage(item: PortItem, header: @Composable () -> Unit) {
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Pill(platformName(port.originalPlatform))
                         Pill(typeName(pickedFork(port).type ?: port.type))
+                        port.genres.forEach { Pill(genreName(it)) }
+                        port.downloads?.takeIf { it > 0 }?.let { Pill(stringResource(R.string.downloads_count, countText(it))) }
+                        pickedFork(port).release?.asset?.size?.let { Pill(sizeText(it)) }
                         StatusPill(item, status)
                     }
                     if (wide) PortActions(item)

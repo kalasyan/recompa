@@ -77,6 +77,7 @@ internal fun portStats(item: PortItem): List<PortStat> {
         val tag = (if (status.installed) installedTag else null) ?: release?.tag
         tag?.let { add(PortStat(it.removePrefix("v").take(16), stringResource(R.string.stat_version))) }
         release?.asset?.size?.let { add(PortStat(sizeText(it), stringResource(R.string.stat_size))) }
+        port.downloads?.takeIf { it > 0 }?.let { add(PortStat(countText(it), stringResource(R.string.stat_downloads))) }
     }
 }
 
@@ -101,7 +102,12 @@ internal fun PortStats(
     }
 }
 
-private fun sizeText(bytes: Long): String = when {
+/** [bytes] as MB, or KB when small; GB from 10 GB on. */
+internal fun sizeText(bytes: Long): String = when {
+    bytes >= 10L * 1_073_741_824 -> "${(bytes + 536_870_912) / 1_073_741_824} GB"
     bytes >= 1_048_576 -> "${(bytes + 524_288) / 1_048_576} MB"
     else -> "${((bytes + 512) / 1024).coerceAtLeast(1)} KB"
 }
+
+/** A count with the locale's thousands separator (1.234 in Spanish). */
+internal fun countText(count: Long): String = java.text.NumberFormat.getIntegerInstance().format(count)

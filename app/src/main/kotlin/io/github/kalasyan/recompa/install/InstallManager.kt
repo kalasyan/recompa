@@ -7,6 +7,8 @@ import android.content.pm.ApplicationInfo
 import android.content.pm.PackageInstaller
 import android.net.Uri
 import android.os.Build
+import android.os.StatFs
+import android.provider.Settings
 import io.github.kalasyan.recompa.core.catalog.Fork
 import io.github.kalasyan.recompa.core.catalog.Port
 import io.github.kalasyan.recompa.core.catalog.Release
@@ -71,6 +73,8 @@ sealed interface InstallError {
     /** The release is older than the installed build: Android only accepts it after an uninstall. */
     data object Downgrade : InstallError
     data object Storage : InstallError
+    /** Not enough free space to download and install: [needed] and [available] bytes. */
+    data class NoSpace(val needed: Long, val available: Long) : InstallError
     data class Other(val message: String?) : InstallError
 }
 
@@ -320,6 +324,21 @@ class InstallManager(private val context: Context) {
     fun uninstallIntent(port: Port, fork: Fork): Intent? =
         packageName(port, fork)?.let { Intent(Intent.ACTION_DELETE, Uri.parse("package:$it")) }
 
+    /** The system's page of the installed app, where players clear its data or cache. */
+    fun appInfoIntent(port: Port, fork: Fork): Intent? =
+        packageName(port, fork)?.let { Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$it")) }
+
+    /**
+     * Bytes of the installed app's APK files. Its data and cache are left out: Android only
+     * shows them to apps with usage access, which Recompa does not ask for (see [appInfoIntent]).
+     */
+    fun installedSize(port: Port, fork: Fork): Long? {
+        val pkg = packageName(port, fork) ?: return null
+        val info = runCatching { context.packageManager.getApplicationInfo(pkg, 0) }.getOrNull() ?: return null
+        val apks = listOfNotNull(info.sourceDir) + info.splitSourceDirs.orEmpty()
+        return apks.sumOf { File(it).length() }.takeIf { it > 0 }
+    }
+
     fun dismiss(portId: String) {
         reinstalls.remove(portId)
         setPhase(portId, InstallPhase.Idle)
@@ -403,6 +422,12 @@ class InstallManager(private val context: Context) {
         if (current !is InstallPhase.Failed && current !is InstallPhase.Paused && current !in IDLE_PHASES) return
         if (!canInstall()) {
             setPhase(port.id, InstallPhase.NeedsPermission)
+            return
+        }
+        val needed = spaceNeeded(release, port.id)
+        val available = runCatching { StatFs(context.cacheDir.path).availableBytes }.getOrNull()
+        if (needed != null && available != null && available < needed) {
+            setPhase(port.id, InstallPhase.Failed(InstallError.NoSpace(needed, available)))
             return
         }
         val held = release.tag != fork.release?.tag
@@ -638,6 +663,19 @@ class InstallManager(private val context: Context) {
     }
 
     private fun isInstalled(pkg: String) = context.packageManager.packageInfoOrNull(pkg) != null
+
+    /**
+     * Bytes still needed to install [release]: the rest of the download, the APK taken out of
+     * a ZIP, and the copy Android makes while installing. Null when the catalog has no size.
+     */
+    private fun spaceNeeded(release: Release, portId: String): Long? {
+        val download = release.asset.size ?: return null
+        val apk = release.asset.entry?.size ?: download
+        val target = if (release.asset.entry != null) zipFile(portId) else apkFile(portId)
+        val done = target.length().coerceAtMost(download)
+        val extracted = if (release.asset.entry != null) apk else 0L
+        return download - done + extracted + apk
+    }
 
     private fun apkFile(portId: String) = File(context.cacheDir, "apks/$portId.apk")
 

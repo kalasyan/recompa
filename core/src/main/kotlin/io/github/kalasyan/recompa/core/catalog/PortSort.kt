@@ -16,7 +16,9 @@ enum class PortSort(val id: String) {
     /** The ports with the newest release of any of their versions first. */
     UPDATED("updated"),
     /** The ports players rate best first; ports nobody reported on go last. */
-    RATING("rating");
+    RATING("rating"),
+    /** The ports downloaded most often from GitHub first. */
+    DOWNLOADS("downloads");
 
     /** [items] in this order; [port] gives each item's port. The sort is stable. */
     fun <T> sort(items: List<T>, port: (T) -> Port): List<T> {
@@ -29,6 +31,7 @@ enum class PortSort(val id: String) {
             RATING -> compareByDescending<T> { rating(port(it)) }
                 .thenByDescending { port(it).reports.sumOf { r -> r.total } }
                 .then(byName)
+            DOWNLOADS -> compareByDescending<T> { port(it).downloads ?: 0L }.then(byName)
         }
         return items.sortedWith(comparator)
     }

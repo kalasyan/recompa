@@ -55,7 +55,7 @@ import io.github.kalasyan.recompa.ui.theme.Night
 internal class LibraryUi(
     /** Ports in the current filter, platform and search, in the order of [sort]. */
     val items: List<PortItem>,
-    /** Ports in the current filter and search, before picking a platform. */
+    /** Ports in the current filter, genre and search, before picking a platform. */
     val listCount: Int,
     val catalogEmpty: Boolean,
     val selected: PortItem?,
@@ -72,6 +72,12 @@ internal class LibraryUi(
     val platforms: List<Pair<String, Int>>,
     val platform: String?,
     val onPlatform: (String?) -> Unit,
+    /** Genres of the current filter and search with their counts, in the catalog's order. */
+    val genres: List<Pair<String, Int>>,
+    /** How many ports the current filter and search have, whatever their genre. */
+    val genreTotal: Int,
+    val genre: String?,
+    val onGenre: (String?) -> Unit,
     val sort: PortSort,
     /** Moves on to the next order, like the Select button. */
     val onNextSort: () -> Unit,
@@ -120,11 +126,12 @@ internal fun LibraryUi.badge(item: PortItem): Pair<String, Color>? {
     }
 }
 
-/** Platform, type and whether the port runs here, in one line. */
+/** Platform, type, first genre and whether the port runs here, in one line. */
 @Composable
 internal fun portFacts(item: PortItem): String = listOfNotNull(
     platformName(item.port.originalPlatform),
     typeName(item.port.type),
+    item.port.genres.firstOrNull()?.let { genreName(it) },
     when {
         item.port.recommendedFork == null -> stringResource(R.string.no_release)
         !item.compatible -> stringResource(R.string.not_compatible)
@@ -222,6 +229,7 @@ internal fun LibraryActions(
         } else {
             SortButton(ui.sort, ui.onSort, tint)
         }
+        if (ui.genres.isNotEmpty() || ui.genre != null) GenreButton(ui, tint, iconOnly = compact)
         IconButton(onClick = { context.openKofi() }, colors = colors, modifier = Modifier.focusRing(CircleShape)) {
             Icon(KofiCup, contentDescription = stringResource(R.string.settings_kofi))
         }
@@ -251,6 +259,7 @@ internal val PortSort.label: Int
         PortSort.ADDED -> R.string.sort_added
         PortSort.UPDATED -> R.string.sort_updated
         PortSort.RATING -> R.string.sort_rating
+        PortSort.DOWNLOADS -> R.string.sort_downloads
     }
 
 /**
@@ -299,6 +308,56 @@ internal fun SortButton(sort: PortSort, onPick: (PortSort) -> Unit, tint: Color 
             }
         }
     }
+}
+
+/**
+ * Shows the genre the library is limited to (or just an icon, with [iconOnly]; lit when a genre
+ * is picked) and opens a menu to pick another, with how many ports each has.
+ */
+@Composable
+internal fun GenreButton(ui: LibraryUi, tint: Color = Color.White, iconOnly: Boolean = false) {
+    var open by remember { mutableStateOf(false) }
+    val picked = ui.genre
+    val label = picked?.let { genreName(it) } ?: stringResource(R.string.genre_title)
+    Box {
+        if (iconOnly) {
+            IconButton(onClick = { open = true }, modifier = Modifier.focusRing(CircleShape)) {
+                Icon(GenreIcon, contentDescription = stringResource(R.string.genre_title) + ": " + label, tint = if (picked != null) Accent else tint)
+            }
+        } else {
+            TextButton(onClick = { open = true }, modifier = Modifier.focusRing()) {
+                Icon(GenreIcon, contentDescription = null, tint = if (picked != null) Accent else tint)
+                Spacer(Modifier.width(6.dp))
+                Text(label, color = if (picked != null) Accent else tint, maxLines = 1, style = MaterialTheme.typography.labelLarge)
+            }
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            val options = listOf<Pair<String?, Int>>(null to ui.genreTotal) + ui.genres
+            options.forEach { (genre, count) ->
+                DropdownMenuItem(
+                    text = { Text((genre?.let { genreName(it) } ?: stringResource(R.string.genre_all)) + " · " + count) },
+                    onClick = {
+                        open = false
+                        if (genre != picked) ui.onGenre(genre)
+                    },
+                    leadingIcon = {
+                        Icon(Icons.Filled.Check, contentDescription = null, tint = if (genre == picked) Accent else Color.Transparent)
+                    },
+                    modifier = Modifier.focusRing(),
+                )
+            }
+        }
+    }
+}
+
+/** Shapes of different kinds (Material's "category"), for the genre button. */
+internal val GenreIcon: ImageVector by lazy {
+    ImageVector.Builder("Genre", 24.dp, 24.dp, 24f, 24f)
+        .addPath(
+            addPathNodes("M12,2l-5.5,9h11L12,2zM17.5,13c-2.49,0 -4.5,2.01 -4.5,4.5s2.01,4.5 4.5,4.5 4.5,-2.01 4.5,-4.5 -2.01,-4.5 -4.5,-4.5zM3,21.5h8v-8H3v8z"),
+            fill = SolidColor(Color.Black),
+        )
+        .build()
 }
 
 /** Three lines getting shorter (Material's "sort"), for the sort button. */

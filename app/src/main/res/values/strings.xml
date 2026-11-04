@@ -265,4 +265,27 @@
     <string name="sort_updated">Recently updated</string>
     <string name="sort_rating">Best rated</string>
     <string name="settings_sort_help">How the library is sorted. Compatible ports always come first. Select on the gamepad changes it too.</string>
+    <string name="genre_title">Genre</string>
+    <string name="genre_all">All genres</string>
+    <string name="genre_action">Action</string>
+    <string name="genre_adventure">Adventure</string>
+    <string name="genre_platform">Platformer</string>
+    <string name="genre_shooter">Shooter</string>
+    <string name="genre_rpg">RPG</string>
+    <string name="genre_fighting">Fighting</string>
+    <string name="genre_racing">Racing</string>
+    <string name="genre_sports">Sports</string>
+    <string name="genre_strategy">Strategy</string>
+    <string name="genre_simulation">Simulation</string>
+    <string name="genre_puzzle">Puzzle</string>
+    <string name="genre_horror">Horror</string>
+    <string name="genre_arcade">Arcade</string>
+    <string name="genre_music">Music</string>
+    <string name="sort_downloads">Most downloaded</string>
+    <string name="stat_downloads">downloads</string>
+    <string name="downloads_count">%1$s downloads</string>
+    <string name="action_install_size">Install · %1$s</string>
+    <string name="action_app_info">App info</string>
+    <string name="installed_size">The app takes %1$s, without its saved data or game files. App info shows everything.</string>
+    <string name="error_no_space">Not enough space: it needs %1$s and only %2$s is free. Free up some space and try again.</string>
 </resources>

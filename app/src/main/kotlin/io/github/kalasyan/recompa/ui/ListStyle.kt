@@ -252,9 +252,12 @@ private fun portFactsTable(ui: LibraryUi?, item: PortItem): List<Pair<String, St
     val port = item.port
     val reports = port.reportSummary()
     val status = ui?.statuses?.get(port.id)
-    return listOf(
+    val genres = port.genres.map { genreName(it) }.joinToString()
+    return listOfNotNull(
         stringResource(R.string.fact_original) to "${port.game} · ${platformName(port.originalPlatform)}",
         stringResource(R.string.fact_type) to typeName(port.type),
+        genres.takeIf { it.isNotEmpty() }?.let { stringResource(R.string.genre_title) to it },
+        port.downloads?.takeIf { it > 0 }?.let { stringResource(R.string.stat_downloads).replaceFirstChar { c -> c.uppercase() } to countText(it) },
         stringResource(R.string.fact_status) to when {
             status is PortStatus.UpdateAvailable -> stringResource(R.string.status_update)
             status != null && status != PortStatus.NotInstalled -> stringResource(R.string.status_installed)

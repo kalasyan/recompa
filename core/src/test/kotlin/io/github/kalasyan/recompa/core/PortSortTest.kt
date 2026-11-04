@@ -99,4 +99,31 @@ class PortSortTest {
             ),
         )
     }
+
+    @Test
+    fun downloadsOrderPutsTheMostDownloadedFirst() {
+        assertEquals(
+            listOf("lots", "few", "a-none", "b-none"),
+            ids(
+                PortSort.DOWNLOADS,
+                port("b-none"),
+                port("few").copy(downloads = 3),
+                port("a-none"),
+                port("lots").copy(downloads = 900),
+            ),
+        )
+    }
+
+    @Test
+    fun genreCountsFollowTheCatalogOrder() {
+        val ports = listOf(
+            port("a").copy(genres = listOf("racing", "action")),
+            port("b").copy(genres = listOf("action", "weird")),
+            port("c"),
+        )
+        assertEquals(
+            listOf("action" to 2, "racing" to 1, "weird" to 1),
+            io.github.kalasyan.recompa.core.catalog.Genres.counts(ports),
+        )
+    }
 }

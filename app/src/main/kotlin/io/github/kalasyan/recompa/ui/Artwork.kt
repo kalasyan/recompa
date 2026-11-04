@@ -272,6 +272,26 @@ fun platformName(code: String): String = when (code) {
     else -> LocalPlatformNames.current[code] ?: PLATFORMS[code] ?: code.uppercase()
 }
 
+/** A genre's name (ids from Genres.ALL); a genre newer than the app shows its id. */
+@Composable
+fun genreName(id: String): String = when (id) {
+    "action" -> stringResource(R.string.genre_action)
+    "adventure" -> stringResource(R.string.genre_adventure)
+    "platform" -> stringResource(R.string.genre_platform)
+    "shooter" -> stringResource(R.string.genre_shooter)
+    "rpg" -> stringResource(R.string.genre_rpg)
+    "fighting" -> stringResource(R.string.genre_fighting)
+    "racing" -> stringResource(R.string.genre_racing)
+    "sports" -> stringResource(R.string.genre_sports)
+    "strategy" -> stringResource(R.string.genre_strategy)
+    "simulation" -> stringResource(R.string.genre_simulation)
+    "puzzle" -> stringResource(R.string.genre_puzzle)
+    "horror" -> stringResource(R.string.genre_horror)
+    "arcade" -> stringResource(R.string.genre_arcade)
+    "music" -> stringResource(R.string.genre_music)
+    else -> id.replaceFirstChar { it.uppercase() }
+}
+
 @Composable
 fun typeName(type: String): String = when (type) {
     "recomp" -> stringResource(R.string.type_recomp)

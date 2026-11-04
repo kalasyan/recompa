@@ -264,4 +264,27 @@
     <string name="sort_updated">Atualizados recentemente</string>
     <string name="sort_rating">Mais bem avaliados</string>
     <string name="settings_sort_help">Como a biblioteca é ordenada. Os ports compatíveis vêm sempre primeiro. O botão Select do controle também a muda.</string>
+    <string name="genre_title">Gênero</string>
+    <string name="genre_all">Todos os gêneros</string>
+    <string name="genre_action">Ação</string>
+    <string name="genre_adventure">Aventura</string>
+    <string name="genre_platform">Plataforma</string>
+    <string name="genre_shooter">Tiro</string>
+    <string name="genre_rpg">RPG</string>
+    <string name="genre_fighting">Luta</string>
+    <string name="genre_racing">Corrida</string>
+    <string name="genre_sports">Esportes</string>
+    <string name="genre_strategy">Estratégia</string>
+    <string name="genre_simulation">Simulação</string>
+    <string name="genre_puzzle">Quebra-cabeça</string>
+    <string name="genre_horror">Terror</string>
+    <string name="genre_arcade">Arcade</string>
+    <string name="genre_music">Música</string>
+    <string name="sort_downloads">Mais baixados</string>
+    <string name="stat_downloads">downloads</string>
+    <string name="downloads_count">%1$s downloads</string>
+    <string name="action_install_size">Instalar · %1$s</string>
+    <string name="action_app_info">Informações do app</string>
+    <string name="installed_size">O app ocupa %1$s, sem contar saves nem arquivos do jogo. Em Informações do app você vê tudo.</string>
+    <string name="error_no_space">Sem espaço suficiente: são necessários %1$s e só há %2$s livres. Libere espaço e tente de novo.</string>
 </resources>

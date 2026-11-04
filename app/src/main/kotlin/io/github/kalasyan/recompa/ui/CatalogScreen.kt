@@ -101,6 +101,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.kalasyan.recompa.BuildConfig
 import io.github.kalasyan.recompa.R
 import io.github.kalasyan.recompa.core.catalog.NewPorts
+import io.github.kalasyan.recompa.core.catalog.Genres
 import io.github.kalasyan.recompa.core.catalog.PortSearch
 import io.github.kalasyan.recompa.core.install.PortStatus
 import io.github.kalasyan.recompa.ui.theme.Accent
@@ -200,6 +201,7 @@ private fun Library(
 
     var filter by rememberSaveable { mutableStateOf(Filter.ALL) }
     var platform by rememberSaveable { mutableStateOf<String?>(null) }
+    var genre by rememberSaveable { mutableStateOf<String?>(null) }
     var query by rememberSaveable { mutableStateOf("") }
     var searching by rememberSaveable { mutableStateOf(false) }
     var suggesting by rememberSaveable { mutableStateOf(false) }
@@ -223,7 +225,12 @@ private fun Library(
     }
     // Compatible ports first, then the chosen order (the sort is stable).
     val sorted = remember(state.items, sort) { sort.sort(state.items) { it.port }.sortedBy { !it.compatible } }
-    val inList = sorted.filter { inFilter(it, filter) && PortSearch.matches(it.port, query) }
+    val searched = sorted.filter { inFilter(it, filter) && PortSearch.matches(it.port, query) }
+    val genres = remember(searched) { Genres.counts(searched.map { it.port }) }
+    // A genre with no ports in the current list is dropped, like a platform.
+    val activeGenre = genre?.takeIf { id -> genres.any { it.first == id } }
+    LaunchedEffect(activeGenre) { genre = activeGenre }
+    val inList = searched.filter { activeGenre == null || activeGenre in it.port.genres }
     // Platforms of the current list, the most common first and "other" last.
     val platforms = inList.groupingBy { it.port.originalPlatform }.eachCount().entries
         .sortedWith(compareBy({ it.key == "other" }, { -it.value }))
@@ -278,6 +285,10 @@ private fun Library(
         platforms = platforms,
         platform = activePlatform,
         onPlatform = { platform = it },
+        genres = genres,
+        genreTotal = searched.size,
+        genre = activeGenre,
+        onGenre = { genre = it },
         sort = sort,
         onNextSort = nextSort,
         onSort = { prefs.setSort(it) },
@@ -715,6 +726,7 @@ private fun Featured(item: PortItem, status: PortStatus?, compact: Boolean, modi
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Pill(platformName(port.originalPlatform))
                 Pill(typeName(port.type))
+                port.genres.forEach { Pill(genreName(it)) }
                 StatusPill(item, status)
             }
             port.description?.let {

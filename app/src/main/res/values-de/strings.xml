@@ -264,4 +264,27 @@
     <string name="sort_updated">Zuletzt aktualisiert</string>
     <string name="sort_rating">Beste Bewertung</string>
     <string name="settings_sort_help">Wie die Bibliothek sortiert wird. Kompatible Ports stehen immer oben. Die Select-Taste des Controllers ändert sie auch.</string>
+    <string name="genre_title">Genre</string>
+    <string name="genre_all">Alle Genres</string>
+    <string name="genre_action">Action</string>
+    <string name="genre_adventure">Adventure</string>
+    <string name="genre_platform">Jump \'n\' Run</string>
+    <string name="genre_shooter">Shooter</string>
+    <string name="genre_rpg">Rollenspiel</string>
+    <string name="genre_fighting">Kampfspiel</string>
+    <string name="genre_racing">Rennspiel</string>
+    <string name="genre_sports">Sport</string>
+    <string name="genre_strategy">Strategie</string>
+    <string name="genre_simulation">Simulation</string>
+    <string name="genre_puzzle">Puzzle</string>
+    <string name="genre_horror">Horror</string>
+    <string name="genre_arcade">Arcade</string>
+    <string name="genre_music">Musik</string>
+    <string name="sort_downloads">Meistgeladen</string>
+    <string name="stat_downloads">Downloads</string>
+    <string name="downloads_count">%1$s Downloads</string>
+    <string name="action_install_size">Installieren · %1$s</string>
+    <string name="action_app_info">App-Info</string>
+    <string name="installed_size">Die App belegt %1$s, ohne Spielstände und Spieldateien. In der App-Info siehst du alles.</string>
+    <string name="error_no_space">Nicht genug Speicher: nötig sind %1$s, frei sind nur %2$s. Gib Speicher frei und versuche es erneut.</string>
 </resources>

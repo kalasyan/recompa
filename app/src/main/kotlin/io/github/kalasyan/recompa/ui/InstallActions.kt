@@ -19,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -39,6 +40,8 @@ import io.github.kalasyan.recompa.install.InstallError
 import io.github.kalasyan.recompa.install.InstallManager
 import io.github.kalasyan.recompa.install.InstallPhase
 import io.github.kalasyan.recompa.install.LinkCandidate
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @Composable
 fun rememberInstallManager(): InstallManager {
@@ -195,7 +198,10 @@ fun InstallActions(item: PortItem, fork: Fork, manager: InstallManager = remembe
                     onClick = { manager.install(port, fork) },
                     enabled = canInstall,
                     modifier = Modifier.weight(1f).focusRing(),
-                ) { Text(stringResource(R.string.action_install)) }
+                ) {
+                    val size = fork.release?.asset?.size
+                    Text(if (size != null) stringResource(R.string.action_install_size, sizeText(size)) else stringResource(R.string.action_install))
+                }
                 is PortStatus.UpdateAvailable -> {
                     Button(onClick = { manager.install(port, fork) }, enabled = canInstall, modifier = Modifier.weight(1f).focusRing()) {
                         Text(stringResource(R.string.action_update, status.tag))
@@ -236,9 +242,16 @@ fun InstallActions(item: PortItem, fork: Fork, manager: InstallManager = remembe
             }
         }
         if (status.installed) {
+            val installedSize by produceState<Long?>(null, port, fork, revision) {
+                value = withContext(Dispatchers.IO) { manager.installedSize(port, fork) }
+            }
+            installedSize?.let { Note(stringResource(R.string.installed_size, sizeText(it))) }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 TextButton(onClick = { manager.uninstallIntent(port, fork)?.let(context::startSafely) }, modifier = Modifier.focusRing()) {
                     Text(stringResource(R.string.action_uninstall))
+                }
+                TextButton(onClick = { manager.appInfoIntent(port, fork)?.let(context::startSafely) }, modifier = Modifier.focusRing()) {
+                    Text(stringResource(R.string.action_app_info))
                 }
                 if (linked) {
                     TextButton(onClick = { manager.unlink(port, fork) }, modifier = Modifier.focusRing()) {
@@ -304,6 +317,7 @@ internal fun errorText(error: InstallError): String = when (error) {
     InstallError.InvalidApk -> stringResource(R.string.error_invalid_apk)
     InstallError.Aborted -> stringResource(R.string.error_aborted)
     InstallError.Storage -> stringResource(R.string.error_storage)
+    is InstallError.NoSpace -> stringResource(R.string.error_no_space, sizeText(error.needed), sizeText(error.available))
     InstallError.Downgrade -> stringResource(R.string.error_downgrade)
     is InstallError.Blocked -> stringResource(R.string.error_blocked)
     is InstallError.Conflict -> stringResource(R.string.error_conflict)
