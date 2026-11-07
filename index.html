@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Recompa · Ports nativos de juegos para Android</title>
+  <meta name="description" content="Recompa es un launcher para Android con más de 250 ports nativos de juegos: recompilaciones, decompilaciones y source ports. Descarga el APK gratis.">
+  <meta name="theme-color" content="#0A0D14">
+  <link rel="icon" href="logo.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.png">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Recompa · Ports nativos de juegos para Android">
+  <meta property="og:description" content="Instala ports nativos de tus juegos favoritos en Android, desde el GitHub de cada autor y verificados.">
+  <meta property="og:image" content="https://kalasyan.github.io/recompa/screenshots/library.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="stylesheet" href="style.css?v=a91ed24d8f">
+</head>
+<body>
+  <header class="top">
+    <a class="brand" href="#">
+      <img src="logo.svg" alt="" width="36" height="36">
+      <span>Recompa</span>
+    </a>
+    <nav>
+      <a href="#catalog" data-i18n="nav.catalog">Catálogo</a>
+      <a href="#install" data-i18n="nav.install">Instalar</a>
+      <a href="#faq" data-i18n="nav.faq">Preguntas</a>
+      <a href="https://github.com/kalasyan/recompa">GitHub</a>
+      <a href="#support" data-i18n="nav.support">Apoyar</a>
+    </nav>
+    <a class="kofi-top" href="https://ko-fi.com/joeyrt" aria-label="Ko-fi">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h12v6a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V8Z" fill="currentColor"/><path d="M16 9.5h1.5a2.5 2.5 0 0 1 0 5H16" fill="none" stroke="currentColor" stroke-width="2"/><path d="M10 15.2s-2.6-1.6-2.6-3.2a1.4 1.4 0 0 1 2.6-.7 1.4 1.4 0 0 1 2.6.7c0 1.6-2.6 3.2-2.6 3.2Z" fill="#FF5E5B"/></svg>
+      <span>Ko-fi</span>
+    </a>
+    <button class="lang" id="lang" type="button" aria-label="Change language">EN</button>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-text">
+        <p class="eyebrow" data-i18n="hero.eyebrow">Launcher para Android · Gratis y open source</p>
+        <h1 data-i18n="hero.title">Ports nativos de tus juegos favoritos, en un solo launcher.</h1>
+        <p class="lead" data-i18n="hero.lead">Más de 250 recompilaciones, decompilaciones y source ports que funcionan sin emulación. Elige un juego, instala su port desde el GitHub de su autor, prepara tu copia del juego y a jugar.</p>
+        <div class="cta">
+          <a class="btn primary" id="download" href="https://github.com/kalasyan/recompa/releases/latest/download/recompa.apk">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M5 21h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span data-i18n="hero.download">Descargar APK</span>
+          </a>
+        </div>
+        <p class="meta"><span id="version" data-i18n="hero.meta">Android 8.0 o superior</span></p>
+      </div>
+      <div class="hero-shot">
+        <img src="screenshots/library.jpg" width="1280" height="720" alt="La biblioteca de Recompa con carátulas y filtros por plataforma" data-i18n-alt="shot.library">
+      </div>
+    </section>
+
+    <section class="stats" aria-label="Recompa en cifras">
+      <div><strong id="stat-ports">250+</strong><span data-i18n="stats.ports">ports</span></div>
+      <div><strong id="stat-platforms">20+</strong><span data-i18n="stats.platforms">plataformas originales</span></div>
+      <div><strong>SHA-256</strong><span data-i18n="stats.verified">y firma verificados en cada instalación</span></div>
+    </section>
+
+    <section class="features">
+      <h2 data-i18n="features.title">Todo lo que necesitas para jugar ports en Android</h2>
+      <div class="grid">
+        <article><h3 data-i18n="f1.t">Catálogo curado</h3><p data-i18n="f1.d">Más de 250 ports de PC, Nintendo 64, Xbox 360, GameCube, GBA, PSP y más. Si un juego tiene varios ports, están juntos en su página para que elijas cuál instalar, cada uno con sus valoraciones.</p></article>
+        <article><h3 data-i18n="f2.t">Instalaciones verificadas</h3><p data-i18n="f2.d">Cada APK se descarga del repositorio de su autor y se comprueban su SHA-256 y su firma antes de instalarlo.</p></article>
+        <article><h3 data-i18n="f3.t">Asistente de archivos</h3><p data-i18n="f3.d">Comprueba tu ROM o los datos del juego y los deja listos donde el port los busca.</p></article>
+        <article><h3 data-i18n="f4.t">Actualizaciones</h3><p data-i18n="f4.d">Actualiza todos los ports de una vez, recibe avisos de nuevas versiones o vuelve a una anterior si algo se rompe. Recompa también se actualiza solo.</p></article>
+        <article><h3 data-i18n="f5.t">Hecho para mando</h3><p data-i18n="f5.d">Interfaz pensada para cruceta y gatillos, con búsqueda y favoritos a un botón. Ideal para consolas portátiles como la AYN Thor.</p></article>
+        <article><h3 data-i18n="f6.t">Modo frontend</h3><p data-i18n="f6.d">Pantalla completa, y Recompa puede ser la pantalla de inicio de tu portátil. Con informes de compatibilidad de otros jugadores.</p></article>
+        <article><h3 data-i18n="f7.t">Descargas en segundo plano</h3><p data-i18n="f7.d">Pausa y reanuda las descargas sin perder lo descargado, o sal de la app mientras los ports se descargan e instalan. Y si ya tenías un port instalado por tu cuenta, puedes vincularlo.</p></article>
+        <article><h3 data-i18n="f8.t">Sin cuenta de GitHub</h3><p data-i18n="f8.d">Valora cómo va cada port o sugiere uno que falte en el catálogo directamente desde la app.</p></article>
+        <article><h3 data-i18n="f10.t">Seis estilos</h3><p data-i18n="f10.d">Clásico, Estanterías, Lista, Arcade, Mosaico o Vitrina: cada estilo cambia la biblioteca, las fichas y los ajustes, no solo los colores.</p></article>
+        <article><h3 data-i18n="f11.t">Segunda pantalla</h3><p data-i18n="f11.d">En portátiles de doble pantalla como la AYN Thor, la pantalla de abajo muestra la ficha del port, su galería y la cola de descargas.</p></article>
+        <article><h3 data-i18n="f12.t">Siempre algo nuevo</h3><p data-i18n="f12.d">Una sección con los ports añadidos recientemente, galerías de imágenes en cada port y las novedades de cada versión al actualizar.</p></article>
+        <article><h3 data-i18n="f9.t">En tu idioma</h3><p data-i18n="f9.d">Recompa está en inglés, español, francés, portugués y alemán.</p></article>
+      </div>
+    </section>
+
+    <section class="shots">
+      <img src="screenshots/platform.jpg" width="1280" height="720" loading="lazy" alt="Ports de Nintendo 64" data-i18n-alt="shot.platform">
+      <img src="screenshots/port.jpg" width="1280" height="720" loading="lazy" alt="La página de un port" data-i18n-alt="shot.port">
+    </section>
+
+    <section class="styles" id="styles">
+      <h2 data-i18n="styles.title">Elige tu estilo</h2>
+      <p class="sub" data-i18n="styles.sub">Seis estilos que cambian cómo se ve y se recorre todo Recompa. Se cambian en Ajustes → Estilo.</p>
+      <div class="gallery">
+        <figure><img src="screenshots/style-classic.jpg" width="1280" height="720" loading="lazy" alt="La biblioteca con el estilo Clásico" data-i18n-alt="style.classic.alt"><figcaption data-i18n="style.classic">Clásico</figcaption></figure>
+        <figure><img src="screenshots/style-shelves.jpg" width="1280" height="720" loading="lazy" alt="La biblioteca con el estilo Estanterías" data-i18n-alt="style.shelves.alt"><figcaption data-i18n="style.shelves">Estanterías</figcaption></figure>
+        <figure><img src="screenshots/style-list.jpg" width="1280" height="720" loading="lazy" alt="La biblioteca con el estilo Lista" data-i18n-alt="style.list.alt"><figcaption data-i18n="style.list">Lista</figcaption></figure>
+        <figure><img src="screenshots/style-arcade.jpg" width="1280" height="720" loading="lazy" alt="La biblioteca con el estilo Arcade" data-i18n-alt="style.arcade.alt"><figcaption data-i18n="style.arcade">Arcade</figcaption></figure>
+        <figure><img src="screenshots/style-mosaic.jpg" width="1280" height="720" loading="lazy" alt="La biblioteca con el estilo Mosaico" data-i18n-alt="style.mosaic.alt"><figcaption data-i18n="style.mosaic">Mosaico</figcaption></figure>
+        <figure><img src="screenshots/style-showcase.jpg" width="1280" height="720" loading="lazy" alt="La biblioteca con el estilo Vitrina" data-i18n-alt="style.showcase.alt"><figcaption data-i18n="style.showcase">Vitrina</figcaption></figure>
+      </div>
+    </section>
+
+    <section class="howto">
+      <h2 data-i18n="howto.title">Dónde está cada cosa</h2>
+      <div class="shots">
+        <figure><img src="screenshots/toolbar.jpg" width="1280" height="720" loading="lazy" alt="Los botones de sugerir un port y de ajustes en la biblioteca" data-i18n-alt="howto.toolbar.alt"><figcaption data-i18n="howto.toolbar">Sugiere un port con el botón + de la biblioteca. El engranaje de al lado abre los ajustes.</figcaption></figure>
+        <figure><img src="screenshots/settings.jpg" width="1280" height="720" loading="lazy" alt="El selector de idioma en los ajustes" data-i18n-alt="howto.settings.alt"><figcaption data-i18n="howto.settings">Cambia el idioma al principio de los ajustes.</figcaption></figure>
+        <figure><img src="screenshots/port-link.jpg" width="1280" height="720" loading="lazy" alt="El botón Ya lo tengo instalado en la página de un port" data-i18n-alt="howto.link.alt"><figcaption data-i18n="howto.link">¿Ya tenías el port instalado? Vincúlalo desde su página, bajo el botón de instalar.</figcaption></figure>
+        <figure><img src="screenshots/report-button.jpg" width="1280" height="720" loading="lazy" alt="El botón para informar de cómo funciona un port" data-i18n-alt="howto.report.alt"><figcaption data-i18n="howto.report">Al final de la página de cada port puedes contar cómo te funciona, sin cuenta de GitHub.</figcaption></figure>
+      </div>
+    </section>
+
+    <section class="catalog" id="catalog">
+      <h2 data-i18n="catalog.title">El catálogo</h2>
+      <p class="sub" data-i18n="catalog.sub">Se actualiza solo varias veces al día con las nuevas versiones de cada port.</p>
+      <div class="filters">
+        <input id="search" type="search" placeholder="Buscar un juego" data-i18n-placeholder="catalog.search" autocomplete="off">
+        <div class="chips" id="chips"></div>
+      </div>
+      <div class="ports" id="ports"><p class="empty" data-i18n="catalog.loading">Cargando el catálogo…</p></div>
+    </section>
+
+    <section class="install" id="install">
+      <h2 data-i18n="install.title">Cómo instalarlo</h2>
+      <p class="sub" data-i18n="install.sub">Recompa no está en Google Play: los ports se instalan desde GitHub, algo que la tienda no permite. Se instala como cualquier APK.</p>
+      <ol class="steps">
+        <li><h3 data-i18n="s1.t">Descarga el APK</h3><p data-i18n="s1.d">Abre esta página en tu Android y pulsa «Descargar APK».</p></li>
+        <li><h3 data-i18n="s2.t">Permite la instalación</h3><p data-i18n="s2.d">Abre el archivo descargado. Android te pedirá permitir instalar apps desde tu navegador o gestor de archivos: actívalo para Recompa. Si Google Play Protect te avisa, pulsa «Más detalles» y luego «Instalar de todas formas».</p></li>
+        <li><h3 data-i18n="s3.t">Da permiso para instalar ports</h3><p data-i18n="s3.d">La primera vez que abras Recompa te explica el permiso que necesita para instalar ports.</p></li>
+        <li><h3 data-i18n="s4.t">Elige un juego</h3><p data-i18n="s4.d">Pulsa «Instalar» en un port y, si necesita archivos del juego, usa «Archivos que necesitas» en su página.</p></li>
+      </ol>
+      <div class="note">
+        <h3 data-i18n="upd.t">Se actualiza solo</h3>
+        <p data-i18n="upd.d">Recompa te avisa cuando sale una versión nueva, dentro de la app y con una notificación, y se instala encima de la que tienes sin perder tus ports ni tus ajustes.</p>
+      </div>
+    </section>
+
+    <section class="support" id="support">
+      <div class="card">
+        <div class="mug"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h12v6a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V8Z" fill="currentColor"/><path d="M16 9.5h1.5a2.5 2.5 0 0 1 0 5H16" fill="none" stroke="currentColor" stroke-width="2"/><path d="M10 15.2s-2.6-1.6-2.6-3.2a1.4 1.4 0 0 1 2.6-.7 1.4 1.4 0 0 1 2.6.7c0 1.6-2.6 3.2-2.6 3.2Z" fill="#FF5E5B"/></svg></div>
+        <div class="txt">
+          <h2 data-i18n="support.title">Apoya Recompa</h2>
+          <p data-i18n="support.d">Recompa es gratis, open source y sin anuncios. Si te resulta útil, puedes invitarme a un café en Ko-fi para ayudar a mantenerlo y seguir añadiendo ports.</p>
+        </div>
+        <a class="btn primary" href="https://ko-fi.com/joeyrt">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h12v6a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V8Z" fill="currentColor"/><path d="M16 9.5h1.5a2.5 2.5 0 0 1 0 5H16" fill="none" stroke="currentColor" stroke-width="2"/><path d="M10 15.2s-2.6-1.6-2.6-3.2a1.4 1.4 0 0 1 2.6-.7 1.4 1.4 0 0 1 2.6.7c0 1.6-2.6 3.2-2.6 3.2Z" fill="#FF5E5B"/></svg>
+          <span data-i18n="support.btn">Invitar a un café</span>
+        </a>
+      </div>
+    </section>
+
+    <section class="faq" id="faq">
+      <h2 data-i18n="faq.title">Preguntas frecuentes</h2>
+      <details><summary data-i18n="q1.t">¿Recompa incluye juegos o ROMs?</summary><p data-i18n="q1.d">No. Recompa no incluye, aloja ni descarga juegos, ROMs, ISOs ni ningún archivo con copyright. Cada port necesita una copia legítima del juego original.</p></details>
+      <details><summary data-i18n="q2.t">¿Es seguro instalar un APK fuera de la tienda?</summary><p data-i18n="q2.d">Recompa está siempre firmado con la misma clave y su código es público en GitHub. Además, comprueba el SHA-256 y la firma de cada port antes de instalarlo. Si algo no coincide, no lo instala.</p></details>
+      <details><summary data-i18n="qpp.t">¿Por qué Play Protect dice que es una app dañina?</summary><p data-i18n-html="qpp.d">Google Play Protect desconfía de las apps nuevas que no están en Google Play y que pueden instalar otras apps, como hace cualquier tienda. No ha detectado nada concreto: puedes comprobarlo subiendo el APK a <a href="https://www.virustotal.com/">VirusTotal</a>. Para instalarlo, pulsa «Más detalles» y luego «Instalar de todas formas». El aviso irá desapareciendo a medida que más gente lo instale.</p></details>
+      <details><summary data-i18n="q3.t">¿En qué dispositivos funciona?</summary><p data-i18n="q3.d">En Android 8.0 o superior. Está pensado para portátiles con mando como la AYN Thor, pero funciona en móviles y tablets. Cada port tiene sus propios requisitos, y Recompa te dice cuáles son compatibles con tu dispositivo.</p></details>
+      <details><summary data-i18n="q5.t">¿Cómo informo de un problema?</summary><p data-i18n-html="q5.d">Abre un <a href="https://github.com/kalasyan/recompa/issues">issue en GitHub</a>. Los problemas de un port concreto son de su autor; desde Recompa puedes enviar un informe de compatibilidad o sugerir un port, sin necesidad de cuenta de GitHub.</p></details>
+    </section>
+  </main>
+
+  <footer>
+    <p data-i18n="foot.legal">Recompa no incluye, aloja ni descarga juegos, ROMs, ISOs ni otros archivos con copyright. Los ports pertenecen a sus autores y se descargan de sus propios repositorios.</p>
+    <p><a href="https://github.com/kalasyan/recompa">GitHub</a> · <a href="https://github.com/kalasyan/recompa/blob/main/LICENSE">GPL-3.0</a> · <a href="https://github.com/kalasyan/recompa/releases" data-i18n="foot.releases">Todas las versiones</a> · <a href="https://ko-fi.com/joeyrt">Ko-fi</a></p>
+  </footer>
+
+  <script src="app.js?v=b68805189e"></script>
+</body>
+</html>
